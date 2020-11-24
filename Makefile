@@ -11,6 +11,8 @@ PKG_RELEASE:=1
 # This is a custom variable, used below
 SOURCE_DIR:=./src
 
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+
 include $(INCLUDE_DIR)/package.mk
 
 # Package definition; instructs on how and where our package will appear in the overall configuration menu ('make menuconfig')
@@ -24,7 +26,7 @@ endef
 
 # Package description; a more verbose description on what our package does
 define Package/ua2f/description
-  Change User-agent to Fwords to prevent be checked by Dr.Com.
+  Change User-agent to Fwords to prevent being checked by Dr.Com.
 endef
 
 # Package preparation instructions; create the build directory and copy the source code.
@@ -37,14 +39,14 @@ endef
 
 # Package build instructions; invoke the target-specific compiler to first compile the source file, and then to link the file into the final executable
 define Build/Compile
-        $(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/helloworld.o -c $(PKG_BUILD_DIR)/helloworld.c
-        $(TARGET_CC) $(TARGET_LDFLAGS) -o $(PKG_BUILD_DIR)/$1 $(PKG_BUILD_DIR)/helloworld.o
+        $(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/ua2f.o -c $(PKG_BUILD_DIR)/ua2f.c
+        $(TARGET_CC) $(TARGET_LDFLAGS) -o $(PKG_BUILD_DIR)/$1 $(PKG_BUILD_DIR)/ua2f.o
 endef
 
 # Package install instructions; create a directory inside the package to hold our executable, and then copy the executable we built previously into the folder
 define Package/ua2f/install
         $(INSTALL_DIR) $(1)/usr/bin
-        $(INSTALL_BIN) $(PKG_BUILD_DIR)/helloworld $(1)/usr/bin
+        $(INSTALL_BIN) $(PKG_BUILD_DIR)/ua2f $(1)/usr/bin
 endef
 
 # This command is always the last, it uses the definitions and variables we give above in order to get the job done
