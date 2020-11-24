@@ -9,9 +9,14 @@ PKG_RELEASE:=1
 
 # Source settings (i.e. where to find the source codes)
 # This is a custom variable, used below
-SOURCE_DIR:=./src
+# SOURCE_DIR:=./src
 
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+
+MAKE_OPTS:=$(KERNEL_MAKE_FLAGS) \
+	M="$(PKG_BUILD_DIR)" \
+	EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
+	$(EXTRA_KCONFIG)
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -33,7 +38,7 @@ endef
 # The last command is necessary to ensure our preparation instructions remain compatible with the patching system.
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	cp $(SOURCE_DIR)/* $(PKG_BUILD_DIR)
+	cp ./src/* $(PKG_BUILD_DIR)
 	$(Build/Patch)
 endef
 
