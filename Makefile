@@ -17,7 +17,7 @@ MAKE_OPTS:=$(KERNEL_MAKE_FLAGS) \
 	EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
 	$(EXTRA_KCONFIG)
 
-TARGET_LDFLAGS+=
+TARGET_LDFLAGS+=-lmnl -lnetfilter_queue
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -28,6 +28,7 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords
   URL:=https://learningman.top
+  DEPENDS:=+libmnl +libnetfilter-queue
 endef
 
 # Package description; a more verbose description on what our package does
@@ -46,7 +47,7 @@ endef
 # Package build instructions; invoke the target-specific compiler to first compile the source file, and then to link the file into the final executable
 define Build/Compile
 	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/ua2f.o -c $(PKG_BUILD_DIR)/ua2f.c
-	$(TARGET_CC) $(TARGET_LDFLAGS) -o $(PKG_BUILD_DIR)/$1 $(PKG_BUILD_DIR)/ua2f.o -lmnl -lnetfilter_queue
+	$(TARGET_CC) $(TARGET_LDFLAGS) -o $(PKG_BUILD_DIR)/$1 $(PKG_BUILD_DIR)/ua2f.o
 endef
 
 # Package install instructions; create a directory inside the package to hold our executable, and then copy the executable we built previously into the folder
