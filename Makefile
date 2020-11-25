@@ -10,12 +10,7 @@ PKG_RELEASE:=1
 # This is a custom variable, used below
 # SOURCE_DIR:=./src
 
-PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-
-MAKE_OPTS:=$(KERNEL_MAKE_FLAGS) \
-	M="$(PKG_BUILD_DIR)" \
-	EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
-	$(EXTRA_KCONFIG)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 TARGET_LDFLAGS+=-lmnl -lnetfilter_queue
 
