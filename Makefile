@@ -1,5 +1,4 @@
 include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/kernel.mk
 
 # Name, version and release number
 # The name and version of your package are used to define the variable to point to the build directory of your package: $(PKG_BUILD_DIR)
@@ -17,6 +16,8 @@ MAKE_OPTS:=$(KERNEL_MAKE_FLAGS) \
 	M="$(PKG_BUILD_DIR)" \
 	EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
 	$(EXTRA_KCONFIG)
+
+TARGET_LDFLAGS+=
 
 include $(INCLUDE_DIR)/package.mk
 

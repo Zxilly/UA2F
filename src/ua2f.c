@@ -18,8 +18,32 @@
 /* only for NFQA_CT, not needed otherwise: */
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
-int main(int argc, char *argv[])
+int main(void)
 {
-    printf("Hello,world");
+    struct nfq_handle *h;
+    h = nfq_open();
+    if (!h) {
+        fprintf(stderr, "error during nfq_open()\n");
+        exit(1);
+    }
+
+    printf("unbinding existing nf_queue handler for AF_INET (if any)\n");
+    if (nfq_unbind_pf(h, AF_INET) < 0) {
+        fprintf(stderr, "error during nfq_unbind_pf()\n");
+        exit(1);
+    }
+
+    printf("binding nfnetlink_queue as nf_queue handler for AF_INET\n");
+    if (nfq_bind_pf(h, AF_INET) < 0) {
+        fprintf(stderr, "error during nfq_bind_pf()\n");
+        exit(1);
+    }
+
+    printf("close nft queue handle.\n");
+    if (nfq_close(h) < 0) {
+        fprintf(stderr, "error during nfq_close()\n");
+        exit(1);
+    }
+
     return 0;
 }
