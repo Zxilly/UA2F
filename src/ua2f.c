@@ -11,6 +11,9 @@
 #include <linux/netfilter/nfnetlink.h>
 #include <linux/netfilter/nfnetlink_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <libnetfilter_queue/libnetfilter_queue_tcp.h>
+#include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
+#include <libnetfilter_queue/pktbuff.h>
 
 #include <linux/ip.h>
 #include <linux/udp.h>
@@ -27,17 +30,33 @@
 
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *customdata) {
     struct nfqnl_msg_packet_hdr *ph;
-    struct iphdr *iph;
     uint32_t id;
     int r;
     unsigned char *payload;
+    struct iphdr *iph;
+    struct udphdr *udph;
+    struct tcphdr *tcph;
+    char saddr_str[16];
+    char daddr_str[16];
+
+    struct in_addr tmp_in_addr;
 
     ph = nfq_get_msg_packet_hdr(nfa);
-    if(ph){
+    if (ph) {
         id = ntohl(ph->packet_id);
         r = nfq_get_payload(nfa, &payload);
-        if(r>=sizeof(*iph)){
-            iph = (struct iphdr *)payload;
+        if (r >= sizeof(*iph)) {
+            iph = (struct iphdr *) payload;
+            tmp_in_addr.s_addr = iph->saddr;
+            strcpy(saddr_str, inet_ntoa(tmp_in_addr)); //源地址
+            tmp_in_addr.s_addr = iph->daddr;
+            strcpy(daddr_str, inet_ntoa(tmp_in_addr)); //目的地址
+            if (iph->protocol == IPPROTO_TCP) {
+                pktb_alloc
+            }
+        } else {
+            printf("ACCEPT  unknown protocol\n");
+            nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
         }
     }
     return 0;
@@ -85,7 +104,7 @@ int main(void) {
     }
 
     fd = nfq_fd(h);
-    
+
     while ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0) {
         printf("pkt received\n");
         nfq_handle_packet(h, buf, rv);
