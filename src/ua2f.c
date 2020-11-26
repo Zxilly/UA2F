@@ -42,7 +42,8 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *
     }
     return 0;
 }
-
+//http://just4coding.com/2017/03/27/nfqueue/
+//http://www.hyuuhit.com/2018/07/13/nfqueue/
 
 int main(void) {
 
