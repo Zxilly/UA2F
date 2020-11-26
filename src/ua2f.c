@@ -17,6 +17,8 @@
 /* only for NFQA_CT, not needed otherwise: */
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
+const int queue_number = 10010;
+
 static struct mnl_socket *nl;
 
 static void nfq_send_verdict(int queue_num, uint32_t id)
@@ -109,11 +111,6 @@ int main(int argc, char *argv[])
     int ret;
     unsigned int portid, queue_num;
 
-    if (argc != 2) {
-        printf("Usage: %s [queue_num]\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-    queue_num = atoi(argv[1]);
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
     if (nl == NULL) {
@@ -133,7 +130,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
+    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
@@ -141,7 +138,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
+    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
     mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO));
