@@ -22,6 +22,8 @@ static struct mnl_socket *nl;
 
 static int queue_cb(const struct nlmsghdr *nlh, void *customdata)
 {
+    printf("cb called");
+
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX+1] = {};
     uint32_t id = 0, skbinfo;
