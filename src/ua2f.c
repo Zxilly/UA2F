@@ -93,7 +93,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
 
     if(tcppkpayload){
         for(unsigned int i = 0;i<tcppklen;i+=2){
-            printf("%c",*tcppkpayload);
+            printf("%c",*(tcppkpayload+i));
         }
         printf("\n");
     }
