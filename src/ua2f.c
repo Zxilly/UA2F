@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     puts("sign7");
 
     for (;;) {
-        printf("main loop");
+        //printf("main loop");
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) {
             perror("mnl_socket_recvfrom");
