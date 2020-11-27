@@ -85,7 +85,9 @@ int main(int argc, char *argv[])
     char *buf;
     /* largest possible packet payload, plus netlink data overhead: */
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE/2);
+    puts("bbbbbbbb");
     struct nlmsghdr *nlh;
+    puts("cccccccc");
     int ret;
     unsigned int portid;
 
