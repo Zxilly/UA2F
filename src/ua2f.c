@@ -13,7 +13,11 @@
 #include <linux/types.h>
 #include <linux/netfilter/nfnetlink_queue.h>
 
+
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <libnetfilter_queue/libnetfilter_queue_tcp.h>
+#include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
+#include <libnetfilter_queue/pktbuff.h>
 
 /* only for NFQA_CT, not needed otherwise: */
 #include <linux/netfilter/nfnetlink_conntrack.h>
@@ -29,14 +33,14 @@ static void nfq_send_verdict(int queue_num, uint32_t id) {
     nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
 
     /* example to set the connmark. First, start NFQA_CT section: */
-    nest = mnl_attr_nest_start(nlh, NFQA_CT);
+    //nest = mnl_attr_nest_start(nlh, NFQA_CT);
 
     /* then, add the connmark attribute: */
-    mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
+    //mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
     /* more conntrack attributes, e.g. CTA_LABELS could be set here */
 
     /* end conntrack section */
-    mnl_attr_nest_end(nlh, nest);
+    //mnl_attr_nest_end(nlh, nest);
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -44,12 +48,18 @@ static void nfq_send_verdict(int queue_num, uint32_t id) {
     }
 }
 
-static int queue_cb(const struct nlmsghdr *nlh, void *data) {
+static int queue_cb(struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX + 1] = {};
     uint32_t id = 0, skbinfo;
     struct nfgenmsg *nfg;
     uint16_t plen;
+    struct pkt_buff *pktb;
+    struct iphdr *ippkhdl;
+    struct tcphdr *tcppkhdl;
+    unsigned char *tcppkpayload;
+    unsigned int tcppklen;
+
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
         perror("problems parsing");
@@ -66,7 +76,32 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
-    /* void *payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]); */
+    void *payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
+
+    pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
+
+    ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
+
+    if (nfq_ip_set_transport_header(pktb, ippkhdl) < 0) {
+        fputs("set transport header failed\n", stderr);
+        return MNL_CB_ERROR;
+    }
+
+    tcppkhdl = nfq_tcp_get_hdr(pktb); //获取tcp header
+    tcppkpayload = nfq_tcp_get_payload(tcppkhdl,pktb); //获取tcp载荷
+    tcppklen = nfq_tcp_get_payload_len(tcppkhdl,pktb); //获取tcp长度
+
+    if(tcppkpayload){
+        for(unsigned int i = 0;i<tcppklen;i+=2){
+            printf("%c",*tcppkpayload);
+        }
+        printf("\n");
+    }
+
+    if (pktb_mangled(pktb)) {
+        printf("modified\n");
+        nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
+    }
 
     skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
 
@@ -78,10 +113,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (skbinfo & NFQA_SKB_GSO)
         printf("GSO ");
-
-    if (ntohl(ph->hw_protocol)==IPPROTO_TCP){
-        printf("Turly TCP ");
-    }
 
     id = ntohl(ph->packet_id);
     printf("packet received (id=%u hw=%u hook=%u, payload len %u",

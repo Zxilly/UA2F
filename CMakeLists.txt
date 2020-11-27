@@ -4,4 +4,5 @@ project(UA2F C)
 set(CMAKE_C_STANDARD 11)
 
 add_executable(main src/ua2f.c)
+add_executable(test test/test.c)
 target_link_libraries(main mnl netfilter_queue)
