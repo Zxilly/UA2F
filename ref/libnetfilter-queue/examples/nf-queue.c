@@ -20,8 +20,7 @@
 
 static struct mnl_socket *nl;
 
-static void
-nfq_send_verdict(int queue_num, uint32_t id)
+static void nfq_send_verdict(int queue_num, uint32_t id)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
