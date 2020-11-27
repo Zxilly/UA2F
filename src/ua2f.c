@@ -45,7 +45,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *customdata)
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     /* void *payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]); */
 
-    skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
+//    skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
 
     if (attr[NFQA_CAP_LEN]) {
         uint32_t orig_len = ntohl(mnl_attr_get_u32(attr[NFQA_CAP_LEN]));
@@ -53,11 +53,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *customdata)
             printf("truncated ");
     }
 
-    if (skbinfo & NFQA_SKB_GSO) //NFQA_SKB_GSO为2，取倒数第二位
-        printf("GSO ");
+//    if (skbinfo & NFQA_SKB_GSO) //NFQA_SKB_GSO为2，取倒数第二位
+//        printf("GSO ");
 
     id = ntohl(ph->packet_id);
-    printf("packet received (id=%u hw=0x%04x hook=%u, payload len %u",
+    if (ph->hw_protocol==IPPROTO_TCP){
+        printf("get a TCP packet\n");
+    }
+    printf("packet received (id=%u hw=%u hook=%u, payload len %u",
            id, ntohs(ph->hw_protocol), ph->hook, plen);
 
     /*
@@ -67,9 +70,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *customdata)
      * If these packets are later forwarded/sent out, the checksums will
      * be corrected by kernel/hardware.
      */
-    if (skbinfo & NFQA_SKB_CSUMNOTREADY) //NFQA_SKB_GSO为2，取倒数第二位
-        printf(", checksum not ready");
-    puts(")");
+//    if (skbinfo & NFQA_SKB_CSUMNOTREADY) //NFQA_SKB_GSO为2，取倒数第二位
+//        printf(", checksum not ready");
+//    puts(")");
 
     return MNL_CB_OK;
 }
@@ -81,7 +84,7 @@ int main(int argc, char *argv[])
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE/2);
     struct nlmsghdr *nlh;
     int ret;
-    unsigned int portid, queue_num;
+    unsigned int portid;
 
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
