@@ -88,12 +88,15 @@ int main(int argc, char *argv[])
     int ret;
     unsigned int portid;
 
+    printf("sign1");
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
     if (nl == NULL) {
         perror("mnl_socket_open");
         exit(EXIT_FAILURE);
     }
+
+    printf("sign2");
 
     if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
         perror("mnl_socket_bind");
@@ -107,6 +110,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    printf("sign3");
+
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
 
@@ -115,11 +120,15 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    printf("sign4");
+
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
     mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO));
     mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO));
+
+    printf("sign5");
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -130,8 +139,13 @@ int main(int argc, char *argv[])
      * on kernel side.  In most cases, userspace isn't interested
      * in this information, so turn it off.
      */
+
+    printf("sign6");
+
     ret = 1;
     mnl_socket_setsockopt(nl, NETLINK_NO_ENOBUFS, &ret, sizeof(int));
+
+    printf("sign7");
 
     for (;;) {
         printf("main loop");
