@@ -80,7 +80,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         printf("GSO ");
 
     if (ntohl(ph->hw_protocol)==IPPROTO_TCP){
-        printf("TCP Turly ");
+        printf("Turly TCP ");
     }
 
     id = ntohl(ph->packet_id);
