@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
     mnl_socket_setsockopt(nl, NETLINK_NO_ENOBUFS, &ret, sizeof(int));
 
     for (;;) {
+        printf("main loop");
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) {
             perror("mnl_socket_recvfrom");
