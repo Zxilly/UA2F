@@ -81,6 +81,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *customdata)
 
 int main(int argc, char *argv[])
 {
+    puts("aaaaaaaa");
     char *buf;
     /* largest possible packet payload, plus netlink data overhead: */
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE/2);
