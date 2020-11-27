@@ -79,7 +79,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (skbinfo & NFQA_SKB_GSO)
         printf("GSO ");
 
-    if (ph->hw_protocol==IPPROTO_TCP){
+    if (ntohl(ph->hw_protocol)==IPPROTO_TCP){
         printf("TCP Turly ");
     }
 

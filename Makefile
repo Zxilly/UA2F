@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 # The name and version of your package are used to define the variable to point to the build directory of your package: $(PKG_BUILD_DIR)
 PKG_NAME:=UA2F
 PKG_VERSION:=1.0
-PKG_RELEASE:=10
+PKG_RELEASE:=11
 
 # Source settings (i.e. where to find the source codes)
 # This is a custom variable, used below
