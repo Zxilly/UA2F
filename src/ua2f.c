@@ -92,7 +92,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     tcppklen = nfq_tcp_get_payload_len(tcppkhdl,pktb); //获取tcp长度
 
     if(tcppkpayload){
-        for(unsigned int i = 0;i<tcppklen;i+=2){
+        for(int i = 0;i<tcppklen;i++){
             printf("%c",*(tcppkpayload+i));
         }
         printf("\n");

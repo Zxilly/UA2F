@@ -14,5 +14,7 @@
 
 
 int main(){
-    printf("%u",htonl(2048));
+    char a = 'A';
+    unsigned int b = 1;
+    printf("%c",a+b);
 }
