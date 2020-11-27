@@ -14,39 +14,13 @@
 #include <linux/netfilter/nfnetlink_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
-/* only for NFQA_CT, not needed otherwise: */
-#include <linux/netfilter/nfnetlink_conntrack.h>
 
 const int queue_number = 10010;
 
 static struct mnl_socket *nl;
 
-static void nfq_send_verdict(int queue_num, uint32_t id)
-{
-    char buf[MNL_SOCKET_BUFFER_SIZE];
-    struct nlmsghdr *nlh;
-    struct nlattr *nest;
 
-    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
-    nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
-
-    /* example to set the connmark. First, start NFQA_CT section: */
-    nest = mnl_attr_nest_start(nlh, NFQA_CT);
-
-    /* then, add the connmark attribute: */
-    mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
-    /* more conntrack attributes, e.g. CTA_LABELS could be set here */
-
-    /* end conntrack section */
-    mnl_attr_nest_end(nlh, nest);
-
-    if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
-        perror("mnl_socket_send");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static int queue_cb(const struct nlmsghdr *nlh, void *data)
+static int queue_cb(const struct nlmsghdr *nlh, void *customdata)
 {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX+1] = {};
@@ -54,9 +28,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data)
     struct nfgenmsg *nfg;
     uint16_t plen;
 
-    if (nfq_nlmsg_parse(nlh, attr) < 0) {
+    if (nfq_nlmsg_parse(nlh, attr) == MNL_CB_ERROR) {
         perror("problems parsing");
-        return MNL_CB_ERROR;
+        return MNL_CB_ERROR; //回调函数错误
     }
 
     nfg = mnl_nlmsg_get_payload(nlh);
@@ -79,7 +53,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data)
             printf("truncated ");
     }
 
-    if (skbinfo & NFQA_SKB_GSO)
+    if (skbinfo & NFQA_SKB_GSO) //NFQA_SKB_GSO为2，取倒数第二位
         printf("GSO ");
 
     id = ntohl(ph->packet_id);
@@ -93,11 +67,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data)
      * If these packets are later forwarded/sent out, the checksums will
      * be corrected by kernel/hardware.
      */
-    if (skbinfo & NFQA_SKB_CSUMNOTREADY)
+    if (skbinfo & NFQA_SKB_CSUMNOTREADY) //NFQA_SKB_GSO为2，取倒数第二位
         printf(", checksum not ready");
     puts(")");
-
-    nfq_send_verdict(ntohs(nfg->res_id), id);
 
     return MNL_CB_OK;
 }
