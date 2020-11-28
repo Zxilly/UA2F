@@ -55,7 +55,7 @@ static _Bool http_judge(const unsigned char *tcppayload){
     return false;
 }
 
-static char *getF(int len){
+static char* getF(int len){
     char* str = (char *)malloc(len);
     return str;
 }
@@ -116,7 +116,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     void *payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-    pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
+    pktb = pktb_alloc(AF_INET, payload, plen, 255); //IP包
 
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
 
@@ -161,9 +161,10 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                 }
             }
         }
-        /*if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,getF(ualength),ualength)<0){
+        printf("ua offset %d and length %d",uaoffset,ualength);
+        if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,getF(ualength),ualength)<0){
             perror("mangle packet");
-        }*/
+        }
     }
 
 
