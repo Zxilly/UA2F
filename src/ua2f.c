@@ -161,9 +161,9 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                 }
             }
         }
-        if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,getF(ualength),ualength)<0){
+        /*if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,getF(ualength),ualength)<0){
             perror("mangle packet");
-        }
+        }*/
     }
 
 
