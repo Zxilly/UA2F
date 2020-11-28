@@ -55,11 +55,6 @@ static _Bool http_judge(const unsigned char *tcppayload){
     return false;
 }
 
-static char* getF(unsigned int len){
-    char* str = (char *)malloc(len);
-    return str;
-}
-
 static void nfq_send_verdict(int queue_num, uint32_t id) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
@@ -96,6 +91,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     unsigned int tcppklen;
     unsigned int uaoffset;
     unsigned int ualength;
+    char *str;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -160,8 +156,10 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                 }
             }
         }
+        str = (char *)malloc(ualength);
+        memset(str,'F',ualength);
         printf("ua offset %d and length %d",uaoffset,ualength);
-        nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,getF(ualength),ualength);
+        nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
     }
 
 
