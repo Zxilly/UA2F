@@ -55,7 +55,7 @@ static _Bool http_judge(const unsigned char *tcppayload){
     return false;
 }
 
-static char* getF(int len){
+static char* getF(unsigned int len){
     char* str = (char *)malloc(len);
     return str;
 }
@@ -63,7 +63,6 @@ static char* getF(int len){
 static void nfq_send_verdict(int queue_num, uint32_t id) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
-    struct nlattr *nest;
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
     nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
@@ -95,8 +94,8 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     struct tcphdr *tcppkhdl;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
-    int uaoffset;
-    int ualength;
+    unsigned int uaoffset;
+    unsigned int ualength;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -137,7 +136,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
         if(http_judge(tcppkpayload)){
             printf("checked HTTP\n");
         }
-        for(int i = 0;i<tcppklen;i++){
+        for(unsigned int i = 0;i<tcppklen;i++){
             if (*(tcppkpayload+i)=='\n'){
                 if(*(tcppkpayload+i+1)=='\r'){
                     break; //http 头部结束，没有找到 User-Agent
@@ -152,7 +151,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                             }
                         }*/
                         uaoffset=i+13;
-                        for(int j=i+13;j<tcppklen;j++){
+                        for(unsigned int j=i+13;j<tcppklen;j++){
                             if (*(tcppkpayload+j)=='\r'){
                                 ualength=j-i-13;
                             }

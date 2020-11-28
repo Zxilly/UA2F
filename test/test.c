@@ -12,9 +12,15 @@
 
 #include <linux/types.h>
 
+void trans(unsigned int a){
+    printf("%u",a);
+}
+
 
 int main(){
     char a = 'A';
     unsigned int b = 1;
-    printf("%c",a+b);
+    int c = 1;
+    trans(b);
+    trans(c);
 }
