@@ -93,4 +93,5 @@ dkms.conf
 # Project exclude paths
 /cmake-build-debug/
 /cmake-build-wsl/
+/cmake-build-ubuntu/
 

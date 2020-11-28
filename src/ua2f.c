@@ -146,14 +146,14 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                                 }
                             }*/
                             uaoffset=i+13;
+                            puts("jstart");
                             for(unsigned int j=i+13;j<tcppklen;j++){
-                                puts("jstart");
                                 printf("%c",*(tcppkpayload+j));
-                                puts("jstop");
                                 if (*(tcppkpayload+j)=='\r'){
                                     ualength=j-i-13;
                                 }
                             }
+                            puts("jstop");
                         }
                     }
                 }
