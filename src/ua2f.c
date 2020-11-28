@@ -156,8 +156,8 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                 }
             }
         }
-        str = (char *)malloc(ualength);
-        memset(str,'F',ualength);
+        //str = (char *)malloc(ualength);
+        //memset(str,'F',ualength);
         printf("ua offset %d and length %d",uaoffset,ualength);
         //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
     }
