@@ -89,8 +89,8 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     struct tcphdr *tcppkhdl;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
-    unsigned int uaoffset;
-    unsigned int ualength;
+    unsigned int uaoffset = 0;
+    unsigned int ualength = 0;
     char *str;
 
 
@@ -131,34 +131,36 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
         printf("\n");
         if(http_judge(tcppkpayload)){
             printf("checked HTTP\n");
-        }
-        for(unsigned int i = 0;i<tcppklen;i++){
-            if (*(tcppkpayload+i)=='\n'){
-                if(*(tcppkpayload+i+1)=='\r'){
-                    break; //http 头部结束，没有找到 User-Agent
-                } else {
-                    if(stringCmp(tcppkpayload+i+1,"User-Agent")){ //User-Agent: abcde
-                        /*for(int j=13;j<tcppklen-i;j++){ //tcppayload+i+j
-                            if (*(tcppkpayload+i+j)=='\r'){ //UA字段结束
-                                printf("\n");
-                                break;
-                            } else {
-                                printf("%c",*(tcppkpayload+i+j));
-                            }
-                        }*/
-                        uaoffset=i+13;
-                        for(unsigned int j=i+13;j<tcppklen;j++){
-                            if (*(tcppkpayload+j)=='\r'){
-                                ualength=j-i-13;
+            for(unsigned int i = 0;i<tcppklen;i++){
+                if (*(tcppkpayload+i)=='\n'){
+                    if(*(tcppkpayload+i+1)=='\r'){
+                        break; //http 头部结束，没有找到 User-Agent
+                    } else {
+                        if(stringCmp(tcppkpayload+i+1,"User-Agent")){ //User-Agent: abcde
+                            /*for(int j=13;j<tcppklen-i;j++){ //tcppayload+i+j
+                                if (*(tcppkpayload+i+j)=='\r'){ //UA字段结束
+                                    printf("\n");
+                                    break;
+                                } else {
+                                    printf("%c",*(tcppkpayload+i+j));
+                                }
+                            }*/
+                            uaoffset=i+13;
+                            for(unsigned int j=i+13;j<tcppklen;j++){
+                                if (*(tcppkpayload+j)=='\r'){
+                                    ualength=j-i-13;
+                                }
                             }
                         }
                     }
                 }
             }
+            printf("ua offset %d and length %d ",uaoffset,ualength);
         }
+
         //str = (char *)malloc(ualength);
         //memset(str,'F',ualength);
-        printf("ua offset %d and length %d",uaoffset,ualength);
+
         //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
     }
 
