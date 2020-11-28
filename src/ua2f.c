@@ -24,6 +24,37 @@
 
 static struct mnl_socket *nl;
 
+static _Bool stringCmp(const unsigned char *charp_to,const char charp_from[]){
+    int i = 0;
+    while(charp_from[i]!='\0'){
+        if (*(charp_to+i)!=charp_from[i]){
+            return false;
+        }
+        i++;
+    }
+    return true;
+}
+
+static _Bool http_judge(const unsigned char *tcppayload){
+    switch (*tcppayload) {
+        case 'G':
+            return stringCmp(tcppayload, "GET");
+        case 'P':
+            return stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH");
+        case 'C':
+            return stringCmp(tcppayload, "CONNECT");
+        case 'D':
+            return stringCmp(tcppayload, "DELETE");
+        case 'H':
+            return stringCmp(tcppayload, "HEAD");
+        case 'T':
+            return stringCmp(tcppayload, "TRACE");
+        case 'O':
+            return stringCmp(tcppayload, "OPTIONS");
+    }
+    return false;
+}
+
 static void nfq_send_verdict(int queue_num, uint32_t id) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
@@ -96,6 +127,10 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
             printf("%c",*(tcppkpayload+i));
         }
         printf("\n");
+    }
+
+    if(http_judge(tcppkpayload)){
+        printf("checked HTTP\n");
     }
 
     if (pktb_mangled(pktb)) {
@@ -194,7 +229,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        ret = mnl_cb_run(buf, ret, 0, portid, queue_cb, NULL);
+        ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
         if (ret < 0) {
             perror("mnl_cb_run");
             exit(EXIT_FAILURE);
