@@ -23,6 +23,7 @@
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
 static struct mnl_socket *nl;
+static const int queue_number = 10010;
 
 static _Bool stringCmp(const unsigned char *charp_to,const char charp_from[]){
     int i = 0;
@@ -92,6 +93,8 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     unsigned int uaoffset = 0;
     unsigned int ualength = 0;
     char *str;
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    struct nlmsghdr *nlh2;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -111,7 +114,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     void *payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-    pktb = pktb_alloc(AF_INET, payload, plen, 255); //IP包
+    pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
 
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
 
@@ -130,7 +133,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
         }
         printf("\n");
         if(http_judge(tcppkpayload)){
-            printf("checked HTTP\n");
+            //printf("checked HTTP\n");
             for(unsigned int i = 0;i<tcppklen;i++){
                 if (*(tcppkpayload+i)=='\n'){
                     if(*(tcppkpayload+i+1)=='\r'){
@@ -146,31 +149,49 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                                 }
                             }*/
                             uaoffset=i+13;
-                            puts("jstart");
+                            //puts("j_start");
                             for(unsigned int j=i+13;j<tcppklen;j++){
-                                printf("%c",*(tcppkpayload+j));
                                 if (*(tcppkpayload+j)=='\r'){
                                     ualength=j-i-13;
+                                    //printf("uaend\n");
+                                    printf("\n");
+                                    break;
                                 }
+                                printf("%c",*(tcppkpayload+j));
                             }
-                            puts("jstop");
+                            //puts("j_stop");
                         }
                     }
                 }
             }
             printf("ua offset %d and length %d\n",uaoffset,ualength);
+            str = (char *)malloc(ualength);
+            memset(str,'F',ualength);
+            for(int i=0;i<ualength;i++){
+                printf("%c",*(str+i));
+            }
+            if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength)==1){
+                printf("\nsuccess\n");
+            }
+//            char *test = (char *)malloc(3);
+//            *test = 'P';
+//            *(test+1) = 'U';
+//            *(test+2) = 'T';
+            //nfq_tcp_mangle_ipv4(pktb,0,3,test,3);
+            tcppkpayload = nfq_tcp_get_payload(tcppkhdl,pktb); //pktb成功修改
+            for(int i=0;i<tcppklen;i++){
+                printf("%c",*(tcppkpayload+i));
+            }
         }
 
-        //str = (char *)malloc(ualength);
-        //memset(str,'F',ualength);
 
         //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
     }
 
-
+    nlh2 = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, 10010);
     if (pktb_mangled(pktb)) {
         printf("modified\n");
-        nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
+        nfq_nlmsg_verdict_put_pkt(nlh2, pktb_data(pktb), pktb_len(pktb));
     }
 
     skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
@@ -185,7 +206,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
         printf("GSO ");
 
     id = ntohl(ph->packet_id);
-    printf("packet received (id=%u hw=%u hook=%u, payload len %u",
+    printf("packet received (id=%u hw=%x hook=%u, payload len %u",
            id, ntohs(ph->hw_protocol), ph->hook, plen);
 
     /*
@@ -198,7 +219,9 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     if (skbinfo & NFQA_SKB_CSUMNOTREADY) { printf(", checksum not ready"); }
     puts(")");
 
-    nfq_send_verdict(ntohs(nfg->res_id), id);
+    //nfq_send_verdict(10010, id);
+    nfq_nlmsg_verdict_put(nlh2,id,NF_ACCEPT);
+    mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
     return MNL_CB_OK;
 }
@@ -209,7 +232,7 @@ int main(int argc, char *argv[]) {
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE / 2);
     struct nlmsghdr *nlh;
     int ret;
-    unsigned int portid, queue_num = 10010;
+    unsigned int portid;
 
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
@@ -230,7 +253,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
+    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
@@ -238,7 +261,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
+    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
     mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO));

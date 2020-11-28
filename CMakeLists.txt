@@ -5,4 +5,6 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(main src/ua2f.c)
 add_executable(test test/test.c)
+add_executable(nf-queue src/nf-queue.c)
 target_link_libraries(main mnl netfilter_queue)
+target_link_libraries(nf-queue mnl netfilter_queue)
