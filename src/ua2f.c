@@ -55,6 +55,11 @@ static _Bool http_judge(const unsigned char *tcppayload){
     return false;
 }
 
+static char *getF(int len){
+    char* str = (char *)malloc(len);
+    return str;
+}
+
 static void nfq_send_verdict(int queue_num, uint32_t id) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
@@ -90,6 +95,8 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
     struct tcphdr *tcppkhdl;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
+    int uaoffset;
+    int ualength;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -136,17 +143,26 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                     break; //http 头部结束，没有找到 User-Agent
                 } else {
                     if(stringCmp(tcppkpayload+i+1,"User-Agent")){ //User-Agent: abcde
-                        for(int j=13;j<tcppklen-i;j++){ //tcppayload+i+j
+                        /*for(int j=13;j<tcppklen-i;j++){ //tcppayload+i+j
                             if (*(tcppkpayload+i+j)=='\r'){ //UA字段结束
                                 printf("\n");
                                 break;
                             } else {
                                 printf("%c",*(tcppkpayload+i+j));
                             }
+                        }*/
+                        uaoffset=i+13;
+                        for(int j=i+13;j<tcppklen;j++){
+                            if (*(tcppkpayload+j)=='\r'){
+                                ualength=j-i-13;
+                            }
                         }
                     }
                 }
             }
+        }
+        if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,getF(ualength),ualength)<0){
+            perror("mangle packet");
         }
     }
 
@@ -178,8 +194,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
      * If these packets are later forwarded/sent out, the checksums will
      * be corrected by kernel/hardware.
      */
-    if (skbinfo & NFQA_SKB_CSUMNOTREADY)
-        printf(", checksum not ready");
+    if (skbinfo & NFQA_SKB_CSUMNOTREADY) { printf(", checksum not ready"); }
     puts(")");
 
     nfq_send_verdict(ntohs(nfg->res_id), id);
