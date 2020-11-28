@@ -147,6 +147,9 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                             }*/
                             uaoffset=i+13;
                             for(unsigned int j=i+13;j<tcppklen;j++){
+                                puts("jstart");
+                                printf("%c",*(tcppkpayload+j));
+                                puts("jstop");
                                 if (*(tcppkpayload+j)=='\r'){
                                     ualength=j-i-13;
                                 }
@@ -155,7 +158,7 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
                     }
                 }
             }
-            printf("ua offset %d and length %d ",uaoffset,ualength);
+            printf("ua offset %d and length %d\n",uaoffset,ualength);
         }
 
         //str = (char *)malloc(ualength);
