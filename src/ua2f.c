@@ -257,21 +257,12 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //    struct nlmsghdr *nlh2;
 //    void *payload;
 
-    free(ph);
-    free(attr);
+
+
     free(pktb);
-    free(ippkhdl);
-    free(tcppkhdl);
-    if (tcppkpayload){
-        free(tcppkpayload);
-    }
     if (str){
         free(str);
     }
-    free(buf);
-    free(nlh2);
-    free(payload);
-
 
     return MNL_CB_OK;
 }
