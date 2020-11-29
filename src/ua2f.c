@@ -176,6 +176,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }*/
                 if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength)==1){
                     //printf("\nsuccess mangle\n");
+                    count++; //记录修改包的数量
                 }
             }
             //printf("ua offset %d and length %d\n",uaoffset,ualength);
@@ -233,7 +234,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     nfq_nlmsg_verdict_put(nlh2,id,NF_ACCEPT);
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
-    if(++count>=100){
+    if(count>=100){
         syslog(LOG_INFO,"Another 100 http messages.");
         count=0;
     }
