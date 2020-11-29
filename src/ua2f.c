@@ -93,9 +93,10 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
     unsigned int ualength = 0;
-    char *str;
+    char *str = NULL;
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh2;
+    void *payload;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -111,7 +112,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
-    void *payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
+    payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
 
@@ -238,6 +239,40 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         syslog(LOG_INFO,"Another 100 http messages.");
         count=0;
     }
+
+//    free all space
+//    struct nfqnl_msg_packet_hdr *ph = NULL;
+//    struct nlattr *attr[NFQA_MAX + 1] = {};
+//    uint32_t id;
+//    uint16_t plen;
+//    struct pkt_buff *pktb;
+//    struct iphdr *ippkhdl;
+//    struct tcphdr *tcppkhdl;
+//    unsigned char *tcppkpayload;
+//    unsigned int tcppklen;
+//    unsigned int uaoffset = 0;
+//    unsigned int ualength = 0;
+//    char *str;
+//    char buf[MNL_SOCKET_BUFFER_SIZE];
+//    struct nlmsghdr *nlh2;
+//    void *payload;
+
+    free(ph);
+    free(attr);
+    free(pktb);
+    free(ippkhdl);
+    free(tcppkhdl);
+    if (tcppkpayload){
+        free(tcppkpayload);
+    }
+    if (str){
+        free(str);
+    }
+    free(buf);
+    free(nlh2);
+    free(payload);
+
+
     return MNL_CB_OK;
 }
 
@@ -252,6 +287,7 @@ int main(void ) {
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
+    syslog(LOG_INFO,"UA2F has start.");
     if (nl == NULL) {
         perror("mnl_socket_open");
         exit(EXIT_FAILURE);
