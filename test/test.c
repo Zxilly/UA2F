@@ -18,9 +18,11 @@ void trans(unsigned int a){
 
 
 int main(){
-    char a = 'A';
+/*    char a = 'A';
     unsigned int b = 1;
     int c = 1;
     trans(b);
-    trans(c);
+    trans(c);*/
+    unsigned int a=20;
+    unsigned int b=20;
 }

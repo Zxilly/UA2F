@@ -1,18 +1,18 @@
-#include <errno.h>
+//#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <time.h>
+//#include <time.h>
+#include <syslog.h>
 #include <arpa/inet.h>
 
 #include <libmnl/libmnl.h>
 #include <linux/netfilter.h>
-#include <linux/netfilter/nfnetlink.h>
+//#include <linux/netfilter/nfnetlink.h>
 
-#include <linux/types.h>
+//#include <linux/types.h>
 #include <linux/netfilter/nfnetlink_queue.h>
-
 
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
@@ -20,10 +20,12 @@
 #include <libnetfilter_queue/pktbuff.h>
 
 /* only for NFQA_CT, not needed otherwise: */
-#include <linux/netfilter/nfnetlink_conntrack.h>
+//#include <linux/netfilter/nfnetlink_conntrack.h>
+
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
+static int count = 0;
 
 static _Bool stringCmp(const unsigned char *charp_to,const char charp_from[]){
     int i = 0;
@@ -56,34 +58,33 @@ static _Bool http_judge(const unsigned char *tcppayload){
     return false;
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id) {
+/*static void nfq_send_verdict(int queue_num, uint32_t id) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
     nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
 
-    /* example to set the connmark. First, start NFQA_CT section: */
+    *//* example to set the connmark. First, start NFQA_CT section: *//*
     //nest = mnl_attr_nest_start(nlh, NFQA_CT);
 
-    /* then, add the connmark attribute: */
+    *//* then, add the connmark attribute: *//*
     //mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
-    /* more conntrack attributes, e.g. CTA_LABELS could be set here */
+    *//* more conntrack attributes, e.g. CTA_LABELS could be set here *//*
 
-    /* end conntrack section */
+    *//* end conntrack section *//*
     //mnl_attr_nest_end(nlh, nest);
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
         exit(EXIT_FAILURE);
     }
-}
+}*/
 
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX + 1] = {};
-    uint32_t id = 0, skbinfo;
-    struct nfgenmsg *nfg;
+    uint32_t id;
     uint16_t plen;
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
@@ -101,8 +102,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         perror("problems parsing");
         return MNL_CB_ERROR;
     }
-
-    nfg = mnl_nlmsg_get_payload(nlh);
 
     if (attr[NFQA_PACKET_HDR] == NULL) {
         fputs("metaheader not set\n", stderr);
@@ -128,10 +127,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     tcppklen = nfq_tcp_get_payload_len(tcppkhdl,pktb); //获取 tcp长度
 
     if(tcppkpayload){
-        for(int i = 0;i<tcppklen;i++){
+        /*for(int i = 0;i<tcppklen;i++){ //输出包头
             printf("%c",*(tcppkpayload+i));
-        }
-        printf("\n");
+            if(*(tcppkpayload+i)=='\n'&&*(tcppkpayload+i+1)=='\r'){
+                break;
+            }
+        }*/
+//        printf("\n");
         if(http_judge(tcppkpayload)){
             //printf("checked HTTP\n");
             for(unsigned int i = 0;i<tcppklen;i++){
@@ -154,34 +156,42 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                                 if (*(tcppkpayload+j)=='\r'){
                                     ualength=j-i-13;
                                     //printf("uaend\n");
-                                    printf("\n");
+                                    //printf("\n");
                                     break;
                                 }
-                                printf("%c",*(tcppkpayload+j));
+                                //printf("%c",*(tcppkpayload+j));
                             }
                             //puts("j_stop");
+                            break;
                         }
                     }
                 }
             }
-            printf("ua offset %d and length %d\n",uaoffset,ualength);
-            str = (char *)malloc(ualength);
-            memset(str,'F',ualength);
-            for(int i=0;i<ualength;i++){
-                printf("%c",*(str+i));
+            if(uaoffset&&ualength){
+                //printf("ua is exist");
+                str = (char *)malloc(ualength);
+                memset(str,'F',ualength);
+                /*for(int i=0;i<ualength;i++){ //测试替换 buf
+                    printf("%c",*(str+i));
+                }*/
+                if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength)==1){
+                    //printf("\nsuccess mangle\n");
+                }
             }
-            if(nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength)==1){
-                printf("\nsuccess\n");
-            }
+            //printf("ua offset %d and length %d\n",uaoffset,ualength);
+
 //            char *test = (char *)malloc(3);
 //            *test = 'P';
 //            *(test+1) = 'U';
 //            *(test+2) = 'T';
             //nfq_tcp_mangle_ipv4(pktb,0,3,test,3);
-            tcppkpayload = nfq_tcp_get_payload(tcppkhdl,pktb); //pktb成功修改
-            for(int i=0;i<tcppklen;i++){
-                printf("%c",*(tcppkpayload+i));
-            }
+            //tcppkpayload = nfq_tcp_get_payload(tcppkhdl,pktb); //检查pktb是否成功修改
+            /*for(int i=0;i<tcppklen;i++){
+                //printf("%c",*(tcppkpayload+i));
+                if(*(tcppkpayload+i)=='\n'&&*(tcppkpayload+i+1)=='\r'){
+                    break; //只输出HTTP包头
+                }
+            }*/
         }
 
 
@@ -190,24 +200,24 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     nlh2 = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, 10010);
     if (pktb_mangled(pktb)) {
-        printf("modified\n");
+        //printf("modified\n");
         nfq_nlmsg_verdict_put_pkt(nlh2, pktb_data(pktb), pktb_len(pktb));
     }
 
-    skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
+    //skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
 
-    if (attr[NFQA_CAP_LEN]) {
+    /*if (attr[NFQA_CAP_LEN]) {
         uint32_t orig_len = ntohl(mnl_attr_get_u32(attr[NFQA_CAP_LEN]));
         if (orig_len != plen)
             printf("truncated ");
-    }
+    }*/
 
-    if (skbinfo & NFQA_SKB_GSO)
-        printf("GSO ");
+    /*if (skbinfo & NFQA_SKB_GSO)
+        printf("GSO ");*/
 
     id = ntohl(ph->packet_id);
-    printf("packet received (id=%u hw=%x hook=%u, payload len %u",
-           id, ntohs(ph->hw_protocol), ph->hook, plen);
+//    printf("packet received (id=%u hw=%x hook=%u, payload len %u",
+//           id, ntohs(ph->hw_protocol), ph->hook, plen);
 
     /*
      * ip/tcp checksums are not yet valid, e.g. due to GRO/GSO.
@@ -216,17 +226,21 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
      * If these packets are later forwarded/sent out, the checksums will
      * be corrected by kernel/hardware.
      */
-    if (skbinfo & NFQA_SKB_CSUMNOTREADY) { printf(", checksum not ready"); }
-    puts(")");
+//    if (skbinfo & NFQA_SKB_CSUMNOTREADY) { printf(", checksum not ready"); }
+//    puts(")");
 
     //nfq_send_verdict(10010, id);
     nfq_nlmsg_verdict_put(nlh2,id,NF_ACCEPT);
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
+    if(++count>=100){
+        syslog(LOG_INFO,"Another 100 http messages.");
+        count=0;
+    }
     return MNL_CB_OK;
 }
 
-int main(int argc, char *argv[]) {
+int main(void ) {
     char *buf;
     /* largest possible packet payload, plus netlink data overhead: */
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE / 2);
@@ -236,6 +250,7 @@ int main(int argc, char *argv[]) {
 
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
+    openlog("UA2F", LOG_PID, LOG_SYSLOG);
     if (nl == NULL) {
         perror("mnl_socket_open");
         exit(EXIT_FAILURE);
@@ -279,17 +294,20 @@ int main(int argc, char *argv[]) {
     ret = 1;
     mnl_socket_setsockopt(nl, NETLINK_NO_ENOBUFS, &ret, sizeof(int));
 
-    for (;;) {
+    while (1){
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) {
             perror("mnl_socket_recvfrom");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
+            //continue;
+            break;
         }
 
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
         if (ret < 0) {
             perror("mnl_cb_run");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
+            break;
         }
     }
 
