@@ -269,14 +269,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     nfq_nlmsg_verdict_put(nlh2, id, NF_ACCEPT);
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
-    if (count % 500 == 0 && count != 0) {
-        current_t = clock();
-        double runtime = (double) (current_t - start_t);
-        syslog(LOG_INFO, "Another 500 http messages at %.2lfs, %lld messages in total.", runtime / CLOCKS_PER_SEC,
-               count);
-    } else {
-        count++;
-    }
 
 //    free all space
 //    struct nfqnl_msg_packet_hdr *ph = NULL;
@@ -298,6 +290,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     free(pktb);
     if (str) {
         free(str);
+    }
+
+    if (count % 500 == 0 && count != 0) {
+        current_t = clock();
+        double runtime = (double) (current_t - start_t);
+        syslog(LOG_INFO, "Another 500 http messages at %.2lfs, %lld messages in total.", runtime / CLOCKS_PER_SEC,
+               count);
     }
 
     return MNL_CB_OK;
