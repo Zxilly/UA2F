@@ -5,6 +5,7 @@
 #include <string.h>
 #include <time.h>
 #include <syslog.h>
+#include <wait.h>
 #include <arpa/inet.h>
 
 #include <libmnl/libmnl.h>
@@ -267,6 +268,7 @@ int main(int argc, char *argv[]) {
         syslog(LOG_NOTICE, "UA2F daemon has start at %d.",sid);
     } else {
         syslog(LOG_NOTICE, "Try to start daemon at %d, parent process suicide.", startup_status);
+        wait(&sid);
         closelog();
         exit(EXIT_SUCCESS);
     }
