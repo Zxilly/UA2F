@@ -20,30 +20,38 @@ void trans(unsigned int a){
 
 
 int main(){
-/*    char a = 'A';
-    unsigned int b = 1;
-    int c = 1;
-    trans(b);
-    trans(c);*/
-    unsigned int a=20;
-    unsigned int b=20;
-    int childstatus;
-    int status;
-    status = fork();
-    if (status<0){
-        syslog(LOG_DEBUG,"Failed to creat child.");
-    } else if (status==0){
-        sleep(5);
-        syslog(LOG_DEBUG,"set sid");
-        setsid();
-        syslog(LOG_DEBUG,"this is child");
-        sleep(5);
-        syslog(LOG_DEBUG,"child is still alive");
+    pid_t startup_status,sid;
+    signal(SIGCHLD, SIG_IGN);
+    signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
+    startup_status = fork();
+    if (startup_status < 0) {
+        perror("Creat Daemon");
+        closelog();
+        exit(EXIT_FAILURE);
+    } else if (startup_status == 0) {
+        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
+        sid = setsid();
+        if (sid < 0) {
+            perror("Second Dameon Claim");
+            exit(EXIT_FAILURE);
+        } else if (sid > 0) {
+            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
+            startup_status = fork(); // 第二次fork，派生出一个孤儿
+            if (startup_status<0) {
+                perror("Second Daemon Fork");
+                exit(EXIT_FAILURE);
+            } else if (startup_status>0){
+                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
+                exit(EXIT_SUCCESS);
+            } else {
+                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
+            }
+        }
     } else {
-        syslog(LOG_DEBUG,"Child start at %d.",status);
-        wait(&childstatus);
-        syslog(LOG_DEBUG,"Parent die.");
-        exit(0);
+        syslog(LOG_NOTICE, "Try to start daemon parent at [%d], parent process will suicide.", startup_status);
+        printf("Try to start daemon parent at [%d], parent process will suicide.", startup_status);
+        exit(EXIT_SUCCESS);
     }
+    syslog(LOG_NOTICE, "Everything seems OK");
     return 0;
 }

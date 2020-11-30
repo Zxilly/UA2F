@@ -6,13 +6,14 @@
 #include <time.h>
 #include <syslog.h>
 #include <wait.h>
+#include <signal.h>
+#include <sys/param.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 
 #include <libmnl/libmnl.h>
 #include <linux/netfilter.h>
-//#include <linux/netfilter/nfnetlink.h>
 
-//#include <linux/types.h>
 #include <linux/netfilter/nfnetlink_queue.h>
 
 #include <libnetfilter_queue/libnetfilter_queue.h>
@@ -28,6 +29,59 @@ static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long count = 0;
 static time_t start_t, current_t;
+
+//static void skeleton_daemon()
+//{
+//    pid_t pid;
+//
+//    /* Fork off the parent process */
+//    pid = fork();
+//
+//    /* An error occurred */
+//    if (pid < 0)
+//        exit(EXIT_FAILURE);
+//
+//    /* Success: Let the parent terminate */
+//    if (pid > 0)
+//        exit(EXIT_SUCCESS);
+//
+//    /* On success: The child process becomes session leader */
+//    if (setsid() < 0)
+//        exit(EXIT_FAILURE);
+//
+//    signal(SIGCHLD, SIG_IGN);
+//    signal(SIGHUP, SIG_IGN);
+//
+//    /* Fork off for the second time*/
+//    pid = fork();
+//
+//    /* An error occurred */
+//    if (pid < 0)
+//        exit(EXIT_FAILURE);
+//
+//    /* Success: Let the parent terminate */
+//    if (pid > 0)
+//        exit(EXIT_SUCCESS);
+//
+//    /* Set new file permissions */
+//    umask(0);
+//
+//    /* Change the working directory to the root directory */
+//    /* or another appropriated directory */
+//    chdir("/");
+//
+//    /* Close all open file descriptors */
+//    int x;
+//    for (x = NOFILE; x>=0; x--)
+//    {
+//        close (x);
+//    }
+//
+//    /* Open the log file */
+//    openlog("UA2F", LOG_PID, LOG_SYSLOG);
+//}
+
+
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
     int i = 0;
@@ -215,10 +269,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     nfq_nlmsg_verdict_put(nlh2, id, NF_ACCEPT);
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
-    if (!count % 100) {
+    if (count % 500 == 0 && count != 0) {
         current_t = clock();
         double runtime = (double) (current_t - start_t);
-        syslog(LOG_INFO, "Another 100 http messages at %.2lfs, %lld messages in total.", runtime, count);
+        syslog(LOG_INFO, "Another 500 http messages at %.2lfs, %lld messages in total.", runtime / CLOCKS_PER_SEC,
+               count);
+    } else {
+        count++;
     }
 
 //    free all space
@@ -256,28 +313,44 @@ int main(int argc, char *argv[]) {
     int startup_status;
     pid_t sid;
 
-    openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
+    signal(SIGCHLD, SIG_IGN);
+    signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
     startup_status = fork();
     if (startup_status < 0) {
         perror("Creat Daemon");
         closelog();
         exit(EXIT_FAILURE);
     } else if (startup_status == 0) {
+        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
         sid = setsid();
-        syslog(LOG_NOTICE, "UA2F daemon has start at %d.",sid);
+        if (sid < 0) {
+            perror("Second Dameon Claim");
+            exit(EXIT_FAILURE);
+        } else if (sid > 0) {
+            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
+            startup_status = fork(); // 第二次fork，派生出一个孤儿
+            if (startup_status < 0) {
+                perror("Second Daemon Fork");
+                exit(EXIT_FAILURE);
+            } else if (startup_status > 0) {
+                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
+                exit(EXIT_SUCCESS);
+            } else {
+                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
+            }
+        }
     } else {
-        syslog(LOG_NOTICE, "Try to start daemon at %d, parent process suicide.", startup_status);
-        printf("Try to start daemon at %d, parent process will suicide.", startup_status);
-        wait(&sid);
-        closelog();
+        syslog(LOG_NOTICE, "Try to start daemon parent at [%d], parent process will suicide.", startup_status);
+        printf("Try to start daemon parent at [%d], parent process will suicide.", startup_status);
         exit(EXIT_SUCCESS);
     }
 
+    openlog("UA2F", LOG_PID, LOG_SYSLOG);
     nl = mnl_socket_open(NETLINK_NETFILTER);
     start_t = clock();
 
-    syslog(LOG_NOTICE, "UA2F Daemon has start.");
+    //syslog(LOG_NOTICE, "UA2F Daemon has start.");
 
     if (nl == NULL) {
         perror("mnl_socket_open");
