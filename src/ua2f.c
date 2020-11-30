@@ -28,7 +28,7 @@
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long count = 0;
-static long long oldcount = -1;
+static long long oldcount = 4;
 static time_t start_t, current_t;
 
 //static void skeleton_daemon()
@@ -293,9 +293,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         free(str);
     }
 
-    if (count == 32) {
-        oldcount = 16;
-    }
 
     if (count/oldcount == 2){
         oldcount = count;
