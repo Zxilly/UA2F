@@ -94,5 +94,4 @@ dkms.conf
 /cmake-build-debug/
 /cmake-build-wsl/
 /cmake-build-ubuntu/
-/cmake-build-centos/
 
