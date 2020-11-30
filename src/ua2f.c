@@ -297,7 +297,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (count/oldcount == 2){
         oldcount = count;
         current_t = time(NULL);
-        syslog(LOG_INFO,"UA2F has handled %lld http packet in %.2lfs",count,difftime(current_t,start_t));
+        syslog(LOG_INFO,"UA2F has handled %lld http packet in %.0lfs",count,difftime(current_t,start_t));
     }
 
     return MNL_CB_OK;

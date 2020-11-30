@@ -9,10 +9,5 @@
 
 int main(){
     int j=20;
-    printf("%ld\n",clock());
-    for(int i=0;i<=1000000000;i++){
-        j++;
-    }
-    printf("%ld\n",clock());
-    printf("%ld",CLOCKS_PER_SEC);
+    printf("%.0lf",23.664446);
 }
