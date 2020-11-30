@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
     nl = mnl_socket_open(NETLINK_NETFILTER);
     start_t = clock();
 
-    syslog(LOG_NOTICE, "UA2F has start.");
+    syslog(LOG_NOTICE, "UA2F Daemon has start.");
 
     if (nl == NULL) {
         perror("mnl_socket_open");
