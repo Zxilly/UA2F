@@ -28,6 +28,7 @@
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long count = 0;
+static long long oldcount = -1;
 static time_t start_t, current_t;
 
 //static void skeleton_daemon()
@@ -292,11 +293,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         free(str);
     }
 
-    if (count % 500 == 0 && count != 0) {
-        current_t = clock();
-        double runtime = (double) (current_t - start_t);
-        syslog(LOG_INFO, "Another 500 http messages at %.2lfs, %lld messages in total.", runtime / CLOCKS_PER_SEC,
-               count);
+    if (count == 32) {
+        oldcount = 16;
+    }
+
+    if (count/oldcount == 2){
+        oldcount = count;
+        current_t = time(NULL);
+        syslog(LOG_INFO,"UA2F has handled %lld http packet in %.2lfs",count,difftime(current_t,start_t));
     }
 
     return MNL_CB_OK;
@@ -347,7 +351,7 @@ int main(int argc, char *argv[]) {
 
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
     nl = mnl_socket_open(NETLINK_NETFILTER);
-    start_t = clock();
+    start_t = time(NULL);
 
     //syslog(LOG_NOTICE, "UA2F Daemon has start.");
 
