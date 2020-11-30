@@ -268,6 +268,7 @@ int main(int argc, char *argv[]) {
         syslog(LOG_NOTICE, "UA2F daemon has start at %d.",sid);
     } else {
         syslog(LOG_NOTICE, "Try to start daemon at %d, parent process suicide.", startup_status);
+        printf("Try to start daemon at %d, parent process will suicide.", startup_status);
         wait(&sid);
         closelog();
         exit(EXIT_SUCCESS);
