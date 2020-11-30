@@ -345,7 +345,7 @@ int main(int argc, char *argv[]) {
         }
     } else {
         syslog(LOG_NOTICE, "Try to start daemon parent at [%d], parent process will suicide.", startup_status);
-        printf("Try to start daemon parent at [%d], parent process will suicide.", startup_status);
+        printf("Try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
         exit(EXIT_SUCCESS);
     }
 
