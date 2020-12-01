@@ -16,7 +16,7 @@ define Package/ua2f
   CATEGORY:=Network
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords
-  URL:=https://learningman.top
+  URL:=https://github.com/Zxilly/UA2F
   DEPENDS:=+libmnl +libnetfilter-queue
 endef
 
