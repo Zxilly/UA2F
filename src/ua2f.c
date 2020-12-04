@@ -21,8 +21,9 @@
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/pktbuff.h>
 
+
 /* only for NFQA_CT, not needed otherwise: */
-//#include <linux/netfilter/nfnetlink_conntrack.h>
+#include <linux/netfilter/nfnetlink_conntrack.h>
 
 
 static struct mnl_socket *nl;
@@ -30,57 +31,6 @@ static const int queue_number = 10010;
 static long long count = 0;
 static long long oldcount = 4;
 static time_t start_t, current_t;
-
-//static void skeleton_daemon()
-//{
-//    pid_t pid;
-//
-//    /* Fork off the parent process */
-//    pid = fork();
-//
-//    /* An error occurred */
-//    if (pid < 0)
-//        exit(EXIT_FAILURE);
-//
-//    /* Success: Let the parent terminate */
-//    if (pid > 0)
-//        exit(EXIT_SUCCESS);
-//
-//    /* On success: The child process becomes session leader */
-//    if (setsid() < 0)
-//        exit(EXIT_FAILURE);
-//
-//    signal(SIGCHLD, SIG_IGN);
-//    signal(SIGHUP, SIG_IGN);
-//
-//    /* Fork off for the second time*/
-//    pid = fork();
-//
-//    /* An error occurred */
-//    if (pid < 0)
-//        exit(EXIT_FAILURE);
-//
-//    /* Success: Let the parent terminate */
-//    if (pid > 0)
-//        exit(EXIT_SUCCESS);
-//
-//    /* Set new file permissions */
-//    umask(0);
-//
-//    /* Change the working directory to the root directory */
-//    /* or another appropriated directory */
-//    chdir("/");
-//
-//    /* Close all open file descriptors */
-//    int x;
-//    for (x = NOFILE; x>=0; x--)
-//    {
-//        close (x);
-//    }
-//
-//    /* Open the log file */
-//    openlog("UA2F", LOG_PID, LOG_SYSLOG);
-//}
 
 
 
@@ -124,6 +74,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
+    struct nlattr *nest;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
@@ -132,6 +83,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh2;
     void *payload;
+    bool nohttp = false;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -172,7 +124,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        printf("\n");
         if (http_judge(tcppkpayload)) {
             //printf("checked HTTP\n");
-            for (unsigned int i = 0; i < tcppklen; i++) {
+            for (unsigned int i = 0; i < tcppklen-10; i++) {
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
                         break; //http 头部结束，没有找到 User-Agent
@@ -229,6 +181,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     break; //只输出HTTP包头
                 }
             }*/
+        } else {
+            nohttp = true;
         }
 
 
@@ -268,6 +222,19 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     //nfq_send_verdict(10010, id);
     nfq_nlmsg_verdict_put(nlh2, id, NF_ACCEPT);
+
+    if (nohttp) {
+        /* example to set the connmark. First, start NFQA_CT section: */
+        nest = mnl_attr_nest_start(nlh2, NFQA_CT);
+
+        /* then, add the connmark attribute: */
+        mnl_attr_put_u32(nlh2, CTA_MARK, htonl(42)); //CONNMARK 42 以匹配
+        /* more conntrack attributes, e.g. CTA_LABELS could be set here */
+
+        /* end conntrack section */
+        mnl_attr_nest_end(nlh2, nest);
+    }
+
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
 
