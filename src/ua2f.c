@@ -124,7 +124,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        printf("\n");
         if (http_judge(tcppkpayload)) {
             //printf("checked HTTP\n");
-            for (unsigned int i = 0; i < tcppklen-10; i++) {
+            for (unsigned int i = 0; i < tcppklen-12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
                         break; //http 头部结束，没有找到 User-Agent
@@ -233,6 +233,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
         /* end conntrack section */
         mnl_attr_nest_end(nlh2, nest);
+        //看起来不工作？
     }
 
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
