@@ -157,7 +157,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             }
             if (uaoffset && ualength) {
                 //printf("ua is exist");
-                str = (char *) malloc(ualength);
+                str = malloc(ualength);
                 memset(str, 'F', ualength);
                 /*for(int i=0;i<ualength;i++){ //测试替换 buf
                     printf("%c",*(str+i));
