@@ -33,6 +33,7 @@ static long long oldcount = 4;
 static time_t start_t, current_t;
 
 static int debugflag = 0;
+static int debugflag2 = 0;
 
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
@@ -87,6 +88,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     bool nohttp = false;
 
     debugflag = 0;
+    debugflag2 = 0;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -143,8 +145,10 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        printf("\n");
         if (http_judge(tcppkpayload)) {
             //printf("checked HTTP\n");
+            debugflag2++;//1
             for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
+
                     if (*(tcppkpayload + i + 1) == '\r') {
                         break; //http 头部结束，没有找到 User-Agent
                     } else {
@@ -307,7 +311,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 }
 
 static void debugfunc(int sig) {
-    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
+    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d and %d", debugflag,debugflag2);
     exit(EXIT_FAILURE);
 }
 
