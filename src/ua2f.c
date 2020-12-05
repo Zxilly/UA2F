@@ -287,9 +287,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //12
 
-    if (pktb) {
-        free(pktb);
-    }
+
+    free(pktb);
     if (str) {
         free(str);
     }
