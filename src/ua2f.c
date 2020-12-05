@@ -5,10 +5,10 @@
 #include <string.h>
 #include <time.h>
 #include <syslog.h>
-#include <wait.h>
+//#include <wait.h>
 #include <signal.h>
-#include <sys/param.h>
-#include <sys/stat.h>
+//#include <sys/param.h>
+//#include <sys/stat.h>
 #include <arpa/inet.h>
 
 #include <libmnl/libmnl.h>
