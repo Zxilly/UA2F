@@ -33,7 +33,7 @@ static long long oldcount = 4;
 static time_t start_t, current_t;
 
 static int debugflag = 0;
-static int debugflag2 = 0;
+//static int debugflag2 = 0;
 
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
@@ -63,8 +63,9 @@ static _Bool http_judge(const unsigned char *tcppayload) {
             return stringCmp(tcppayload, "TRACE");
         case 'O':
             return stringCmp(tcppayload, "OPTIONS");
+        default:
+            return false;
     }
-    return false;
 }
 
 
@@ -88,7 +89,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     bool nohttp = false;
 
     debugflag = 0;
-    debugflag2 = 0;
+    //debugflag2 = 0;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -145,7 +146,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        printf("\n");
         if (http_judge(tcppkpayload)) {
             //printf("checked HTTP\n");
-            debugflag2++;//1
+            //debugflag2++;//1
             for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
 
@@ -419,8 +420,9 @@ int main(int argc, char *argv[]) {
             //continue;
             break;
         }
-
+        debugflag++; //1 或 16
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
+        debugflag++; //15
         if (ret == -233) { //keep running
             perror("mnl_cb_run");
             //exit(EXIT_FAILURE);
