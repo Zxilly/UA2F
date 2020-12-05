@@ -35,7 +35,6 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 
 
-
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
     int i = 0;
     while (charp_from[i] != '\0') {
@@ -87,7 +86,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     void *payload;
     bool nohttp = false;
 
-    debugflag=0;
+    debugflag = 0;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -113,7 +112,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
 
-    if(!pktb){
+    if (!pktb) {
         return MNL_CB_ERROR;
     }
 
@@ -144,7 +143,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        printf("\n");
         if (http_judge(tcppkpayload)) {
             //printf("checked HTTP\n");
-            for (unsigned int i = 0; i < tcppklen-12; i++) { //UA长度大于12，结束段小于12不期望找到UA
+            for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
                         break; //http 头部结束，没有找到 User-Agent
@@ -288,17 +287,19 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //12
 
-    free(pktb);
+    if (pktb) {
+        free(pktb);
+    }
     if (str) {
         free(str);
     }
 
     debugflag++; //13
 
-    if (count/oldcount == 2){
+    if (count / oldcount == 2) {
         oldcount = count;
         current_t = time(NULL);
-        syslog(LOG_INFO,"UA2F has handled %lld http packet in %.0lfs",count,difftime(current_t,start_t));
+        syslog(LOG_INFO, "UA2F has handled %lld http packet in %.0lfs", count, difftime(current_t, start_t));
     }
 
     debugflag++; //14
@@ -306,8 +307,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     return MNL_CB_OK;
 }
 
-static void debugfunc(int sig){
-    syslog(LOG_ERR,"Catch SIGSEGV at breakpoint %d",debugflag);
+static void debugfunc(int sig) {
+    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
     exit(EXIT_FAILURE);
 }
 
@@ -322,7 +323,7 @@ int main(int argc, char *argv[]) {
     pid_t sid;
 
 
-    signal(SIGSEGV,debugfunc);
+    signal(SIGSEGV, debugfunc);
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
