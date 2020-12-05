@@ -312,8 +312,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 }
 
 static void debugfunc(int sig) {
-    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d and %d", debugflag,debugflag2);
-    exit(EXIT_FAILURE);
+    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
+    //exit(EXIT_FAILURE);
+
 }
 
 int main(int argc, char *argv[]) {
