@@ -25,8 +25,9 @@
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
-static long long count = 0;
-static long long oldcount = 4;
+static long long httpcount = 0;
+static long long tcpcount = 0;
+static long long oldhttpcount = 4;
 static time_t start_t, current_t;
 
 static int debugflag = 0;
@@ -185,7 +186,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }*/
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     //printf("\nsuccess mangle\n");
-                    count++; //记录修改包的数量
+                    httpcount++; //记录修改包的数量
                 }
             }
             //printf("ua offset %d and length %d\n",uaoffset,ualength);
@@ -296,14 +297,17 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     }
 
     debugflag++; //13
+    tcpcount++;
 
-    if (count / oldcount == 2) {
-        oldcount = count;
+    if (httpcount / oldhttpcount == 2) {
+        oldhttpcount = httpcount;
         current_t = time(NULL);
-        syslog(LOG_INFO, "UA2F has handled %lld http packet in %.0lfs", count, difftime(current_t, start_t));
+        syslog(LOG_INFO, "UA2F has handled %lld http packet and %lld tcp packet in %.0lfs", httpcount, tcpcount,
+               difftime(current_t, start_t));
     }
 
     debugflag++; //14
+
 
     return MNL_CB_OK;
 }
@@ -324,8 +328,8 @@ int main(int argc, char *argv[]) {
     int startup_status;
     pid_t sid;
 
-    if (argc>1){
-        syslog(LOG_ALERT,"Rebirth process start");
+    if (argc > 1) {
+        syslog(LOG_ALERT, "Rebirth process start");
     }
 
     signal(SIGSEGV, debugfunc); //handle内存断点
@@ -438,9 +442,9 @@ int main(int argc, char *argv[]) {
 
     mnl_socket_close(nl);
 
-    syslog(LOG_ALERT,"Meet fatal error, try to restart.");
+    syslog(LOG_ALERT, "Meet fatal error, try to restart.");
 
-    execlp("ua2f","ua2f",NULL);
+    execlp("ua2f", "ua2f", NULL);
 
     return 0;
 }
