@@ -32,6 +32,8 @@ static long long count = 0;
 static long long oldcount = 4;
 static time_t start_t, current_t;
 
+static int debugflag = 0;
+
 
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
@@ -85,6 +87,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     void *payload;
     bool nohttp = false;
 
+    debugflag=0;
+
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
         perror("problems parsing");
@@ -96,12 +100,24 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
+    debugflag++; //1
+
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
+
+    debugflag++; //2
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
+    debugflag++; //3
+
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
+
+    if(!pktb){
+        return MNL_CB_ERROR;
+    }
+
+    debugflag++; //4
 
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
 
@@ -110,9 +126,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
+    debugflag++; //5
+
     tcppkhdl = nfq_tcp_get_hdr(pktb); //获取 tcp header
     tcppkpayload = nfq_tcp_get_payload(tcppkhdl, pktb); //获取 tcp载荷
     tcppklen = nfq_tcp_get_payload_len(tcppkhdl, pktb); //获取 tcp长度
+
+    debugflag++; //6
 
     if (tcppkpayload) {
         /*for(int i = 0;i<tcppklen;i++){ //输出包头
@@ -189,11 +209,15 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
     }
 
+    debugflag++; //7
+
     nlh2 = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, 10010);
     if (pktb_mangled(pktb)) {
         //printf("modified\n");
         nfq_nlmsg_verdict_put_pkt(nlh2, pktb_data(pktb), pktb_len(pktb));
     }
+
+    debugflag++; //8
 
     //skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
 
@@ -207,6 +231,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         printf("GSO ");*/
 
     id = ntohl(ph->packet_id);
+
+    debugflag++; //9
 //    printf("packet received (id=%u hw=%x hook=%u, payload len %u",
 //           id, ntohs(ph->hw_protocol), ph->hook, plen);
 
@@ -223,6 +249,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     //nfq_send_verdict(10010, id);
     nfq_nlmsg_verdict_put(nlh2, id, NF_ACCEPT);
 
+    debugflag++; //10
+
     if (nohttp) {
         /* example to set the connmark. First, start NFQA_CT section: */
         nest = mnl_attr_nest_start(nlh2, NFQA_CT);
@@ -235,6 +263,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         mnl_attr_nest_end(nlh2, nest);
         //看起来不工作？
     }
+
+    debugflag++; //11
 
     mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
 
@@ -256,11 +286,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //    struct nlmsghdr *nlh2;
 //    void *payload;
 
+    debugflag++; //12
+
     free(pktb);
     if (str) {
         free(str);
     }
 
+    debugflag++; //13
 
     if (count/oldcount == 2){
         oldcount = count;
@@ -268,7 +301,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         syslog(LOG_INFO,"UA2F has handled %lld http packet in %.0lfs",count,difftime(current_t,start_t));
     }
 
+    debugflag++; //14
+
     return MNL_CB_OK;
+}
+
+static void debugfunc(int sig){
+    syslog(LOG_ERR,"Catch SIGSEGV at breakpoint %d",debugflag);
+    exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[]) {
@@ -281,6 +321,8 @@ int main(int argc, char *argv[]) {
     int startup_status;
     pid_t sid;
 
+
+    signal(SIGSEGV,debugfunc);
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
@@ -367,7 +409,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
-        if (ret == -1) {
+        if (ret == -233) { //keep running
             perror("mnl_socket_recvfrom");
             //exit(EXIT_FAILURE);
             //continue;
@@ -375,7 +417,7 @@ int main(int argc, char *argv[]) {
         }
 
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
-        if (ret < 0) {
+        if (ret == -233) { //keep running
             perror("mnl_cb_run");
             //exit(EXIT_FAILURE);
             break;
