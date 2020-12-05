@@ -74,7 +74,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
-    struct nlattr *nest;
+    //struct nlattr *nest;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
@@ -83,7 +83,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh2;
     void *payload;
-    bool nohttp = false;
+    //bool nohttp = false;
 
     debugflag = 0;
     //debugflag2 = 0;
@@ -202,9 +202,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     break; //只输出HTTP包头
                 }
             }*/
-        } else {
+        }/* else {
             nohttp = true;
-        }
+        }*/
 
 
         //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
@@ -324,6 +324,9 @@ int main(int argc, char *argv[]) {
     int startup_status;
     pid_t sid;
 
+    if (argc>1){
+        syslog(LOG_ALERT,"Rebirth process start");
+    }
 
     signal(SIGSEGV, debugfunc); //handle内存断点
 
@@ -363,7 +366,7 @@ int main(int argc, char *argv[]) {
 
     start_t = time(NULL);
 
-    restart:
+    //restart:
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
 
@@ -437,7 +440,7 @@ int main(int argc, char *argv[]) {
 
     syslog(LOG_ALERT,"Meet fatal error, try to restart.");
 
-    goto restart;
+    execlp("ua2f","ua2f",NULL);
 
     return 0;
 }
