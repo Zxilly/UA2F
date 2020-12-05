@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
     pid_t sid;
 
 
-    signal(SIGSEGV, debugfunc);
+    signal(SIGSEGV, debugfunc); //handle内存断点
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
