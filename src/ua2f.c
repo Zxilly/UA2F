@@ -234,7 +234,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     id = ntohl(ph->packet_id);
 
-    debugflag++; //9
+    debugflag++; //9 FIXME: 非法内存访问
 //    printf("packet received (id=%u hw=%x hook=%u, payload len %u",
 //           id, ntohs(ph->hw_protocol), ph->hook, plen);
 
@@ -315,6 +315,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 static void debugfunc(int sig) {
     syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
     //exit(EXIT_FAILURE);
+    goto restart;
 
 }
 
@@ -439,6 +440,8 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+
+    restart:
 
     mnl_socket_close(nl);
 
