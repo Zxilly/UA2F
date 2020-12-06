@@ -315,7 +315,12 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 static void debugfunc(int sig) {
     syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
     //exit(EXIT_FAILURE);
-    goto restart;
+    mnl_socket_close(nl);
+
+    syslog(LOG_ALERT, "Meet fatal error, try to restart.");
+
+    execlp("ua2f", "ua2f", NULL);
+    //experimental restart
 
 }
 
@@ -441,7 +446,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    restart:
 
     mnl_socket_close(nl);
 
