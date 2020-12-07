@@ -75,7 +75,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
-    //struct nlattr *nest;
+    struct nlattr *nest;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
@@ -84,7 +84,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh2;
     void *payload;
-    //bool nohttp = false;
+    bool nohttp = false;
 
     debugflag = 0;
     //debugflag2 = 0;
@@ -203,9 +203,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     break; //只输出HTTP包头
                 }
             }*/
-        }/* else {
+        } else {
             nohttp = true;
-        }*/
+        }
 
 
         //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
@@ -253,18 +253,29 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //10
 
-    /*if (nohttp) {
-        *//* example to set the connmark. First, start NFQA_CT section: *//*
-        nest = mnl_attr_nest_start(nlh2, NFQA_CT);
+//    if (nohttp) {
+//         //example to set the connmark. First, start NFQA_CT section:
+//        nest = mnl_attr_nest_start(nlh2, NFQA_CT);
+//
+//         //then, add the connmark attribute:
+//        mnl_attr_put_u32(nlh2, CTA_MARK, htonl(13)); //CONNMARK 13 以匹配
+//         //more conntrack attributes, e.g. CTA_LABELS could be set here
+//
+//         //end conntrack section
+//        mnl_attr_nest_end(nlh2, nest);
+//        //看起来不工作？
+//    }
 
-        *//* then, add the connmark attribute: *//*
-        mnl_attr_put_u32(nlh2, CTA_MARK, htonl(42)); //CONNMARK 42 以匹配
-        *//* more conntrack attributes, e.g. CTA_LABELS could be set here *//*
+    nest = mnl_attr_nest_start(nlh2, NFQA_CT);
 
-        *//* end conntrack section *//*
-        mnl_attr_nest_end(nlh2, nest);
-        //看起来不工作？
-    }*/
+    //then, add the connmark attribute:
+    mnl_attr_put_u32(nlh2, CTA_MARK, htonl(13)); //CONNMARK 13 以匹配
+    //more conntrack attributes, e.g. CTA_LABELS could be set here
+
+    //end conntrack section
+    mnl_attr_nest_end(nlh2, nest);
+    //为所有包打上13标记，测试
+
 
     debugflag++; //11
 
