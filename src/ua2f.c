@@ -443,26 +443,23 @@ int main(int argc, char *argv[]) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) { //stop at failure
             perror("mnl_socket_recvfrom");
-            //exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
             //continue;
-            break;
+            //break;
         }
         debugflag++; //1 或 16
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
         debugflag++; //15
         if (ret < 0) { //stop at failure
             perror("mnl_cb_run");
-            //exit(EXIT_FAILURE);
-            break;
+            exit(EXIT_FAILURE);
+            //break;
         }
     }
 
 
     mnl_socket_close(nl);
 
-    syslog(LOG_ALERT, "Meet fatal error, try to restart.");
-
-    execlp("ua2f", "ua2f", NULL);
 
     return 0;
 }
