@@ -244,7 +244,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (httpcount / oldhttpcount == 2) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
-        syslog(LOG_INFO, "UA2F has handled %lld http packet ,%lld http packet with no ua and %lld tcp packet in %.0lfs",
+        syslog(LOG_INFO, "UA2F has handled %lld http packet, %lld http packet without ua and %lld tcp packet in %.0lfs",
                httpcount, httpnouacount, tcpcount,
                difftime(current_t, start_t));
     }
