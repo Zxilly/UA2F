@@ -26,6 +26,7 @@
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long httpcount = 0;
+static long long httpnouacount = 0;
 static long long tcpcount = 0;
 static long long oldhttpcount = 4;
 static time_t start_t, current_t;
@@ -66,6 +67,37 @@ static _Bool http_judge(const unsigned char *tcppayload) {
     }
 }
 
+static void nfq_send_verdict(int queue_num, uint32_t id,struct pkt_buff* pktb) {
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    struct nlmsghdr *nlh;
+    struct nlattr *nest;
+
+    nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
+    nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
+
+    /* example to set the connmark. First, start NFQA_CT section: */
+    nest = mnl_attr_nest_start(nlh, NFQA_CT);
+
+    /* then, add the connmark attribute: */
+    mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
+    /* more conntrack attributes, e.g. CTA_LABELS could be set here */
+
+    /* end conntrack section */
+    mnl_attr_nest_end(nlh, nest);
+
+    if (pktb_mangled(pktb)) {
+        nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
+    }
+
+    if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+        perror("mnl_socket_send");
+        exit(EXIT_FAILURE);
+    }
+
+    tcpcount++;
+    pktb_free(pktb);
+
+}
 
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
@@ -76,6 +108,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
     struct nlattr *nest;
+    struct nfgenmsg *nfg;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
@@ -94,6 +127,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         perror("problems parsing");
         return MNL_CB_ERROR;
     }
+
+    nfg = mnl_nlmsg_get_payload(nlh);
 
     if (attr[NFQA_PACKET_HDR] == NULL) {
         fputs("metaheader not set\n", stderr);
@@ -135,151 +170,54 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //6
 
     if (tcppkpayload) {
-        /*for(int i = 0;i<tcppklen;i++){ //输出包头
-            printf("%c",*(tcppkpayload+i));
-            if(*(tcppkpayload+i)=='\n'&&*(tcppkpayload+i+1)=='\r'){
-                break;
-            }
-        }*/
-//        printf("\n");
         if (http_judge(tcppkpayload)) {
-            //printf("checked HTTP\n");
-            //debugflag2++;//1
             for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
-
                     if (*(tcppkpayload + i + 1) == '\r') {
+                        httpnouacount++;
                         break; //http 头部结束，没有找到 User-Agent
                     } else {
                         if (stringCmp(tcppkpayload + i + 1, "User-Agent")) { //User-Agent: abcde
-                            /*for(int j=13;j<tcppklen-i;j++){ //tcppayload+i+j
-                                if (*(tcppkpayload+i+j)=='\r'){ //UA字段结束
-                                    printf("\n");
-                                    break;
-                                } else {
-                                    printf("%c",*(tcppkpayload+i+j));
-                                }
-                            }*/
                             uaoffset = i + 13;
-                            //puts("j_start");
                             for (unsigned int j = i + 13; j < tcppklen; j++) {
                                 if (*(tcppkpayload + j) == '\r') {
                                     ualength = j - i - 13;
-                                    //printf("uaend\n");
-                                    //printf("\n");
                                     break;
                                 }
-                                //printf("%c",*(tcppkpayload+j));
                             }
-                            //puts("j_stop");
                             break;
                         }
                     }
                 }
             }
             if (uaoffset && ualength) {
-                //printf("ua is exist");
                 str = malloc(ualength);
                 memset(str, 'F', ualength);
-                /*for(int i=0;i<ualength;i++){ //测试替换 buf
-                    printf("%c",*(str+i));
-                }*/
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
-                    //printf("\nsuccess mangle\n");
                     httpcount++; //记录修改包的数量
                 }
+                free(str);//用完就丢
             }
-            //printf("ua offset %d and length %d\n",uaoffset,ualength);
-
-//            char *test = (char *)malloc(3);
-//            *test = 'P';
-//            *(test+1) = 'U';
-//            *(test+2) = 'T';
-            //nfq_tcp_mangle_ipv4(pktb,0,3,test,3);
-            //tcppkpayload = nfq_tcp_get_payload(tcppkhdl,pktb); //检查pktb是否成功修改
-            /*for(int i=0;i<tcppklen;i++){
-                //printf("%c",*(tcppkpayload+i));
-                if(*(tcppkpayload+i)=='\n'&&*(tcppkpayload+i+1)=='\r'){
-                    break; //只输出HTTP包头
-                }
-            }*/
         } else {
             nohttp = true;
         }
-
-
-        //nfq_tcp_mangle_ipv4(pktb,uaoffset,ualength,str,ualength);
     }
 
     debugflag++; //7
 
-    nlh2 = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, 10010);
-    if (pktb_mangled(pktb)) {
-        //printf("modified\n");
-        nfq_nlmsg_verdict_put_pkt(nlh2, pktb_data(pktb), pktb_len(pktb));
-    }
 
     debugflag++; //8
 
-    //skbinfo = attr[NFQA_SKB_INFO] ? ntohl(mnl_attr_get_u32(attr[NFQA_SKB_INFO])) : 0;
-
-    /*if (attr[NFQA_CAP_LEN]) {
-        uint32_t orig_len = ntohl(mnl_attr_get_u32(attr[NFQA_CAP_LEN]));
-        if (orig_len != plen)
-            printf("truncated ");
-    }*/
-
-    /*if (skbinfo & NFQA_SKB_GSO)
-        printf("GSO ");*/
-
     id = ntohl(ph->packet_id);
 
+
     debugflag++; //9 FIXME: 非法内存访问
-//    printf("packet received (id=%u hw=%x hook=%u, payload len %u",
-//           id, ntohs(ph->hw_protocol), ph->hook, plen);
-
-    /*
-     * ip/tcp checksums are not yet valid, e.g. due to GRO/GSO.
-     * The application should behave as if the checksums are correct.
-     *
-     * If these packets are later forwarded/sent out, the checksums will
-     * be corrected by kernel/hardware.
-     */
-//    if (skbinfo & NFQA_SKB_CSUMNOTREADY) { printf(", checksum not ready"); }
-//    puts(")");
-
-    //nfq_send_verdict(10010, id);
-    nfq_nlmsg_verdict_put(nlh2, id, NF_ACCEPT);
 
     debugflag++; //10
 
-//    if (nohttp) {
-//         //example to set the connmark. First, start NFQA_CT section:
-//        nest = mnl_attr_nest_start(nlh2, NFQA_CT);
-//
-//         //then, add the connmark attribute:
-//        mnl_attr_put_u32(nlh2, CTA_MARK, htonl(13)); //CONNMARK 13 以匹配
-//         //more conntrack attributes, e.g. CTA_LABELS could be set here
-//
-//         //end conntrack section
-//        mnl_attr_nest_end(nlh2, nest);
-//        //看起来不工作？
-//    }
-
-    nest = mnl_attr_nest_start(nlh2, NFQA_CT);
-//
-//    //then, add the connmark attribute:
-    mnl_attr_put_u32(nlh2, CTA_MARK, htonl(13)); //CONNMARK 13 以匹配
-//    //more conntrack attributes, e.g. CTA_LABELS could be set here
-//
-//    //end conntrack section
-    mnl_attr_nest_end(nlh2, nest);
-    //为所有包打上13标记，测试
-
-
     debugflag++; //11
 
-    mnl_socket_sendto(nl, nlh2, nlh2->nlmsg_len);
+    nfq_send_verdict(ntohs(nfg->res_id), id, pktb);
 
 
 //    free all space
@@ -301,14 +239,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //12
 
-
-    free(pktb);
-    if (str) {
-        free(str);
-    }
-
     debugflag++; //13
-    tcpcount++;
 
     if (httpcount / oldhttpcount == 2) {
         oldhttpcount = httpcount;
