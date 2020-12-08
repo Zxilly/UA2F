@@ -67,7 +67,7 @@ static _Bool http_judge(const unsigned char *tcppayload) {
     }
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id,struct pkt_buff* pktb) {
+static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) {
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -244,7 +244,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (httpcount / oldhttpcount == 2) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
-        syslog(LOG_INFO, "UA2F has handled %lld http packet and %lld tcp packet in %.0lfs", httpcount, tcpcount,
+        syslog(LOG_INFO, "UA2F has handled %lld http packet ,%lld http packet with no ua and %lld tcp packet in %.0lfs",
+               httpcount, httpnouacount, tcpcount,
                difftime(current_t, start_t));
     }
 
