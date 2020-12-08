@@ -266,14 +266,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        //看起来不工作？
 //    }
 
-//    nest = mnl_attr_nest_start(nlh2, NFQA_CT);
+    nest = mnl_attr_nest_start(nlh2, NFQA_CT);
 //
 //    //then, add the connmark attribute:
-//    mnl_attr_put_u32(nlh2, CTA_MARK, htonl(13)); //CONNMARK 13 以匹配
+    mnl_attr_put_u32(nlh2, CTA_MARK, htonl(13)); //CONNMARK 13 以匹配
 //    //more conntrack attributes, e.g. CTA_LABELS could be set here
 //
 //    //end conntrack section
-//    mnl_attr_nest_end(nlh2, nest);
+    mnl_attr_nest_end(nlh2, nest);
     //为所有包打上13标记，测试
 
 
