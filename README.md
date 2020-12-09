@@ -8,12 +8,34 @@
 
 如果遇到了任何问题，欢迎提出 Issues，但是更欢迎直接提交 Pull Request
 
+# iptables rules
+```shell
+iptables -t mangle -I PREROUTING -m connmark --mark 11 -j CONNMARK --restore-mark
+iptables -t mangle -I PREROUTING -m connmark --mark 12 -j CONNMARK --restore-mark
+iptables -t mangle -I PREROUTING -m connmark --mark 13 -j CONNMARK --restore-mark
+
+iptables -t mangle -N ua2f
+iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+iptables -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
+iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A ua2f -m mark --mark 12 -j RETURN
+iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
+iptables -t mangle -A ua2f -p tcp  --dport 22 -j RETURN
+iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
+
+iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+
+iptables -t mangle -I POSTROUTING -m mark --mark 11 -j CONNMARK --set-mark 11
+iptables -t mangle -A POSTROUTING -m mark --mark 12 -j CONNMARK --set-mark 12
+iptables -t mangle -A POSTROUTING -m mark --mark 13 -j CONNMARK --set-mark 13
+```
+
 ## TODO
 
 - [x] 灾难恢复
 - [ ] pthread 支持，由不同线程完成入队出队
 - [ ] 修复偶现的非法内存访问，定位错误是一个麻烦的问题
-- [ ] 配合 CONNMARK，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载
+- [x] 配合 CONNMARK，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (实现后发现性能提升不高)
 - [ ] 期望对于 mips 硬件优化，减少内存读写
 
 ## Helpful Log
