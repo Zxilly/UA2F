@@ -79,7 +79,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) 
     nest = mnl_attr_nest_start(nlh, NFQA_CT);
 
     /* then, add the connmark attribute: */
-    mnl_attr_put_u32(nlh, CTA_MARK, htonl(13));
+    mnl_attr_put_u32(nlh, CTA_MARK, htonl(0xd));
     /* more conntrack attributes, e.g. CTA_LABELS could be set here */
 
     /* end conntrack section */
