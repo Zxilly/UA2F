@@ -72,9 +72,9 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, 
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
 
-    if (mark!=0){
+    /*if (mark!=0){
         printf("get mark %d",mark);
-    }
+    }*/
 
     if (mark == 0) {
         if (nohttp) {
