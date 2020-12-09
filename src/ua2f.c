@@ -72,6 +72,10 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, 
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
 
+    if (mark!=0){
+        printf("get mark %d",mark);
+    }
+
     if (mark == 0) {
         if (nohttp) {
             mark = 12;
@@ -81,6 +85,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, 
     } else if (mark == 11 && nohttp == true) {
         mark = 13;
     }
+
 
 
 
@@ -292,7 +297,7 @@ int main(int argc, char *argv[]) {
         syslog(LOG_ALERT, "Rebirth process start");
     }
 
-    signal(SIGSEGV, debugfunc); //handle内存断点
+    /*signal(SIGSEGV, debugfunc); //handle内存断点
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
@@ -324,7 +329,7 @@ int main(int argc, char *argv[]) {
         syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
         printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
         exit(EXIT_SUCCESS);
-    }
+    }*/
 
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
