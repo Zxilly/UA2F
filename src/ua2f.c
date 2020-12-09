@@ -149,7 +149,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-    mark = mnl_attr_get_u32(attr[NFQA_MARK]);
+    if (attr[NFQA_MARK]){
+        mark = mnl_attr_get_u32(attr[NFQA_MARK]);
+    }else {
+        mark = 0;
+    }
 
     debugflag++; //3
 
