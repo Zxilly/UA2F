@@ -12,7 +12,7 @@
 ```shell
 iptables -t mangle -I PREROUTING -m connmark --mark 11 -j CONNMARK --restore-mark
 iptables -t mangle -I PREROUTING -m connmark --mark 12 -j CONNMARK --restore-mark
-iptables -t mangle -I PREROUTING -m connmark --mark 13 -j CONNMARK --restore-mark
+
 
 iptables -t mangle -N ua2f
 iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
@@ -20,14 +20,13 @@ iptables -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
 iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
 iptables -t mangle -A ua2f -m mark --mark 12 -j RETURN
 iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
-iptables -t mangle -A ua2f -p tcp  --dport 22 -j RETURN
+iptables -t mangle -A ua2f -p tcp --dport 22 -j RETURN
 iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
 
 iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 
 iptables -t mangle -I POSTROUTING -m mark --mark 11 -j CONNMARK --set-mark 11
-iptables -t mangle -A POSTROUTING -m mark --mark 12 -j CONNMARK --set-mark 12
-iptables -t mangle -A POSTROUTING -m mark --mark 13 -j CONNMARK --set-mark 13
+iptables -t mangle -A POSTROUTING -m mark --mark 12 ! -m connmark --mark 11 -j CONNMARK --set-mark 12
 ```
 
 ## TODO

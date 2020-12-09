@@ -76,14 +76,10 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, 
         printf("get mark %d",mark);
     }*/
 
-    if (mark == 0||mark == 1) {
-        if (nohttp) {
-            mark = 12;
-        } else {
-            mark = 11;
-        }
-    } else if (mark == 11 && nohttp == true) {
-        mark = 13;
+    if (nohttp) {
+        mark = 12;
+    } else {
+        mark = 11;
     }
 
 
@@ -94,7 +90,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, 
         nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
     }
 
-    mnl_attr_put_u32(nlh,NFQA_MARK,htonl(mark));
+    mnl_attr_put_u32(nlh, NFQA_MARK, htonl(mark));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -150,9 +146,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-    if (attr[NFQA_MARK]){
+    if (attr[NFQA_MARK]) {
         mark = mnl_attr_get_u32(attr[NFQA_MARK]);
-    }else {
+    } else {
         mark = 0;
     }
 
