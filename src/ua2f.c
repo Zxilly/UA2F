@@ -52,8 +52,8 @@ static _Bool http_judge(const unsigned char *tcppayload) {
             return stringCmp(tcppayload, "GET");
         case 'P':
             return stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH");
-        /*case 'C':
-            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug*/
+            /*case 'C':
+                return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug*/
         case 'D':
             return stringCmp(tcppayload, "DELETE");
         case 'H':
@@ -67,27 +67,31 @@ static _Bool http_judge(const unsigned char *tcppayload) {
     }
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) {
+static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, int mark,
+                             bool nohttp) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
-    struct nlattr *nest;
+
+    if (mark == 0) {
+        if (nohttp) {
+            mark = 12;
+        } else {
+            mark = 11;
+        }
+    } else if (mark == 11 && nohttp == true) {
+        mark = 13;
+    }
+
+
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
     nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
 
-    /* example to set the connmark. First, start NFQA_CT section: */
-    nest = mnl_attr_nest_start(nlh, NFQA_CT);
-
-    /* then, add the connmark attribute: */
-    mnl_attr_put_u32(nlh, CTA_MARK, htonl(0xd));
-    /* more conntrack attributes, e.g. CTA_LABELS could be set here */
-
-    /* end conntrack section */
-    mnl_attr_nest_end(nlh, nest);
-
     if (pktb_mangled(pktb)) {
         nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
     }
+
+    mnl_attr_put_u32(nlh,NFQA_MARK,htonl(mark));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -118,6 +122,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nlmsghdr *nlh2;
     void *payload;
     bool nohttp = false;
+    int mark;
 
     debugflag = 0;
     //debugflag2 = 0;
@@ -143,6 +148,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
+
+    mark = mnl_attr_get_u32(attr[NFQA_MARK]);
 
     debugflag++; //3
 
@@ -217,7 +224,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //11
 
-    nfq_send_verdict(ntohs(nfg->res_id), id, pktb);
+    nfq_send_verdict(ntohs(nfg->res_id), id, pktb, nohttp, mark);
 
 
 //    free all space
