@@ -52,8 +52,8 @@ static _Bool http_judge(const unsigned char *tcppayload) {
             return stringCmp(tcppayload, "GET");
         case 'P':
             return stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH");
-        case 'C':
-            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug
+        /*case 'C':
+            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug*/
         case 'D':
             return stringCmp(tcppayload, "DELETE");
         case 'H':
