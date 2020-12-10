@@ -23,6 +23,12 @@
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
 
+#define UA_NOMARK 0
+#define UA_HTTP_MARK 11
+#define UA_NO_HTTP_MARK 12
+#define UA_HTTP_CONN_MARK 13
+
+
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long httpcount = 0;
@@ -67,20 +73,21 @@ static _Bool http_judge(const unsigned char *tcppayload) {
     }
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, int mark,
-                             bool nohttp) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
+static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
+    struct nlattr *nest;
+    /*int oldmark = mark;
 
-    /*if (mark!=0){
-        printf("get mark %d",mark);
+    if (mark == UA_NOMARK){
+        if (!nohttp) {
+            mark ==11;
+        }
+    } else if (mark==UA_HTTP_MARK) {
+
+    } else if (mark==UA_HTTP_CONN_MARK) {
+
     }*/
-
-    if (nohttp) {
-        mark = 12;
-    } else {
-        mark = 11;
-    }
 
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
@@ -90,7 +97,11 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, 
         nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
     }
 
-    mnl_attr_put_u32(nlh, NFQA_MARK, htonl(mark));
+    /*if (mark != oldmark) {
+        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+        mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
+        mnl_attr_nest_end(nlh, nest);
+    }*/
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -119,7 +130,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     char *str = NULL;
     void *payload;
     bool nohttp = false;
-    int mark;
+    //int mark;
 
     debugflag = 0;
     //debugflag2 = 0;
@@ -146,11 +157,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-    if (attr[NFQA_MARK]) {
-        mark = mnl_attr_get_u32(attr[NFQA_MARK]);
+    /*if (attr[NFQA_MARK]) {
+        mark = ntohl(mnl_attr_get_u32(attr[NFQA_MARK]));
     } else {
         mark = 0;
-    }
+    }*/
 
     debugflag++; //3
 
@@ -169,13 +180,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
-    debugflag++; //5
+    //debugflag++; //5
 
     tcppkhdl = nfq_tcp_get_hdr(pktb); //获取 tcp header
     tcppkpayload = nfq_tcp_get_payload(tcppkhdl, pktb); //获取 tcp载荷
     tcppklen = nfq_tcp_get_payload_len(tcppkhdl, pktb); //获取 tcp长度
 
-    debugflag++; //6
+    //debugflag++; //6
 
     if (tcppkpayload) {
         if (http_judge(tcppkpayload)) {
@@ -225,7 +236,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //11
 
-    nfq_send_verdict(ntohs(nfg->res_id), id, pktb, nohttp, mark);
+    nfq_send_verdict(ntohs(nfg->res_id), id, pktb);
 
 
 //    free all space
