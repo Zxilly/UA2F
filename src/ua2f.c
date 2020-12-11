@@ -20,7 +20,7 @@
 
 
 /* only for NFQA_CT, not needed otherwise: */
-#include <linux/netfilter/nfnetlink_conntrack.h>
+//#include <linux/netfilter/nfnetlink_conntrack.h>
 
 
 #define UA_NOMARK 0
@@ -40,6 +40,7 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 //static int debugflag2 = 0;
 
+static void exithandle(int debugpoint);
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
     int i = 0;
@@ -105,7 +106,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) 
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
-        exit(EXIT_FAILURE);
+        exithandle(1);
     }
 
     tcpcount++;
@@ -286,6 +287,16 @@ static void debugfunc(int sig) {
 
 }
 
+static void exithandle(int debugpoint){
+    syslog(LOG_ERR, "Exit failure at breakpoint %d", debugpoint);
+    //exit(EXIT_FAILURE);
+    mnl_socket_close(nl);
+
+    syslog(LOG_ALERT, "Meet fatal error, try to restart.");
+
+    execlp("ua2f", "ua2f", NULL);
+}
+
 int main(int argc, char *argv[]) {
     char *buf;
     /* largest possible packet payload, plus netlink data overhead: */
@@ -394,7 +405,8 @@ int main(int argc, char *argv[]) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) { //stop at failure
             perror("mnl_socket_recvfrom");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
+            exithandle(2);
             //continue;
             //break;
         }
@@ -403,8 +415,9 @@ int main(int argc, char *argv[]) {
         debugflag++; //15
         if (ret < 0) { //stop at failure
             perror("mnl_cb_run");
-            exit(EXIT_FAILURE);
-            //break;
+            //exit(EXIT_FAILURE);
+            exithandle(3);
+            break;
         }
     }
 
