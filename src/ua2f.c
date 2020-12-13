@@ -313,8 +313,8 @@ int main(int argc, char *argv[]) {
             break;
         } else {
             syslog(LOG_NOTICE, "Try to start UA2F processor at [%d].", child_status);
-            wait(&errorcode);
-            syslog(LOG_ERR, "Meet fatal error %d, try to restart UA2F processor.",errorcode);
+            wait(NULL);
+            syslog(LOG_ERR, "Meet fatal error, try to restart UA2F processor.");
         }
     }
 
