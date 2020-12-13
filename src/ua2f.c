@@ -70,7 +70,8 @@ static _Bool http_judge(const unsigned char *tcppayload) {
     }
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
+static void nfq_send_verdict(int queue_num, uint32_t id,
+                             struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -303,7 +304,7 @@ int main(int argc, char *argv[]) {
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
-    while (true){
+    while (true) {
         child_status = fork();
         if (child_status < 0) {
             syslog(LOG_ERR, "Failed to give birth.");
