@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <wait.h>
 #include <syslog.h>
 #include <signal.h>
 #include <arpa/inet.h>
@@ -22,11 +23,6 @@
 /* only for NFQA_CT, not needed otherwise: */
 //#include <linux/netfilter/nfnetlink_conntrack.h>
 
-
-#define UA_NOMARK 0
-#define UA_HTTP_MARK 11
-#define UA_NO_HTTP_MARK 12
-#define UA_HTTP_CONN_MARK 13
 
 
 static struct mnl_socket *nl;
@@ -106,7 +102,8 @@ static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) 
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
-        exithandle(1);
+        //exithandle(1);
+        exit(EXIT_FAILURE);
     }
 
     tcpcount++;
@@ -281,20 +278,10 @@ static void debugfunc(int sig) {
     mnl_socket_close(nl);
 
     syslog(LOG_ALERT, "Meet fatal error, try to restart.");
-
-    execlp("ua2f", "ua2f", NULL);
+    exit(EXIT_FAILURE);
+    //execlp("ua2f", "ua2f", NULL);
     //experimental restart
 
-}
-
-static void exithandle(int debugpoint){
-    syslog(LOG_ERR, "Exit failure at breakpoint %d", debugpoint);
-    //exit(EXIT_FAILURE);
-    mnl_socket_close(nl);
-
-    syslog(LOG_ALERT, "Meet fatal error, try to restart.");
-
-    execlp("ua2f", "ua2f", NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -304,46 +291,62 @@ int main(int argc, char *argv[]) {
     struct nlmsghdr *nlh;
     int ret;
     unsigned int portid;
-    int startup_status;
+    int child_status;
     pid_t sid;
+    __pid_t errorcode
 
-    if (argc > 1) {
+    /*if (argc > 1) {
         syslog(LOG_ALERT, "Rebirth process start");
-    }
+    }*/
 
     signal(SIGSEGV, debugfunc); //handle内存断点
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
-    startup_status = fork();
-    if (startup_status < 0) {
-        perror("Creat Daemon");
-        closelog();
-        exit(EXIT_FAILURE);
-    } else if (startup_status == 0) {
-        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
-        sid = setsid();
-        if (sid < 0) {
-            perror("Second Dameon Claim");
+    child_status = fork();
+    while (true){
+        if (child_status < 0) {
+            syslog(LOG_ERR, "Failed to give birth.");
             exit(EXIT_FAILURE);
-        } else if (sid > 0) {
-            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
-            startup_status = fork(); // 第二次fork，派生出一个孤儿
-            if (startup_status < 0) {
-                perror("Second Daemon Fork");
-                exit(EXIT_FAILURE);
-            } else if (startup_status > 0) {
-                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
-                exit(EXIT_SUCCESS);
-            } else {
-                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
-            }
+        } else if (child_status == 0) {
+            syslog(LOG_NOTICE, "UA2F processor start at [%d].", getpid());
+            break;
+        } else {
+            syslog(LOG_NOTICE, "Try to start UA2F processor at [%d].", child_status);
+            errorcode = wait(NULL);
+            syslog(LOG_ERR, "Meet fatal error %d, try to restart UA2F processor.",errorcode);
         }
-    } else {
-        syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
-        printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
-        exit(EXIT_SUCCESS);
     }
+
+
+//    if (startup_status < 0) {
+//        perror("Creat Daemon");
+//        closelog();
+//        exit(EXIT_FAILURE);
+//    } else if (startup_status == 0) {
+//        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
+//        sid = setsid();
+//        if (sid < 0) {
+//            perror("Second Dameon Claim");
+//            exit(EXIT_FAILURE);
+//        } else if (sid > 0) {
+//            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
+//            startup_status = fork(); // 第二次fork，派生出一个孤儿
+//            if (startup_status < 0) {
+//                perror("Second Daemon Fork");
+//                exit(EXIT_FAILURE);
+//            } else if (startup_status > 0) {
+//                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
+//                exit(EXIT_SUCCESS);
+//            } else {
+//                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
+//            }
+//        }
+//    } else {
+//        syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
+//        printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
+//        exit(EXIT_SUCCESS);
+//    }
 
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
@@ -405,8 +408,8 @@ int main(int argc, char *argv[]) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) { //stop at failure
             perror("mnl_socket_recvfrom");
-            //exit(EXIT_FAILURE);
-            exithandle(2);
+            exit(EXIT_FAILURE);
+            //exithandle(2);
             //continue;
             //break;
         }
@@ -415,8 +418,8 @@ int main(int argc, char *argv[]) {
         debugflag++; //15
         if (ret < 0) { //stop at failure
             perror("mnl_cb_run");
-            //exit(EXIT_FAILURE);
-            exithandle(3);
+            exit(EXIT_FAILURE);
+            //exithandle(3);
             break;
         }
     }

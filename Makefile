@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
 PKG_VERSION:=2.0
-PKG_RELEASE:=36
+PKG_RELEASE:=37
 
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
@@ -38,6 +38,8 @@ endef
 define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ua2f $(1)/usr/bin
+	$(INSTALL_DIR) $(1)/etc/init.d
+    $(INSTALL_BIN) ./init/ua2f $(1)/etc/init.d/ua2f
 endef
 
 $(eval $(call BuildPackage,ua2f))
