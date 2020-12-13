@@ -39,7 +39,7 @@ define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ua2f $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/etc/init.d
-    $(INSTALL_BIN) ./init/ua2f $(1)/etc/init.d/ua2f
+	$(INSTALL_BIN) ./init/ua2f $(1)/etc/init.d/ua2f
 endef
 
 $(eval $(call BuildPackage,ua2f))
