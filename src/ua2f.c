@@ -292,8 +292,8 @@ int main(int argc, char *argv[]) {
     int ret;
     unsigned int portid;
     int child_status;
-    pid_t sid;
-    __pid_t errorcode
+    //pid_t sid;
+    pid_t errorcode;
 
     /*if (argc > 1) {
         syslog(LOG_ALERT, "Rebirth process start");
