@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2020 Zxilly
+
+START=50
+APP=ua2f
+SERVICE_WRITE_PID=1
+SERVICE_DAEMONIZE=1
+
+start() {
+        service_start /usr/bin/$APP
+}
+
+stop() {
+        service_stop /usr/bin/$APP
+}
