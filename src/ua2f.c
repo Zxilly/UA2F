@@ -303,8 +303,8 @@ int main(int argc, char *argv[]) {
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
-    child_status = fork();
     while (true){
+        child_status = fork();
         if (child_status < 0) {
             syslog(LOG_ERR, "Failed to give birth.");
             exit(EXIT_FAILURE);
