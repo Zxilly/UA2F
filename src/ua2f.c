@@ -36,48 +36,54 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 //static int debugflag2 = 0;
 
-static bool http_sign_check(bool firstcheck,unsigned int tcplen,const unsigned char *tcppayload);
+static bool http_sign_check(bool firstcheck, unsigned int tcplen, const unsigned char *tcppayload);
 
-static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
-    int i = 0;
-    while (charp_from[i] != '\0') {
-        if (*(charp_to + i) != charp_from[i]) {
-            return false;
-        }
-        i++;
-    }
-    return true;
+static bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
+//    int i = 0;
+//    while (charp_from[i] != '\0') {
+//        if (*(charp_to + i) != charp_from[i]) {
+//            return false;
+//        }
+//        i++;
+//    }
+    return memcmp(charp_to,&charp_from,strlen(charp_from))==0;
+//    return true;
 }
 
-static bool http_judge(const unsigned char *tcppayload,const unsigned int tcplen) {
+static bool http_judge(const unsigned char *tcppayload, const unsigned int tcplen) {
+    if (*tcppayload < 65 || *tcppayload > 90) {
+        return false;
+    }
     switch (*tcppayload) {
         case 'G':
-            return http_sign_check(stringCmp(tcppayload, "GET"),tcplen,tcppayload);
+            return http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload);
         case 'P':
-            return http_sign_check(stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH"),tcplen,tcppayload);
-            /*case 'C':
-                return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug*/
+            return http_sign_check(
+                    stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH"),
+                    tcplen, tcppayload);
+        case 'C':
+            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug
         case 'D':
-            return http_sign_check(stringCmp(tcppayload, "DELETE"),tcplen,tcppayload);
+            return http_sign_check(stringCmp(tcppayload, "DELETE"), tcplen, tcppayload);
         case 'H':
-            return http_sign_check(stringCmp(tcppayload, "HEAD"),tcplen,tcppayload);
+            return http_sign_check(stringCmp(tcppayload, "HEAD"), tcplen, tcppayload);
         case 'T':
-            return http_sign_check(stringCmp(tcppayload, "TRACE"),tcplen,tcppayload);
+            return http_sign_check(stringCmp(tcppayload, "TRACE"), tcplen, tcppayload);
         case 'O':
-            return http_sign_check(stringCmp(tcppayload, "OPTIONS"),tcplen,tcppayload);
+            return http_sign_check(stringCmp(tcppayload, "OPTIONS"), tcplen, tcppayload);
         default:
             return false;
     }
 }
 
-static bool http_sign_check(bool firstcheck,const unsigned int tcplen,const unsigned char *tcppayload) {
+static bool http_sign_check(bool firstcheck, const unsigned int tcplen, const unsigned char *tcppayload) {
     if (!firstcheck) {
         return false;
     } else {
-        for(int i=15;i<tcplen-3;i++){ //最短的http动词是GET
-            if(*(tcppayload+i)=='\r'){
-                if (*(tcppayload+i+1)=='\n'){
-                    return stringCmp(tcppayload+i-8,"HTTP/1"); // 向前查找http版本
+        for (int i = 15; i < tcplen - 3; i++) { //最短的http动词是GET
+            if (*(tcppayload + i) == '\r') {
+                if (*(tcppayload + i + 1) == '\n') {
+                    return stringCmp(tcppayload + i - 8, "HTTP/1"); // 向前查找http版本
                 } else {
                     return false;
                 }
@@ -205,7 +211,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     //debugflag++; //6
 
     if (tcppkpayload) {
-        if (http_judge(tcppkpayload,tcppklen)) {
+        if (http_judge(tcppkpayload, tcppklen)) {
             for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
@@ -336,7 +342,7 @@ int main(int argc, char *argv[]) {
         } else {
             syslog(LOG_NOTICE, "Try to start UA2F processor at [%d].", child_status);
             wait(NULL);
-            syslog(LOG_ERR, "Meet fatal error, try to restart UA2F processor.");
+            syslog(LOG_ERR, "Meet fatal error.");
         }
     }
 
