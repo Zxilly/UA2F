@@ -20,7 +20,7 @@
 #include <libnetfilter_queue/pktbuff.h>
 
 
-#define DEBUG
+#define NODEBUG
 
 /* only for NFQA_CT, not needed otherwise: */
 //#include <linux/netfilter/nfnetlink_conntrack.h>
