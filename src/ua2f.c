@@ -36,7 +36,7 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 //static int debugflag2 = 0;
 
-static void exithandle(int debugpoint);
+static bool http_sign_check(bool firstcheck,const unsigned int tcplen,const unsigned char *tcppayload);
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
     int i = 0;
@@ -49,24 +49,34 @@ static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
     return true;
 }
 
-static _Bool http_judge(const unsigned char *tcppayload) {
+static bool http_judge(const unsigned char *tcppayload,const unsigned int tcplen) {
     switch (*tcppayload) {
         case 'G':
-            return stringCmp(tcppayload, "GET");
+            return http_sign_check(stringCmp(tcppayload, "GET"),tcplen,tcppayload);
         case 'P':
-            return stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH");
+            return http_sign_check(stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH"),tcplen,tcppayload);
             /*case 'C':
                 return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug*/
         case 'D':
-            return stringCmp(tcppayload, "DELETE");
+            return http_sign_check(stringCmp(tcppayload, "DELETE"),tcplen,tcppayload);
         case 'H':
-            return stringCmp(tcppayload, "HEAD");
+            return http_sign_check(stringCmp(tcppayload, "HEAD"),tcplen,tcppayload);
         case 'T':
-            return stringCmp(tcppayload, "TRACE");
+            return http_sign_check(stringCmp(tcppayload, "TRACE"),tcplen,tcppayload);
         case 'O':
-            return stringCmp(tcppayload, "OPTIONS");
+            return http_sign_check(stringCmp(tcppayload, "OPTIONS"),tcplen,tcppayload);
         default:
             return false;
+    }
+}
+
+static bool http_sign_check(bool firstcheck,const unsigned int tcplen,const unsigned char *tcppayload) {
+    if (!firstcheck) {
+        return false;
+    } else {
+        for(int i=4;i<tcplen,i++){ //最短的http动词是GET
+
+        }
     }
 }
 
@@ -188,7 +198,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     //debugflag++; //6
 
     if (tcppkpayload) {
-        if (http_judge(tcppkpayload)) {
+        if (http_judge(tcppkpayload,tcppklen)) {
             for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
