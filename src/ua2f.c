@@ -48,7 +48,7 @@ static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
 //        }
 //        i++;
 //    }
-    printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
+    //printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
     return memcmp(charp_to,charp_from,strlen(charp_from))==0;
 //    return true;
 }
@@ -59,7 +59,6 @@ static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
     }
     switch (*tcppayload) {
         case 'G':
-            printf("http judge is %d\n",http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload));
             return http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload);
         case 'P':
             return http_sign_check(
