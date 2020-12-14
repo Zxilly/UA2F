@@ -36,7 +36,7 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 //static int debugflag2 = 0;
 
-static bool http_sign_check(bool firstcheck,const unsigned int tcplen,const unsigned char *tcppayload);
+static bool http_sign_check(bool firstcheck,unsigned int tcplen,const unsigned char *tcppayload);
 
 static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
     int i = 0;
@@ -74,9 +74,16 @@ static bool http_sign_check(bool firstcheck,const unsigned int tcplen,const unsi
     if (!firstcheck) {
         return false;
     } else {
-        for(int i=4;i<tcplen,i++){ //最短的http动词是GET
-
-        }
+        for(int i=15;i<tcplen-3;i++){ //最短的http动词是GET
+            if(*(tcppayload+i)=='\r'){
+                if (*(tcppayload+i+1)=='\n'){
+                    return stringCmp(tcppayload+i-8,"HTTP/1"); // 向前查找http版本
+                } else {
+                    return false;
+                }
+            }
+        } // 找不到 http 协议版本
+        return false;
     }
 }
 
@@ -84,7 +91,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
                              struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
-    struct nlattr *nest;
+    //struct nlattr *nest;
     /*int oldmark = mark;
 
     if (mark == UA_NOMARK){
@@ -130,7 +137,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
-    struct nlattr *nest;
+    //struct nlattr *nest;
     struct nfgenmsg *nfg;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
@@ -138,7 +145,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     unsigned int ualength = 0;
     char *str = NULL;
     void *payload;
-    bool nohttp = false;
+    //bool nohttp = false;
     //int mark;
 
     debugflag = 0;
@@ -223,11 +230,15 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 memset(str, 'F', ualength);
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     httpcount++; //记录修改包的数量
+                    free(str);//用完就丢
+                } else {
+                    free(str);
+                    return MNL_CB_ERROR;
                 }
-                free(str);//用完就丢
+
             }
         } else {
-            nohttp = true;
+            //nohttp = true;
         }
     }
 
@@ -283,7 +294,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     return MNL_CB_OK;
 }
 
-static void debugfunc(int sig) {
+static void debugfunc() {
     syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
     //exit(EXIT_FAILURE);
     mnl_socket_close(nl);
@@ -304,7 +315,7 @@ int main(int argc, char *argv[]) {
     unsigned int portid;
     int child_status;
     //pid_t sid;
-    pid_t errorcode;
+    //pid_t errorcode;
 
     /*if (argc > 1) {
         syslog(LOG_ALERT, "Rebirth process start");
@@ -431,13 +442,13 @@ int main(int argc, char *argv[]) {
             perror("mnl_cb_run");
             exit(EXIT_FAILURE);
             //exithandle(3);
-            break;
+            //break;
         }
     }
 
 
-    mnl_socket_close(nl);
+    //mnl_socket_close(nl);
 
 
-    return 0;
+    //return 0;
 }
