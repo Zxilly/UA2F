@@ -20,6 +20,8 @@
 #include <libnetfilter_queue/pktbuff.h>
 
 
+#define DEBUG
+
 /* only for NFQA_CT, not needed otherwise: */
 //#include <linux/netfilter/nfnetlink_conntrack.h>
 
@@ -36,9 +38,9 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 //static int debugflag2 = 0;
 
-static bool http_sign_check(bool firstcheck, unsigned int tcplen, const unsigned char *tcppayload);
+static bool http_sign_check(bool firstcheck, unsigned int tcplen,unsigned char *tcppayload);
 
-static bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
+static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
 //    int i = 0;
 //    while (charp_from[i] != '\0') {
 //        if (*(charp_to + i) != charp_from[i]) {
@@ -46,11 +48,11 @@ static bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
 //        }
 //        i++;
 //    }
-    return memcmp(charp_to,&charp_from,strlen(charp_from))==0;
+    return memcmp(charp_to,charp_from,strlen(charp_from))==0;
 //    return true;
 }
 
-static bool http_judge(const unsigned char *tcppayload, const unsigned int tcplen) {
+static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
     if (*tcppayload < 65 || *tcppayload > 90) {
         return false;
     }
@@ -76,7 +78,7 @@ static bool http_judge(const unsigned char *tcppayload, const unsigned int tcple
     }
 }
 
-static bool http_sign_check(bool firstcheck, const unsigned int tcplen, const unsigned char *tcppayload) {
+static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned char *tcppayload) {
     if (!firstcheck) {
         return false;
     } else {
@@ -320,6 +322,7 @@ int main(int argc, char *argv[]) {
     int ret;
     unsigned int portid;
     int child_status;
+    int errcount=0;
     //pid_t sid;
     //pid_t errorcode;
 
@@ -329,6 +332,7 @@ int main(int argc, char *argv[]) {
 
     signal(SIGSEGV, debugfunc); //handle内存断点
 
+#ifndef DEBUG
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
     while (true) {
@@ -344,9 +348,13 @@ int main(int argc, char *argv[]) {
             wait(NULL);
             syslog(LOG_ERR, "Meet fatal error.");
         }
+        errcount++;
+        if (errcount>50) {
+            syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
+            exit(EXIT_FAILURE);
+        }
     }
-
-
+#endif
 //    if (startup_status < 0) {
 //        perror("Creat Daemon");
 //        closelog();
