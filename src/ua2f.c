@@ -48,6 +48,7 @@ static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
 //        }
 //        i++;
 //    }
+    printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
     return memcmp(charp_to,charp_from,strlen(charp_from))==0;
 //    return true;
 }
@@ -58,6 +59,7 @@ static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
     }
     switch (*tcppayload) {
         case 'G':
+            printf("http judge is %d\n",http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload));
             return http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload);
         case 'P':
             return http_sign_check(
@@ -82,7 +84,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
     if (!firstcheck) {
         return false;
     } else {
-        for (int i = 15; i < tcplen - 3; i++) { //最短的http动词是GET
+        for (int i = 14; i < tcplen - 3; i++) { //最短的http动词是GET
             if (*(tcppayload + i) == '\r') {
                 if (*(tcppayload + i + 1) == '\n') {
                     return stringCmp(tcppayload + i - 8, "HTTP/1"); // 向前查找http版本
