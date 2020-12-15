@@ -20,9 +20,12 @@
 #include <libnetfilter_queue/pktbuff.h>
 
 
+
+#define NODEBUG
+
+
 /* only for NFQA_CT, not needed otherwise: */
 //#include <linux/netfilter/nfnetlink_conntrack.h>
-
 
 
 static struct mnl_socket *nl;
@@ -36,44 +39,71 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 //static int debugflag2 = 0;
 
-static void exithandle(int debugpoint);
 
-static _Bool stringCmp(const unsigned char *charp_to, const char charp_from[]) {
-    int i = 0;
-    while (charp_from[i] != '\0') {
-        if (*(charp_to + i) != charp_from[i]) {
-            return false;
-        }
-        i++;
-    }
-    return true;
+static bool http_sign_check(bool firstcheck, unsigned int tcplen,unsigned char *tcppayload);
+
+static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
+//    int i = 0;
+//    while (charp_from[i] != '\0') {
+//        if (*(charp_to + i) != charp_from[i]) {
+//            return false;
+//        }
+//        i++;
+//    }
+    //printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
+    return memcmp(charp_to,charp_from,strlen(charp_from))==0;
+//    return true;
+
 }
 
-static _Bool http_judge(const unsigned char *tcppayload) {
+static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
+    if (*tcppayload < 65 || *tcppayload > 90) {
+        return false;
+    }
     switch (*tcppayload) {
         case 'G':
-            return stringCmp(tcppayload, "GET");
+            return http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload);
         case 'P':
-            return stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH");
-            /*case 'C':
-                return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug*/
+            return http_sign_check(
+                    stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH"),
+                    tcplen, tcppayload);
+        case 'C':
+            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug
         case 'D':
-            return stringCmp(tcppayload, "DELETE");
+            return http_sign_check(stringCmp(tcppayload, "DELETE"), tcplen, tcppayload);
         case 'H':
-            return stringCmp(tcppayload, "HEAD");
+            return http_sign_check(stringCmp(tcppayload, "HEAD"), tcplen, tcppayload);
         case 'T':
-            return stringCmp(tcppayload, "TRACE");
+            return http_sign_check(stringCmp(tcppayload, "TRACE"), tcplen, tcppayload);
         case 'O':
-            return stringCmp(tcppayload, "OPTIONS");
+            return http_sign_check(stringCmp(tcppayload, "OPTIONS"), tcplen, tcppayload);
         default:
             return false;
     }
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
+static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned char *tcppayload) {
+    if (!firstcheck) {
+        return false;
+    } else {
+        for (int i = 14; i < tcplen - 3; i++) { //最短的http动词是GET
+            if (*(tcppayload + i) == '\r') {
+                if (*(tcppayload + i + 1) == '\n') {
+                    return stringCmp(tcppayload + i - 8, "HTTP/1"); // 向前查找http版本
+                } else {
+                    return false;
+                }
+            }
+        } // 找不到 http 协议版本
+        return false;
+    }
+}
+
+static void nfq_send_verdict(int queue_num, uint32_t id,
+                             struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
-    struct nlattr *nest;
+    //struct nlattr *nest;
     /*int oldmark = mark;
 
     if (mark == UA_NOMARK){
@@ -119,7 +149,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
-    struct nlattr *nest;
+    //struct nlattr *nest;
     struct nfgenmsg *nfg;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
@@ -127,7 +157,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     unsigned int ualength = 0;
     char *str = NULL;
     void *payload;
-    bool nohttp = false;
+    //bool nohttp = false;
     //int mark;
 
     debugflag = 0;
@@ -187,7 +217,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     //debugflag++; //6
 
     if (tcppkpayload) {
-        if (http_judge(tcppkpayload)) {
+        if (http_judge(tcppkpayload, tcppklen)) {
             for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
@@ -212,11 +242,15 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 memset(str, 'F', ualength);
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     httpcount++; //记录修改包的数量
+                    free(str);//用完就丢
+                } else {
+                    free(str);
+                    return MNL_CB_ERROR;
                 }
-                free(str);//用完就丢
+
             }
         } else {
-            nohttp = true;
+            //nohttp = true;
         }
     }
 
@@ -272,7 +306,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     return MNL_CB_OK;
 }
 
-static void debugfunc(int sig) {
+static void debugfunc() {
     syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
     //exit(EXIT_FAILURE);
     mnl_socket_close(nl);
@@ -292,8 +326,11 @@ int main(int argc, char *argv[]) {
     int ret;
     unsigned int portid;
     int child_status;
+
+    int errcount=0;
     //pid_t sid;
-    pid_t errorcode;
+    //pid_t errorcode;
+
 
     /*if (argc > 1) {
         syslog(LOG_ALERT, "Rebirth process start");
@@ -301,10 +338,12 @@ int main(int argc, char *argv[]) {
 
     signal(SIGSEGV, debugfunc); //handle内存断点
 
+#ifndef DEBUG
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
-    child_status = fork();
-    while (true){
+
+    while (true) {
+        child_status = fork();
         if (child_status < 0) {
             syslog(LOG_ERR, "Failed to give birth.");
             exit(EXIT_FAILURE);
@@ -313,10 +352,45 @@ int main(int argc, char *argv[]) {
             break;
         } else {
             syslog(LOG_NOTICE, "Try to start UA2F processor at [%d].", child_status);
-            errorcode = wait(NULL);
-            syslog(LOG_ERR, "Meet fatal error %d, try to restart UA2F processor.",errorcode);
+            wait(NULL);
+            syslog(LOG_ERR, "Meet fatal error.");
+        }
+        errcount++;
+        if (errcount>50) {
+            syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
+            exit(EXIT_FAILURE);
+
         }
     }
+#endif
+//    if (startup_status < 0) {
+//        perror("Creat Daemon");
+//        closelog();
+//        exit(EXIT_FAILURE);
+//    } else if (startup_status == 0) {
+//        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
+//        sid = setsid();
+//        if (sid < 0) {
+//            perror("Second Dameon Claim");
+//            exit(EXIT_FAILURE);
+//        } else if (sid > 0) {
+//            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
+//            startup_status = fork(); // 第二次fork，派生出一个孤儿
+//            if (startup_status < 0) {
+//                perror("Second Daemon Fork");
+//                exit(EXIT_FAILURE);
+//            } else if (startup_status > 0) {
+//                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
+//                exit(EXIT_SUCCESS);
+//            } else {
+//                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
+//            }
+//        }
+//    } else {
+//        syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
+//        printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
+//        exit(EXIT_SUCCESS);
+//    }
 
 
 //    if (startup_status < 0) {
@@ -420,13 +494,15 @@ int main(int argc, char *argv[]) {
             perror("mnl_cb_run");
             exit(EXIT_FAILURE);
             //exithandle(3);
-            break;
+
+            //break;
+
         }
     }
 
 
-    mnl_socket_close(nl);
+    //mnl_socket_close(nl);
 
 
-    return 0;
+    //return 0;
 }
