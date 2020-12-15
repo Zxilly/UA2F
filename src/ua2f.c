@@ -20,11 +20,12 @@
 #include <libnetfilter_queue/pktbuff.h>
 
 
+
 #define NODEBUG
+
 
 /* only for NFQA_CT, not needed otherwise: */
 //#include <linux/netfilter/nfnetlink_conntrack.h>
-
 
 
 static struct mnl_socket *nl;
@@ -37,6 +38,7 @@ static time_t start_t, current_t;
 
 static int debugflag = 0;
 //static int debugflag2 = 0;
+
 
 static bool http_sign_check(bool firstcheck, unsigned int tcplen,unsigned char *tcppayload);
 
@@ -51,6 +53,7 @@ static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
     //printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
     return memcmp(charp_to,charp_from,strlen(charp_from))==0;
 //    return true;
+
 }
 
 static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
@@ -323,9 +326,11 @@ int main(int argc, char *argv[]) {
     int ret;
     unsigned int portid;
     int child_status;
+
     int errcount=0;
     //pid_t sid;
     //pid_t errorcode;
+
 
     /*if (argc > 1) {
         syslog(LOG_ALERT, "Rebirth process start");
@@ -336,6 +341,7 @@ int main(int argc, char *argv[]) {
 #ifndef DEBUG
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
+
     while (true) {
         child_status = fork();
         if (child_status < 0) {
@@ -353,9 +359,40 @@ int main(int argc, char *argv[]) {
         if (errcount>50) {
             syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
             exit(EXIT_FAILURE);
+
         }
     }
 #endif
+//    if (startup_status < 0) {
+//        perror("Creat Daemon");
+//        closelog();
+//        exit(EXIT_FAILURE);
+//    } else if (startup_status == 0) {
+//        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
+//        sid = setsid();
+//        if (sid < 0) {
+//            perror("Second Dameon Claim");
+//            exit(EXIT_FAILURE);
+//        } else if (sid > 0) {
+//            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
+//            startup_status = fork(); // 第二次fork，派生出一个孤儿
+//            if (startup_status < 0) {
+//                perror("Second Daemon Fork");
+//                exit(EXIT_FAILURE);
+//            } else if (startup_status > 0) {
+//                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
+//                exit(EXIT_SUCCESS);
+//            } else {
+//                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
+//            }
+//        }
+//    } else {
+//        syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
+//        printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
+//        exit(EXIT_SUCCESS);
+//    }
+
+
 //    if (startup_status < 0) {
 //        perror("Creat Daemon");
 //        closelog();
@@ -457,7 +494,9 @@ int main(int argc, char *argv[]) {
             perror("mnl_cb_run");
             exit(EXIT_FAILURE);
             //exithandle(3);
+
             //break;
+
         }
     }
 
