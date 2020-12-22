@@ -133,6 +133,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
         //exithandle(1);
+        syslog(LOG_ERR,"Exit at breakpoint 1.");
         exit(EXIT_FAILURE);
     }
 
@@ -346,6 +347,7 @@ int main(int argc, char *argv[]) {
         child_status = fork();
         if (child_status < 0) {
             syslog(LOG_ERR, "Failed to give birth.");
+            syslog(LOG_ERR,"Exit at breakpoint 2.");
             exit(EXIT_FAILURE);
         } else if (child_status == 0) {
             syslog(LOG_NOTICE, "UA2F processor start at [%d].", getpid());
@@ -358,6 +360,7 @@ int main(int argc, char *argv[]) {
         errcount++;
         if (errcount>50) {
             syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
+            syslog(LOG_ERR,"Exit at breakpoint 3.");
             exit(EXIT_FAILURE);
 
         }
@@ -435,11 +438,13 @@ int main(int argc, char *argv[]) {
 
     if (nl == NULL) {
         perror("mnl_socket_open");
+        syslog(LOG_ERR,"Exit at breakpoint 4.");
         exit(EXIT_FAILURE);
     }
 
     if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
         perror("mnl_socket_bind");
+        syslog(LOG_ERR,"Exit at breakpoint 5.");
         exit(EXIT_FAILURE);
     }
     portid = mnl_socket_get_portid(nl);
@@ -447,6 +452,7 @@ int main(int argc, char *argv[]) {
     buf = malloc(sizeof_buf);
     if (!buf) {
         perror("allocate receive buffer");
+        syslog(LOG_ERR,"Exit at breakpoint 6.");
         exit(EXIT_FAILURE);
     }
 
@@ -455,6 +461,7 @@ int main(int argc, char *argv[]) {
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
+        syslog(LOG_ERR,"Exit at breakpoint 7.");
         exit(EXIT_FAILURE);
     }
 
@@ -466,6 +473,7 @@ int main(int argc, char *argv[]) {
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
+        syslog(LOG_ERR,"Exit at breakpoint 8.");
         exit(EXIT_FAILURE);
     }
 
@@ -482,6 +490,7 @@ int main(int argc, char *argv[]) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) { //stop at failure
             perror("mnl_socket_recvfrom");
+            syslog(LOG_ERR,"Exit at breakpoint 9.");
             exit(EXIT_FAILURE);
             //exithandle(2);
             //continue;
@@ -492,6 +501,7 @@ int main(int argc, char *argv[]) {
         debugflag++; //15
         if (ret < 0) { //stop at failure
             perror("mnl_cb_run");
+            syslog(LOG_ERR,"Exit at breakpoint 10.");
             exit(EXIT_FAILURE);
             //exithandle(3);
 
