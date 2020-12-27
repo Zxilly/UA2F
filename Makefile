@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=UA2F
 PKG_VERSION:=2.0
 
-PKG_RELEASE:=46
+PKG_RELEASE:=47
 
 
 

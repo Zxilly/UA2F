@@ -20,7 +20,6 @@
 #include <libnetfilter_queue/pktbuff.h>
 
 
-
 #define NODEBUG
 
 
@@ -37,10 +36,10 @@ static long long oldhttpcount = 4;
 static time_t start_t, current_t;
 
 static int debugflag = 0;
-//static int debugflag2 = 0;
+static int debugflag2 = 0;
 
 
-static bool http_sign_check(bool firstcheck, unsigned int tcplen,unsigned char *tcppayload);
+static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
 
 static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
 //    int i = 0;
@@ -51,7 +50,7 @@ static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
 //        i++;
 //    }
     //printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
-    return memcmp(charp_to,charp_from,strlen(charp_from))==0;
+    return memcmp(charp_to, charp_from, strlen(charp_from)) == 0;
 //    return true;
 
 }
@@ -103,27 +102,19 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
                              struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
-    //struct nlattr *nest;
-    /*int oldmark = mark;
 
-    if (mark == UA_NOMARK){
-        if (!nohttp) {
-            mark ==11;
-        }
-    } else if (mark==UA_HTTP_MARK) {
-
-    } else if (mark==UA_HTTP_CONN_MARK) {
-
-    }*/
-
+    debugflag2++;//flag1
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
     nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
+
+    debugflag2++;//flag2
 
     if (pktb_mangled(pktb)) {
         nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
     }
 
+    debugflag2++;//flag3
     /*if (mark != oldmark) {
         nest = mnl_attr_nest_start(nlh, NFQA_CT);
         mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
@@ -133,13 +124,17 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
         //exithandle(1);
-        syslog(LOG_ERR,"Exit at breakpoint 1.");
+        syslog(LOG_ERR, "Exit at breakpoint 1.");
         exit(EXIT_FAILURE);
     }
 
-    tcpcount++;
-    pktb_free(pktb);
+    debugflag2++;//flag4
 
+    tcpcount++;
+    if (pktb) {
+        pktb_free(pktb);
+    }
+    debugflag2++;//flag5
 }
 
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
@@ -253,7 +248,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl(ph->packet_id), pktb);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb);
 
 
     debugflag++; //flag6
@@ -290,7 +285,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 }
 
 static void debugfunc() {
-    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d", debugflag);
+    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d and breakpoint2 %d", debugflag, debugflag2);
     //exit(EXIT_FAILURE);
     mnl_socket_close(nl);
 
@@ -310,7 +305,7 @@ int main(int argc, char *argv[]) {
     unsigned int portid;
     int child_status;
 
-    int errcount=0;
+    int errcount = 0;
     //pid_t sid;
     //pid_t errorcode;
 
@@ -329,7 +324,7 @@ int main(int argc, char *argv[]) {
         child_status = fork();
         if (child_status < 0) {
             syslog(LOG_ERR, "Failed to give birth.");
-            syslog(LOG_ERR,"Exit at breakpoint 2.");
+            syslog(LOG_ERR, "Exit at breakpoint 2.");
             exit(EXIT_FAILURE);
         } else if (child_status == 0) {
             syslog(LOG_NOTICE, "UA2F processor start at [%d].", getpid());
@@ -340,9 +335,9 @@ int main(int argc, char *argv[]) {
             syslog(LOG_ERR, "Meet fatal error.");
         }
         errcount++;
-        if (errcount>50) {
+        if (errcount > 50) {
             syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
-            syslog(LOG_ERR,"Exit at breakpoint 3.");
+            syslog(LOG_ERR, "Exit at breakpoint 3.");
             exit(EXIT_FAILURE);
         }
     }
@@ -362,13 +357,13 @@ int main(int argc, char *argv[]) {
 
     if (nl == NULL) {
         perror("mnl_socket_open");
-        syslog(LOG_ERR,"Exit at breakpoint 4.");
+        syslog(LOG_ERR, "Exit at breakpoint 4.");
         exit(EXIT_FAILURE);
     }
 
     if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
         perror("mnl_socket_bind");
-        syslog(LOG_ERR,"Exit at breakpoint 5.");
+        syslog(LOG_ERR, "Exit at breakpoint 5.");
         exit(EXIT_FAILURE);
     }
     portid = mnl_socket_get_portid(nl);
@@ -376,7 +371,7 @@ int main(int argc, char *argv[]) {
     buf = malloc(sizeof_buf);
     if (!buf) {
         perror("allocate receive buffer");
-        syslog(LOG_ERR,"Exit at breakpoint 6.");
+        syslog(LOG_ERR, "Exit at breakpoint 6.");
         exit(EXIT_FAILURE);
     }
 
@@ -385,7 +380,7 @@ int main(int argc, char *argv[]) {
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
-        syslog(LOG_ERR,"Exit at breakpoint 7.");
+        syslog(LOG_ERR, "Exit at breakpoint 7.");
         exit(EXIT_FAILURE);
     }
 
@@ -397,7 +392,7 @@ int main(int argc, char *argv[]) {
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
-        syslog(LOG_ERR,"Exit at breakpoint 8.");
+        syslog(LOG_ERR, "Exit at breakpoint 8.");
         exit(EXIT_FAILURE);
     }
 
@@ -414,7 +409,7 @@ int main(int argc, char *argv[]) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);
         if (ret == -1) { //stop at failure
             perror("mnl_socket_recvfrom");
-            syslog(LOG_ERR,"Exit at breakpoint 9.");
+            syslog(LOG_ERR, "Exit at breakpoint 9.");
             exit(EXIT_FAILURE);
             //exithandle(2);
             //continue;
@@ -425,7 +420,7 @@ int main(int argc, char *argv[]) {
         debugflag++; //15
         if (ret < 0) { //stop at failure
             perror("mnl_cb_run");
-            syslog(LOG_ERR,"Exit at breakpoint 10.");
+            syslog(LOG_ERR, "Exit at breakpoint 10.");
             exit(EXIT_FAILURE);
             //exithandle(3);
 
