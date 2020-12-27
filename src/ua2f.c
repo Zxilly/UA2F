@@ -209,13 +209,10 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
-    //debugflag++; //5
 
     tcppkhdl = nfq_tcp_get_hdr(pktb); //获取 tcp header
     tcppkpayload = nfq_tcp_get_payload(tcppkhdl, pktb); //获取 tcp载荷
     tcppklen = nfq_tcp_get_payload_len(tcppkhdl, pktb); //获取 tcp长度
-
-    //debugflag++; //6
 
     if (tcppkpayload) {
         if (http_judge(tcppkpayload, tcppklen)) {
@@ -250,27 +247,16 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }
 
             }
-        } else {
-            //nohttp = true;
         }
     }
 
-    debugflag++; //7
+    debugflag++; //flag5
 
 
-    debugflag++; //8
-
-    id = ntohl(ph->packet_id);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl(ph->packet_id), pktb);
 
 
-    debugflag++; //9 FIXME: 非法内存访问
-
-    debugflag++; //10
-
-    debugflag++; //11
-
-    nfq_send_verdict(ntohs(nfg->res_id), id, pktb);
-
+    debugflag++; //flag6
 
 //    free all space
 //    struct nfqnl_msg_packet_hdr *ph = NULL;
@@ -289,9 +275,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //    struct nlmsghdr *nlh2;
 //    void *payload;
 
-    debugflag++; //12
-
-    debugflag++; //13
 
     if (httpcount / oldhttpcount == 2) {
         oldhttpcount = httpcount;
@@ -301,8 +284,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                difftime(current_t, start_t));
     }
 
-    debugflag++; //14
-
+    debugflag++;//flag7
 
     return MNL_CB_OK;
 }
@@ -362,68 +344,10 @@ int main(int argc, char *argv[]) {
             syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
             syslog(LOG_ERR,"Exit at breakpoint 3.");
             exit(EXIT_FAILURE);
-
         }
     }
 #endif
-//    if (startup_status < 0) {
-//        perror("Creat Daemon");
-//        closelog();
-//        exit(EXIT_FAILURE);
-//    } else if (startup_status == 0) {
-//        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
-//        sid = setsid();
-//        if (sid < 0) {
-//            perror("Second Dameon Claim");
-//            exit(EXIT_FAILURE);
-//        } else if (sid > 0) {
-//            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
-//            startup_status = fork(); // 第二次fork，派生出一个孤儿
-//            if (startup_status < 0) {
-//                perror("Second Daemon Fork");
-//                exit(EXIT_FAILURE);
-//            } else if (startup_status > 0) {
-//                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
-//                exit(EXIT_SUCCESS);
-//            } else {
-//                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
-//            }
-//        }
-//    } else {
-//        syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
-//        printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
-//        exit(EXIT_SUCCESS);
-//    }
 
-
-//    if (startup_status < 0) {
-//        perror("Creat Daemon");
-//        closelog();
-//        exit(EXIT_FAILURE);
-//    } else if (startup_status == 0) {
-//        syslog(LOG_NOTICE, "UA2F parent daemon start at [%d].", getpid());
-//        sid = setsid();
-//        if (sid < 0) {
-//            perror("Second Dameon Claim");
-//            exit(EXIT_FAILURE);
-//        } else if (sid > 0) {
-//            syslog(LOG_NOTICE, "UA2F parent daemon set sid at [%d].", sid);
-//            startup_status = fork(); // 第二次fork，派生出一个孤儿
-//            if (startup_status < 0) {
-//                perror("Second Daemon Fork");
-//                exit(EXIT_FAILURE);
-//            } else if (startup_status > 0) {
-//                syslog(LOG_NOTICE, "UA2F true daemon will start at [%d], daemon parent suicide.", startup_status);
-//                exit(EXIT_SUCCESS);
-//            } else {
-//                syslog(LOG_NOTICE, "UA2F true daemon start at [%d].", getpid());
-//            }
-//        }
-//    } else {
-//        syslog(LOG_NOTICE, "UA2F try to start daemon parent at [%d], parent process will suicide.", startup_status);
-//        printf("UA2F try to start daemon parent at [%d], parent process will suicide.\n", startup_status);
-//        exit(EXIT_SUCCESS);
-//    }
 
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
