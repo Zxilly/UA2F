@@ -102,7 +102,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
                              struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
     char buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
-
+    debugflag2 = 0;
     debugflag2++;//flag1
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
