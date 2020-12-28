@@ -232,6 +232,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             }
             if (uaoffset && ualength) {
                 str = malloc(ualength);
+                if (!str) {
+                    return MNL_CB_ERROR;
+                }
                 memset(str, 'F', ualength);
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     httpcount++; //记录修改包的数量
