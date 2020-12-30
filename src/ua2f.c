@@ -100,7 +100,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 
 static void nfq_send_verdict(int queue_num, uint32_t id,
                              struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
-    char buf[MNL_SOCKET_BUFFER_SIZE];
+    char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     debugflag2 = 0;
     debugflag2++;//flag1
