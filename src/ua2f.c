@@ -37,21 +37,29 @@ static time_t start_t, current_t;
 
 static int debugflag = 0;
 static int debugflag2 = 0;
+static char timestr[60];
+
+char *time2str(int sec) {
+    memset(timestr, 0, sizeof(timestr));
+    if (sec <= 60) {
+        sprintf(timestr, "%d seconds", sec);
+    } else if (sec <= 3600) {
+        sprintf(timestr, "%d minutes and %d seconds", sec / 60, sec % 60);
+    } else if (sec <= 86400) {
+        sprintf(timestr, "%d hours, %d minutes and %d seconds", sec / 3600, sec % 3600 / 60, sec % 60);
+    } else {
+        sprintf(timestr, "%d days, %d hours, %d minutes and %d seconds", sec / 86400, sec % 86400 / 3600,
+                sec % 3600 / 60,
+                sec % 60);
+    }
+    return timestr;
+}
 
 
 static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
 
 static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
-//    int i = 0;
-//    while (charp_from[i] != '\0') {
-//        if (*(charp_to + i) != charp_from[i]) {
-//            return false;
-//        }
-//        i++;
-//    }
-    //printf("%s %d \n",charp_from,memcmp(charp_to,charp_from,strlen(charp_from))==0);
     return memcmp(charp_to, charp_from, strlen(charp_from)) == 0;
-//    return true;
 
 }
 
@@ -201,6 +209,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (nfq_ip_set_transport_header(pktb, ippkhdl) < 0) {
         fputs("set transport header failed\n", stderr);
+        pktb_free(pktb);
         return MNL_CB_ERROR;
     }
 
@@ -233,6 +242,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             if (uaoffset && ualength) {
                 str = malloc(ualength);
                 if (!str) {
+                    pktb_free(pktb);
                     return MNL_CB_ERROR;
                 }
                 memset(str, 'F', ualength);
@@ -241,6 +251,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     free(str);//用完就丢
                 } else {
                     free(str);
+                    pktb_free(pktb);
                     return MNL_CB_ERROR;
                 }
 
@@ -277,9 +288,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (httpcount / oldhttpcount == 2) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
-        syslog(LOG_INFO, "UA2F has handled %lld http packet, %lld http packet without ua and %lld tcp packet in %.0lfs",
+        syslog(LOG_INFO, "UA2F has handled %lld http packet, %lld http packet without ua and %lld tcp packet in %s",
                httpcount, httpnouacount, tcpcount,
-               difftime(current_t, start_t));
+               time2str((int)difftime(current_t, start_t)));
     }
 
     debugflag++;//flag7
