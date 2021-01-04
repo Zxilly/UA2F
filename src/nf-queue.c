@@ -21,30 +21,12 @@
 
 static struct mnl_socket *nl;
 
-static int data_attr_cb(const struct nlattr *attr, void *data) {
+int parse_attrs(const struct nlattr *attr, void *data) {
     const struct nlattr **tb = data;
     int type = mnl_attr_get_type(attr);
 
-    if (mnl_attr_type_valid(attr, CTA_MAX) < 0)
-        return MNL_CB_OK;
-
-    switch (type) {
-        case CTA_TUPLE_ORIG:
-            if (mnl_attr_validate(attr, MNL_TYPE_NESTED) < 0) {
-                perror("mnl_attr_validate");
-                return MNL_CB_ERROR;
-            }
-            break;
-        case CTA_TIMEOUT:
-        case CTA_MARK:
-        case CTA_SECMARK:
-            if (mnl_attr_validate(attr, MNL_TYPE_U32) < 0) {
-                perror("mnl_attr_validate");
-                return MNL_CB_ERROR;
-            }
-            break;
-    }
     tb[type] = attr;
+
     return MNL_CB_OK;
 }
 
@@ -72,7 +54,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id) {
     }
 }
 
-static int queue_cb(struct nlmsghdr *nlh, void *data) {
+static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *nest;
     struct nlattr *attr[NFQA_MAX + 1] = {};
@@ -105,18 +87,23 @@ static int queue_cb(struct nlmsghdr *nlh, void *data) {
             printf("truncated ");
     }
 
-    if (skbinfo & NFQA_SKB_GSO)
-        printf("GSO ");
+    if (attr[NFQA_CT]) {
+        printf("mark=");
+        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+        if (ctattr[CTA_MARK]){
+            uint32_t mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+            printf("%u ", mark);
+        } else {
+            printf("noexist ");
+        }
+    }
+
+
+//    if (skbinfo & NFQA_SKB_GSO)
+//        printf("GSO ");
 
     id = ntohl(ph->packet_id);
 
-    nest = mnl_attr_nest_start(nlh, NFQA_CT);
-
-    uint32_t mark = ntohl(mnl_attr_get_u32(attr[CTA_MARK]));
-
-    printf("mark is %u\n",mark);
-
-    mnl_attr_nest_end(nlh, nest);
 
     printf("packet received (id=%u hw=0x%04x hook=%u, payload len %u",
            id, ntohs(ph->hw_protocol), ph->hook, plen);
@@ -143,6 +130,8 @@ int main(int argc, char *argv[]) {
     struct nlmsghdr *nlh;
     int ret;
     unsigned int portid, queue_num;
+
+    printf("1\n");
 
     queue_num = 10010;
 
@@ -175,8 +164,8 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO));
-    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO));
+    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
