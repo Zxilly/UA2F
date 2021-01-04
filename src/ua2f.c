@@ -18,6 +18,7 @@
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/pktbuff.h>
+#include <linux/netfilter/nfnetlink_conntrack.h>
 
 
 #define NODEBUG
@@ -39,7 +40,7 @@ static int debugflag = 0;
 static int debugflag2 = 0;
 static char timestr[60];
 
-char *time2str(int sec) {
+static char *time2str(int sec) {
     memset(timestr, 0, sizeof(timestr));
     if (sec <= 60) {
         sprintf(timestr, "%d seconds", sec);
@@ -55,6 +56,14 @@ char *time2str(int sec) {
     return timestr;
 }
 
+static int parse_attrs(const struct nlattr *attr, void *data) {
+    const struct nlattr **tb = data;
+    int type = mnl_attr_get_type(attr);
+
+    tb[type] = attr;
+
+    return MNL_CB_OK;
+}
 
 static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
 
@@ -107,9 +116,13 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 }
 
 static void nfq_send_verdict(int queue_num, uint32_t id,
-                             struct pkt_buff *pktb) { //http mark = 11 ,ukn mark = 12, http and ukn mark = 13
+                             struct pkt_buff *pktb, int mark,
+                             bool nohttp) { //http mark = 11 ,ukn mark = 12
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
+    struct nlattr *nest;
+    int setmark = -1;
+
     debugflag2 = 0;
     debugflag2++;//flag1
 
@@ -123,11 +136,21 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
     }
 
     debugflag2++;//flag3
-    /*if (mark != oldmark) {
+
+    if (mark < 0){
+        if (nohttp) {
+            setmark = 12;
+        } else {
+            setmark = 11;
+        }
+    }
+
+    if (setmark > 0){
         nest = mnl_attr_nest_start(nlh, NFQA_CT);
-        mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
+        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
         mnl_attr_nest_end(nlh, nest);
-    }*/
+    }
+
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -148,21 +171,21 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX + 1] = {};
-    uint32_t id;
+    struct nlattr *ctattr[CTA_MAX + 1] = {};
     uint16_t plen;
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
-    //struct nlattr *nest;
     struct nfgenmsg *nfg;
+    uint32_t mark;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
     unsigned int ualength = 0;
     char *str = NULL;
     void *payload;
-    //bool nohttp = false;
-    //int mark;
+    bool nohttp = false;
+
 
     debugflag = 0;
     //debugflag2 = 0;
@@ -180,6 +203,15 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
+    if (attr[NFQA_CT]) {
+        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+        if (ctattr[CTA_MARK]) {
+            mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+        } else {
+            mark = -1;
+        }
+    }
+
     debugflag++; //1
 
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
@@ -189,11 +221,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-    /*if (attr[NFQA_MARK]) {
-        mark = ntohl(mnl_attr_get_u32(attr[NFQA_MARK]));
-    } else {
-        mark = 0;
-    }*/
 
     debugflag++; //3
 
@@ -249,6 +276,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     httpcount++; //记录修改包的数量
                     free(str);//用完就丢
+                    nohttp = false;
                 } else {
                     free(str);
                     pktb_free(pktb);
@@ -256,13 +284,15 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }
 
             }
+        } else {
+            nohttp = true;
         }
     }
 
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp);
 
 
     debugflag++; //flag6
@@ -290,7 +320,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         current_t = time(NULL);
         syslog(LOG_INFO, "UA2F has handled %lld http packet, %lld http packet without ua and %lld tcp packet in %s",
                httpcount, httpnouacount, tcpcount,
-               time2str((int)difftime(current_t, start_t)));
+               time2str((int) difftime(current_t, start_t)));
     }
 
     debugflag++;//flag7
@@ -300,13 +330,10 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
 static void debugfunc() {
     syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d and breakpoint2 %d", debugflag, debugflag2);
-    //exit(EXIT_FAILURE);
     mnl_socket_close(nl);
 
     syslog(LOG_ALERT, "Meet fatal error, try to restart.");
     exit(EXIT_FAILURE);
-    //execlp("ua2f", "ua2f", NULL);
-    //experimental restart
 
 }
 

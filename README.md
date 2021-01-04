@@ -27,11 +27,8 @@ iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 - [ ] pthread 支持，由不同线程完成入队出队
 - [x] 修复偶现的非法内存访问，定位错误是一个麻烦的问题 (疑似修复，继续观察)
 - [ ] 期望对于 mips 硬件优化，减少内存读写
+- [x] 配合 CONNMARK，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (早期实现)
 
-
-`配合 CONNMARK，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (实现后发现性能提升不高)`
-
-放弃CONNMARK支持，未能找到一个合理的追踪方式
 
 ## Helpful Log
 http 头包占比观察
