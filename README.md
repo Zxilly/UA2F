@@ -25,9 +25,9 @@ iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 
 - [x] 灾难恢复
 - [ ] pthread 支持，由不同线程完成入队出队
-- [ ] 修复偶现的非法内存访问，定位错误是一个麻烦的问题
-
+- [x] 修复偶现的非法内存访问，定位错误是一个麻烦的问题 (疑似修复，继续观察)
 - [ ] 期望对于 mips 硬件优化，减少内存读写
+
 
 `配合 CONNMARK，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (实现后发现性能提升不高)`
 
@@ -55,11 +55,23 @@ Sun Dec  6 00:31:57 2020 syslog.info UA2F[10332]: UA2F has handled 4096 http pac
 Sun Dec  6 11:31:39 2020 syslog.info UA2F[10332]: UA2F has handled 8192 http packet and 588216 tcp packet in 41656s
 ```
 
-偶发内存非法读取
+当前运行时间
 ```log
-[102874.363012] do_page_fault(): sending SIGSEGV to ua2f for invalid read access from 46464647
-[102874.371609] epc = 004013b7 in ua2f[400000+2000]
-[102874.376383] ra  = 004013b3 in ua2f[400000+2000]
+Fri Jan  1 15:10:09 2021 syslog.notice UA2F[5219]: UA2F has inited successful.
+Fri Jan  1 15:11:18 2021 syslog.info UA2F[5219]: UA2F has handled 8 http packet, 0 http packet without ua and 107 tcp packet in 1 minutes and 9 seconds
+Fri Jan  1 15:12:23 2021 syslog.info UA2F[5219]: UA2F has handled 16 http packet, 4 http packet without ua and 370 tcp packet in 2 minutes and 14 seconds
+Fri Jan  1 15:13:52 2021 syslog.info UA2F[5219]: UA2F has handled 32 http packet, 4 http packet without ua and 722 tcp packet in 3 minutes and 43 seconds
+Fri Jan  1 15:13:57 2021 syslog.info UA2F[5219]: UA2F has handled 64 http packet, 4 http packet without ua and 850 tcp packet in 3 minutes and 48 seconds
+Fri Jan  1 15:14:17 2021 syslog.info UA2F[5219]: UA2F has handled 128 http packet, 4 http packet without ua and 1243 tcp packet in 4 minutes and 8 seconds
+Fri Jan  1 15:22:35 2021 syslog.info UA2F[5219]: UA2F has handled 256 http packet, 12 http packet without ua and 2565 tcp packet in 12 minutes and 26 seconds
+Fri Jan  1 15:42:24 2021 syslog.info UA2F[5219]: UA2F has handled 512 http packet, 30 http packet without ua and 6491 tcp packet in 32 minutes and 15 seconds
+Fri Jan  1 16:29:59 2021 syslog.info UA2F[5219]: UA2F has handled 1024 http packet, 68 http packet without ua and 19188 tcp packet in 1 hours, 19 minutes and 50 seconds
+Fri Jan  1 18:06:01 2021 syslog.info UA2F[5219]: UA2F has handled 2048 http packet, 173 http packet without ua and 36951 tcp packet in 2 hours, 55 minutes and 52 seconds
+Fri Jan  1 21:09:36 2021 syslog.info UA2F[5219]: UA2F has handled 4096 http packet, 849 http packet without ua and 137599 tcp packet in 5 hours, 59 minutes and 27 seconds
+Sat Jan  2 01:39:39 2021 syslog.info UA2F[5219]: UA2F has handled 8192 http packet, 1747 http packet without ua and 249561 tcp packet in 10 hours, 29 minutes and 30 seconds
+Sat Jan  2 15:06:43 2021 syslog.info UA2F[5219]: UA2F has handled 16384 http packet, 2844 http packet without ua and 551953 tcp packet in 23 hours, 56 minutes and 34 seconds
+Sun Jan  3 10:22:28 2021 syslog.info UA2F[5219]: UA2F has handled 32768 http packet, 5047 http packet without ua and 1919845 tcp packet in 1 days, 19 hours, 12 minutes and 19 seconds
+Mon Jan  4 13:25:04 2021 syslog.info UA2F[5219]: UA2F has handled 65536 http packet, 8435 http packet without ua and 3973193 tcp packet in 2 days, 22 hours, 14 minutes and 55 seconds
 ```
 
 debug断点
