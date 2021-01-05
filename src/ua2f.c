@@ -122,7 +122,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
-    int setmark = -1;
+    uint32_t setmark = 0;
 
     debugflag2 = 0;
     debugflag2++;//flag1
@@ -147,6 +147,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
         nest = mnl_attr_nest_start(nlh, NFQA_CT);
         mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
         mnl_attr_nest_end(nlh, nest);
+        printf("has set ctmark %u\n",setmark);
     }
 
 
