@@ -22,11 +22,9 @@
 #include <errno.h>
 
 
-#define DEBUG
+#define NODEBUG
 
 
-/* only for NFQA_CT, not needed otherwise: */
-//#include <linux/netfilter/nfnetlink_conntrack.h>
 
 
 static struct mnl_socket *nl;
@@ -57,14 +55,14 @@ static char *time2str(int sec) {
     return timestr;
 }
 
-static int parse_attrs(const struct nlattr *attr, void *data) {
+/*static int parse_attrs(const struct nlattr *attr, void *data) {
     const struct nlattr **tb = data;
     int type = mnl_attr_get_type(attr);
 
     tb[type] = attr;
 
     return MNL_CB_OK;
-}
+}*/
 
 static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
 
@@ -74,7 +72,7 @@ static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
 }
 
 static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
-    if (*tcppayload < 65 || *tcppayload > 90) {
+    if (*tcppayload < 65 || *tcppayload > 90) { // ASCII
         return false;
     }
     switch (*tcppayload) {
@@ -103,10 +101,10 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
     if (!firstcheck) {
         return false;
     } else {
-        for (int i = 14; i < tcplen - 3; i++) { //最短的http动词是GET
+        for (int i = 14; i < tcplen - 3; i++) { //最短的 http 动词是 GET
             if (*(tcppayload + i) == '\r') {
                 if (*(tcppayload + i + 1) == '\n') {
-                    return stringCmp(tcppayload + i - 8, "HTTP/1"); // 向前查找http版本
+                    return stringCmp(tcppayload + i - 8, "HTTP/1"); // 向前查找 http 版本
                 } else {
                     return false;
                 }
@@ -118,7 +116,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 
 static void nfq_send_verdict(int queue_num, uint32_t id,
                              struct pkt_buff *pktb, bool isfirst,
-                             bool nohttp) { //http mark = 11 ,ukn mark = 12
+                             bool nohttp) { // http mark = 11 ,ukn mark = 12
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -138,17 +136,17 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 
     debugflag2++;//flag3
 
-    if (isfirst) {
-        if (nohttp) {
-            setmark = 12;
-        } else {
-            setmark = 11;
-        }
-        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
-        mnl_attr_nest_end(nlh, nest);
-        printf("has set ctmark %u\n",setmark);
-    }
+//    if (isfirst) {
+//        if (nohttp) {
+//            setmark = 12;
+//        } else {
+//            setmark = 11;
+//        }
+//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
+//        mnl_attr_nest_end(nlh, nest);
+//        printf("has set ctmark %u\n",setmark);
+//    }
 
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
@@ -213,12 +211,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        mark = -1;
 //        // printf("no attr[NFQA_CT]\n");
 //    }
-    if (attr[NFQA_MARK]){
-        isfirst = true;
-        printf("isfirst\n");
-    } else {
-        isfirst = false;
-    }
+
+//    if (attr[NFQA_MARK]){
+//        isfirst = true;
+//        printf("isfirst\n");
+//    } else {
+//        isfirst = false;
+//    }
 
     debugflag++; //1
 
@@ -290,7 +289,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     pktb_free(pktb);
                     return MNL_CB_ERROR;
                 }
-
             }
         } else {
             nohttp = true;
@@ -432,7 +430,7 @@ int main(int argc, char *argv[]) {
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
         debugflag++; //15
         if (ret < 0) { //stop at failure
-            printf("errno=%d\n", errno);
+            // printf("errno=%d\n", errno);
             perror("mnl_cb_run");
             syslog(LOG_ERR, "Exit at breakpoint 10.");
             exit(EXIT_FAILURE);
