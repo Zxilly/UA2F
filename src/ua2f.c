@@ -21,7 +21,7 @@
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
 
-#define NODEBUG
+#define DEBUG
 
 
 /* only for NFQA_CT, not needed otherwise: */
@@ -206,6 +206,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         } else {
             mark = -1;
         }
+        printf("mark is %u\n",mark);
     }
 
     debugflag++; //1
@@ -412,9 +413,6 @@ int main(int argc, char *argv[]) {
             perror("mnl_socket_recvfrom");
             syslog(LOG_ERR, "Exit at breakpoint 9.");
             exit(EXIT_FAILURE);
-            //exithandle(2);
-            //continue;
-            //break;
         }
         debugflag++; //1 或 16
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
@@ -423,10 +421,6 @@ int main(int argc, char *argv[]) {
             perror("mnl_cb_run");
             syslog(LOG_ERR, "Exit at breakpoint 10.");
             exit(EXIT_FAILURE);
-            //exithandle(3);
-
-            //break;
-
         }
     }
 
