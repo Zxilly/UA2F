@@ -209,6 +209,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         printf("mark is %u\n",mark);
     } else {
         mark = -1;
+        printf("no attr[NFQA_CT]\n");
     }
 
     debugflag++; //1
