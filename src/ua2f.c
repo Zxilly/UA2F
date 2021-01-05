@@ -317,7 +317,6 @@ static void debugfunc() {
 
 int main(int argc, char *argv[]) {
     char *buf;
-    /* largest possible packet payload, plus netlink data overhead: */
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE / 2);
     struct nlmsghdr *nlh;
     int ret;
@@ -325,19 +324,12 @@ int main(int argc, char *argv[]) {
     int child_status;
 
     int errcount = 0;
-    //pid_t sid;
-    //pid_t errorcode;
 
-
-    /*if (argc > 1) {
-        syslog(LOG_ALERT, "Rebirth process start");
-    }*/
-
-    signal(SIGSEGV, debugfunc); //handle内存断点
+    signal(SIGSEGV, debugfunc);
 
 #ifndef DEBUG
     signal(SIGCHLD, SIG_IGN);
-    signal(SIGHUP, SIG_IGN); // ignore 父进程挂掉的关闭信号
+    signal(SIGHUP, SIG_IGN);
 
     while (true) {
         child_status = fork();
@@ -362,17 +354,11 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
     start_t = time(NULL);
 
-    //restart:
-
     nl = mnl_socket_open(NETLINK_NETFILTER);
-
-
-    //syslog(LOG_NOTICE, "UA2F Daemon has start.");
 
     if (nl == NULL) {
         perror("mnl_socket_open");
@@ -406,8 +392,8 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO));
-    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO));
+    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -415,10 +401,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    /* ENOBUFS is signalled to userspace when packets were lost
-     * on kernel side.  In most cases, userspace isn't interested
-     * in this information, so turn it off.
-     */
     ret = 1;
     mnl_socket_setsockopt(nl, NETLINK_NO_ENOBUFS, &ret, sizeof(int));
 
