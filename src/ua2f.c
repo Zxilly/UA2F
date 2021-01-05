@@ -19,6 +19,7 @@
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/pktbuff.h>
 #include <linux/netfilter/nfnetlink_conntrack.h>
+#include <errno.h>
 
 
 #define DEBUG
@@ -424,6 +425,7 @@ int main(int argc, char *argv[]) {
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
         debugflag++; //15
         if (ret < 0) { //stop at failure
+            printf("errno=%d\n",errno);
             perror("mnl_cb_run");
             syslog(LOG_ERR, "Exit at breakpoint 10.");
             exit(EXIT_FAILURE);
