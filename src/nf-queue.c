@@ -188,6 +188,7 @@ int main(int argc, char *argv[]) {
 
         ret = mnl_cb_run(buf, ret, 0, portid, queue_cb, NULL);
         if (ret < 0) {
+            printf("%d",errno);
             perror("mnl_cb_run");
             exit(EXIT_FAILURE);
         }
