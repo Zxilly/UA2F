@@ -1,0 +1,31 @@
+# Object files
+*.o
+*.ko
+*.so
+*.so.*
+        
+# Libraries
+*.a
+*.la
+*.lo
+*.Po
+
+# Executables
+/nfqueue-test
+
+# Automake files
+*.m4
+*.in
+*.log
+*.status
+/config.h
+/configure
+/libtool
+/Makefile
+/stamp-h1
+
+#Automake directories
+/.deps/
+/.libs/
+/autom4te.cache/
+/config/
