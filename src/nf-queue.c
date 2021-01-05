@@ -38,14 +38,9 @@ static void nfq_send_verdict(int queue_num, uint32_t id) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
     nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
 
-    /* example to set the connmark. First, start NFQA_CT section: */
+
     nest = mnl_attr_nest_start(nlh, NFQA_CT);
-
-    /* then, add the connmark attribute: */
     mnl_attr_put_u32(nlh, CTA_MARK, htonl(42));
-    /* more conntrack attributes, e.g. CTA_LABELS could be set here */
-
-    /* end conntrack section */
     mnl_attr_nest_end(nlh, nest);
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
@@ -59,7 +54,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nlattr *nest;
     struct nlattr *attr[NFQA_MAX + 1] = {};
     struct nlattr *ctattr[CTA_MAX + 1] = {};
-    uint32_t id = 0, skbinfo;
+    uint32_t id, skbinfo;
     struct nfgenmsg *nfg;
     uint16_t plen;
 

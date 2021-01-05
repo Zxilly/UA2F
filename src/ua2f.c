@@ -137,15 +137,12 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 
     debugflag2++;//flag3
 
-    if (mark < 0){
+    if (mark < 0) {
         if (nohttp) {
             setmark = 12;
         } else {
             setmark = 11;
         }
-    }
-
-    if (setmark > 0){
         nest = mnl_attr_nest_start(nlh, NFQA_CT);
         mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
         mnl_attr_nest_end(nlh, nest);
@@ -188,7 +185,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
 
     debugflag = 0;
-    //debugflag2 = 0;
 
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
@@ -297,25 +293,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //flag6
 
-//    free all space
-//    struct nfqnl_msg_packet_hdr *ph = NULL;
-//    struct nlattr *attr[NFQA_MAX + 1] = {};
-//    uint32_t id;
-//    uint16_t plen;
-//    struct pkt_buff *pktb;
-//    struct iphdr *ippkhdl;
-//    struct tcphdr *tcppkhdl;
-//    unsigned char *tcppkpayload;
-//    unsigned int tcppklen;
-//    unsigned int uaoffset = 0;
-//    unsigned int ualength = 0;
-//    char *str;
-//    char buf[MNL_SOCKET_BUFFER_SIZE];
-//    struct nlmsghdr *nlh2;
-//    void *payload;
-
-
-    if (httpcount / oldhttpcount == 2) {
+    if (httpcount / oldhttpcount == 2 || httpcount - oldhttpcount >= 8192) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
         syslog(LOG_INFO, "UA2F has handled %lld http packet, %lld http packet without ua and %lld tcp packet in %s",
