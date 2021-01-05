@@ -174,7 +174,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
     struct nfgenmsg *nfg;
-    uint32_t mark;
+    int mark;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
@@ -202,14 +202,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (attr[NFQA_CT]) {
         mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
         if (ctattr[CTA_MARK]) {
-            mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+            mark = (int)ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
         } else {
             mark = -1;
         }
-        printf("mark is %u\n",mark);
+        // printf("mark is %d\n",mark);
     } else {
         mark = -1;
-        printf("no attr[NFQA_CT]\n");
+        // printf("no attr[NFQA_CT]\n");
     }
 
     debugflag++; //1
@@ -396,8 +396,8 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-    /*mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
-    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));*/
+    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");

@@ -91,6 +91,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         } else {
             printf("noexist ");
         }
+    } else {
+        printf("no attr[NFQA_CT]\n");
     }
 
 
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
     int ret;
     unsigned int portid, queue_num;
 
-    printf("1\n");
+    printf("2\n");
 
     queue_num = 10010;
 
@@ -159,8 +161,8 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-    /*mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
-    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));*/
+    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
