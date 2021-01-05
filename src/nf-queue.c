@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -82,24 +81,36 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             printf("truncated ");
     }
 
-    if (attr[NFQA_CT]) {
-        printf("mark=");
-        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
-        if (ctattr[CTA_MARK]){
-            uint32_t mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
-            printf("%u ", mark);
-        } else {
-            printf("noexist ");
-        }
-    } else {
-        printf("no attr[NFQA_CT]\n");
-    }
+//    if (attr[NFQA_CT]) {
+//        printf("mark=");
+//        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+//        if (ctattr[CTA_MARK]){
+//            uint32_t mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+//            printf("%u ", mark);
+//        } else {
+//            printf("noexist ");
+//        }
+//    } else {
+//        printf("no attr[NFQA_CT] ");
+//    }
+//
+//    if (attr[NFQA_CT_INFO]) {
+//        printf("CTINFO=%u ",ntohl(mnl_attr_get_u32(attr[NFQA_CT_INFO])));
+//    } else{
+//        printf("no ctinfo ");
+//    }
 
 
 //    if (skbinfo & NFQA_SKB_GSO)
 //        printf("GSO ");
 
     id = ntohl(ph->packet_id);
+
+    if (attr[NFQA_MARK]) {
+        printf("mark=%u ",ntohl(mnl_attr_get_u32(attr[NFQA_MARK])));
+    } else {
+        printf("no mark ");
+    }
 
 
     printf("packet received (id=%u hw=0x%04x hook=%u, payload len %u",
@@ -128,7 +139,7 @@ int main(int argc, char *argv[]) {
     int ret;
     unsigned int portid, queue_num;
 
-    printf("2\n");
+    printf("3\n");
 
     queue_num = 10010;
 
@@ -164,8 +175,8 @@ int main(int argc, char *argv[]) {
 //    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 //    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 
-    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK | NFQA_CFG_F_FAIL_OPEN));
-    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK | NFQA_CFG_F_FAIL_OPEN));
+    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN));
+    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -188,7 +199,6 @@ int main(int argc, char *argv[]) {
 
         ret = mnl_cb_run(buf, ret, 0, portid, queue_cb, NULL);
         if (ret < 0) {
-            printf("errno=%d\n",errno);
             perror("mnl_cb_run");
             exit(EXIT_FAILURE);
         }

@@ -117,7 +117,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 }
 
 static void nfq_send_verdict(int queue_num, uint32_t id,
-                             struct pkt_buff *pktb, int mark,
+                             struct pkt_buff *pktb, bool isfirst,
                              bool nohttp) { //http mark = 11 ,ukn mark = 12
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
@@ -138,7 +138,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 
     debugflag2++;//flag3
 
-    if (mark < 0) {
+    if (isfirst) {
         if (nohttp) {
             setmark = 12;
         } else {
@@ -169,13 +169,13 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX + 1] = {};
-    struct nlattr *ctattr[CTA_MAX + 1] = {};
+//    struct nlattr *ctattr[CTA_MAX + 1] = {};
     uint16_t plen;
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
     struct nfgenmsg *nfg;
-    int mark;
+    bool isfirst = false;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
@@ -200,17 +200,22 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
-    if (attr[NFQA_CT]) {
-        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
-        if (ctattr[CTA_MARK]) {
-            mark = (int)ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
-        } else {
-            mark = -1;
-        }
-        // printf("mark is %d\n",mark);
+//    if (attr[NFQA_CT]) {
+//        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+//        if (ctattr[CTA_MARK]) {
+//            mark = (int)ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+//        } else {
+//            mark = -1;
+//        }
+//        // printf("mark is %d\n",mark);
+//    } else {
+//        mark = -1;
+//        // printf("no attr[NFQA_CT]\n");
+//    }
+    if (attr[NFQA_MARK]){
+        isfirst = false;
     } else {
-        mark = -1;
-        // printf("no attr[NFQA_CT]\n");
+        isfirst = true;
     }
 
     debugflag++; //1
@@ -293,7 +298,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, isfirst, nohttp);
 
 
     debugflag++; //flag6
@@ -397,11 +402,11 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK | NFQA_CFG_F_FAIL_OPEN));
-    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK | NFQA_CFG_F_FAIL_OPEN));
+    mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN));
+    mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN));
 
-    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_CONNTRACK));
-    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_CONNTRACK));
+//    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_CONNTRACK));
+//    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_CONNTRACK));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -425,7 +430,7 @@ int main(int argc, char *argv[]) {
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
         debugflag++; //15
         if (ret < 0) { //stop at failure
-            printf("errno=%d\n",errno);
+            printf("errno=%d\n", errno);
             perror("mnl_cb_run");
             syslog(LOG_ERR, "Exit at breakpoint 10.");
             exit(EXIT_FAILURE);
