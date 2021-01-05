@@ -207,6 +207,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             mark = -1;
         }
         printf("mark is %u\n",mark);
+    } else {
+        mark = -1;
     }
 
     debugflag++; //1
