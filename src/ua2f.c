@@ -213,9 +213,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        // printf("no attr[NFQA_CT]\n");
 //    }
     if (attr[NFQA_MARK]){
-        isfirst = false;
-    } else {
         isfirst = true;
+    } else {
+        isfirst = false;
     }
 
     debugflag++; //1
