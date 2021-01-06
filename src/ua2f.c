@@ -24,9 +24,6 @@
 
 #define NODEBUG
 
-
-
-
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long httpcount = 0;
@@ -55,14 +52,14 @@ static char *time2str(int sec) {
     return timestr;
 }
 
-/*static int parse_attrs(const struct nlattr *attr, void *data) {
+static int parse_attrs(const struct nlattr *attr, void *data) {
     const struct nlattr **tb = data;
     int type = mnl_attr_get_type(attr);
 
     tb[type] = attr;
 
     return MNL_CB_OK;
-}*/
+}
 
 static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
 
@@ -115,7 +112,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 }
 
 static void nfq_send_verdict(int queue_num, uint32_t id,
-                             struct pkt_buff *pktb, bool isfirst,
+                             struct pkt_buff *pktb, uint32_t mark,
                              bool nohttp) { // http mark = 11 ,ukn mark = 12
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
@@ -136,18 +133,17 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 
     debugflag2++;//flag3
 
-//    if (isfirst) {
-//        if (nohttp) {
-//            setmark = 12;
-//        } else {
-//            setmark = 11;
-//        }
-//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
-//        mnl_attr_nest_end(nlh, nest);
-//        printf("has set ctmark %u\n",setmark);
-//    }
-
+    if (mark == 14) {
+        if (nohttp) {
+            setmark = 12;
+        } else {
+            setmark = 11;
+        }
+        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
+        mnl_attr_nest_end(nlh, nest);
+        // printf("has set ctmark %u\n",setmark);
+    }
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -168,19 +164,19 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX + 1] = {};
-//    struct nlattr *ctattr[CTA_MAX + 1] = {};
+    struct nlattr *ctattr[CTA_MAX + 1] = {};
     uint16_t plen;
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
     struct nfgenmsg *nfg;
-    bool isfirst = false;
     unsigned char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
     unsigned int ualength = 0;
     char *str = NULL;
     void *payload;
+    uint32_t mark;
     bool nohttp = false;
 
 
@@ -199,25 +195,19 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
-//    if (attr[NFQA_CT]) {
-//        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
-//        if (ctattr[CTA_MARK]) {
-//            mark = (int)ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
-//        } else {
-//            mark = -1;
-//        }
-//        // printf("mark is %d\n",mark);
-//    } else {
-//        mark = -1;
-//        // printf("no attr[NFQA_CT]\n");
-//    }
+    if (attr[NFQA_CT]) {
+        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+        if (ctattr[CTA_MARK]) {
+            mark = (int) ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+        } else {
+            mark = 14; // no mark 14
+        }
+        // printf("mark is %d\n",mark);
+    } else {
+        mark = 14;
+        // printf("no attr[NFQA_CT]\n");
+    }
 
-//    if (attr[NFQA_MARK]){
-//        isfirst = true;
-//        printf("isfirst\n");
-//    } else {
-//        isfirst = false;
-//    }
 
     debugflag++; //1
 
@@ -298,7 +288,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, isfirst, nohttp);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp);
 
 
     debugflag++; //flag6

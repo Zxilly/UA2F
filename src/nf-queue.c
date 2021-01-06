@@ -94,23 +94,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //        printf("no attr[NFQA_CT] ");
 //    }
 //
-//    if (attr[NFQA_CT_INFO]) {
-//        printf("CTINFO=%u ",ntohl(mnl_attr_get_u32(attr[NFQA_CT_INFO])));
-//    } else{
-//        printf("no ctinfo ");
-//    }
 
 
-//    if (skbinfo & NFQA_SKB_GSO)
-//        printf("GSO ");
 
     id = ntohl(ph->packet_id);
 
-    if (attr[NFQA_MARK]) {
-        printf("mark=%u ",ntohl(mnl_attr_get_u32(attr[NFQA_MARK])));
-    } else {
-        printf("no mark ");
-    }
 
 
     printf("packet received (id=%u hw=0x%04x hook=%u, payload len %u",
