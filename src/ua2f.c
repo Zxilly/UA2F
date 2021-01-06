@@ -198,7 +198,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (attr[NFQA_CT]) {
         mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
         if (ctattr[CTA_MARK]) {
-            mark = (int) ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
+            mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
         } else {
             mark = 14; // no mark 14
         }
