@@ -22,7 +22,7 @@
 #include <errno.h>
 
 
-#define NODEBUG
+#define DEBUG
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
@@ -135,31 +135,60 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
 
     debugflag2++;//flag3
 
-    if (mark == 1) {
-        if (nohttp) {
-            setmark = 10; //非 http 流开始统计
-        } else {
-            setmark = 24; //http 流，必须处理，24
-            httpmark++;
+    printf("get mark %u\n", mark);
+
+    if (nohttp) {
+        if (mark == 1) {
+            nest = mnl_attr_nest_start(nlh, NFQA_CT);
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(10));
+            mnl_attr_nest_end(nlh, nest);
         }
-        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
-        mnl_attr_nest_end(nlh, nest);
-        // printf("has set ctmark %u\n",setmark);
+
+        if (mark >= 10 && mark <= 20) {
+            setmark = mark + 1;
+            nest = mnl_attr_nest_start(nlh, NFQA_CT);
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
+            mnl_attr_nest_end(nlh, nest);
+        }
+
+        if (mark == 21) { // 21 统计确定此连接为非http连接
+            nest = mnl_attr_nest_start(nlh, NFQA_CT);
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
+            mnl_attr_nest_end(nlh, nest);
+        }
+    } else {
+        if (mark != 24) {
+            nest = mnl_attr_nest_start(nlh, NFQA_CT);
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(24));
+            mnl_attr_nest_end(nlh, nest);
+        }
     }
 
-    if (mark >= 10 && mark <= 20) {
-        setmark = mark + 1;
-        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
-        mnl_attr_nest_end(nlh, nest);
-    }
-
-    if (mark == 21) { // 21 统计确定此连接为非http连接
-        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-        mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
-        mnl_attr_nest_end(nlh, nest);
-    }
+//    if (mark == 1) {
+//        if (nohttp) {
+//            setmark = 10; //非 http 流开始统计
+//        } else {
+//            setmark = 24; //http 流，必须处理，24
+//            httpmark++;
+//        }
+//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
+//        mnl_attr_nest_end(nlh, nest);
+//        // printf("has set ctmark %u\n",setmark);
+//    }
+//
+//    if (mark >= 10 && mark <= 20) {
+//        setmark = mark + 1;
+//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
+//        mnl_attr_nest_end(nlh, nest);
+//    }
+//
+//    if (mark == 21) { // 21 统计确定此连接为非http连接
+//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
+//        mnl_attr_nest_end(nlh, nest);
+//    }
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
