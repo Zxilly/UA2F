@@ -22,7 +22,7 @@
 #include <errno.h>
 
 
-#define DEBUG
+#define NODEBUG
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
@@ -135,7 +135,7 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
 
     debugflag2++;//flag3
 
-    printf("get mark %u\n", mark);
+    // printf("get mark %u\n", mark);
 
     if (nohttp) {
         if (mark == 1) {
