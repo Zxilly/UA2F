@@ -29,6 +29,8 @@ static const int queue_number = 10010;
 static long long httpcount = 0;
 static long long httpnouacount = 0;
 static long long tcpcount = 0;
+static long long httpmark = 0;
+static long long nohttpmark = 0;
 static long long oldhttpcount = 4;
 static time_t start_t, current_t;
 
@@ -132,11 +134,13 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
 
     debugflag2++;//flag3
 
-    if (mark == 14 && plen > 60) { //60是一个经验数值，需要继续观察
+    if (mark == 14) {
         if (nohttp) {
             setmark = 12;
+            nohttpmark++;
         } else {
             setmark = 11;
+            httpmark++;
         }
         nest = mnl_attr_nest_start(nlh, NFQA_CT);
         mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
@@ -175,7 +179,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     unsigned int ualength = 0;
     char *str = NULL;
     void *payload;
-    uint32_t mark;
+    uint32_t mark = 0;
     bool nohttp = false;
 
 
@@ -202,10 +206,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             mark = 14; // no mark 14
         }
         // printf("mark is %d\n",mark);
-    } else {
-        mark = 14;
-        // printf("no attr[NFQA_CT]\n");
-    }
+    } // NFQA_CT 一定存在，不存在说明有其他问题
 
 
     debugflag++; //1
@@ -287,7 +288,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, plen);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, tcppklen);
 
 
     debugflag++; //flag6
@@ -295,8 +296,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (httpcount / oldhttpcount == 2 || httpcount - oldhttpcount >= 8192) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
-        syslog(LOG_INFO, "UA2F has handled %lld http packet, %lld http packet without ua and %lld tcp packet in %s",
-               httpcount, httpnouacount, tcpcount,
+        syslog(LOG_INFO, "UA2F has handled %lld http, %lld noua http, %lld tcp, %lld mark and %lld nohttp mark in %s",
+               httpcount, httpnouacount, tcpcount, httpmark, nohttpmark,
                time2str((int) difftime(current_t, start_t)));
     }
 
@@ -311,7 +312,6 @@ static void debugfunc() {
 
     syslog(LOG_ALERT, "Meet fatal error, try to restart.");
     exit(EXIT_FAILURE);
-
 }
 
 int main(int argc, char *argv[]) {
