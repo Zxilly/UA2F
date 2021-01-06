@@ -114,11 +114,12 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 }
 
 static void
-nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool nohttp, uint16_t plen) { // http mark = 11 ,ukn mark = 12
+nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark,
+                 bool nohttp) { // http mark = 24, ukn mark = 10-20, no http mark = 23
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
-    uint32_t setmark = 0;
+    uint32_t setmark;
 
     debugflag2 = 0;
     debugflag2++;//flag1
@@ -134,18 +135,30 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
 
     debugflag2++;//flag3
 
-    if (mark == 14) {
+    if (mark == 1) {
         if (nohttp) {
-            setmark = 12;
-            nohttpmark++;
+            setmark = 10; //非 http 流开始统计
         } else {
-            setmark = 11;
+            setmark = 24; //http 流，必须处理，24
             httpmark++;
         }
         nest = mnl_attr_nest_start(nlh, NFQA_CT);
         mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
         mnl_attr_nest_end(nlh, nest);
         // printf("has set ctmark %u\n",setmark);
+    }
+
+    if (mark >= 10 && mark <= 20) {
+        setmark = mark + 1;
+        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
+        mnl_attr_nest_end(nlh, nest);
+    }
+
+    if (mark == 21) { // 21 统计确定此连接为非http连接
+        nest = mnl_attr_nest_start(nlh, NFQA_CT);
+        mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
+        mnl_attr_nest_end(nlh, nest);
     }
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
@@ -203,9 +216,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         if (ctattr[CTA_MARK]) {
             mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
         } else {
-            mark = 14; // no mark 14
+            mark = 1; // no mark 1
         }
-        // printf("mark is %d\n",mark);
     } // NFQA_CT 一定存在，不存在说明有其他问题
 
 
@@ -288,7 +300,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, tcppklen);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp);
 
 
     debugflag++; //flag6
@@ -391,8 +403,10 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-    mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN | NFQA_CFG_F_CONNTRACK));
-    mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, NFQA_CFG_FLAGS,
+                           htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32_check(nlh, MNL_SOCKET_BUFFER_SIZE, NFQA_CFG_MASK,
+                           htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN | NFQA_CFG_F_CONNTRACK));
 
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
