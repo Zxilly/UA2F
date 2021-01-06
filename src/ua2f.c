@@ -111,9 +111,8 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
     }
 }
 
-static void nfq_send_verdict(int queue_num, uint32_t id,
-                             struct pkt_buff *pktb, uint32_t mark,
-                             bool nohttp) { // http mark = 11 ,ukn mark = 12
+static void
+nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool nohttp, uint16_t plen) { // http mark = 11 ,ukn mark = 12
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -133,7 +132,7 @@ static void nfq_send_verdict(int queue_num, uint32_t id,
 
     debugflag2++;//flag3
 
-    if (mark == 14) {
+    if (mark == 14 && plen > 60) { //60是一个经验数值，需要继续观察
         if (nohttp) {
             setmark = 12;
         } else {
@@ -288,7 +287,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, plen);
 
 
     debugflag++; //flag6
