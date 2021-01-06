@@ -8,6 +8,8 @@
 
 如果遇到了任何问题，欢迎提出 Issues，但是更欢迎直接提交 Pull Request
 
+> 由于新加入的 CONNMARK 影响，编译内核时需要添加 `NETFILTER_NETLINK_GLUE_CT` flag，否则会出现 `mnl_cb_run:Not supported` 错误
+
 # iptables rules
 ```shell
 iptables -t mangle -N ua2f
