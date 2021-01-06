@@ -155,12 +155,14 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
             mnl_attr_nest_end(nlh, nest);
+            nohttpmark++;
         }
     } else {
         if (mark != 24) {
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(24));
             mnl_attr_nest_end(nlh, nest);
+            httpmark++;
         }
     }
 
