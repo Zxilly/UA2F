@@ -115,7 +115,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 
 static void
 nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark,
-                 bool nohttp) { // http mark = 24, ukn mark = 10-20, no http mark = 23
+                 bool nohttp) { // http mark = 24, ukn mark = 18-20, no http mark = 23
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -140,11 +140,11 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
     if (nohttp) {
         if (mark == 1) {
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
-            mnl_attr_put_u32(nlh, CTA_MARK, htonl(10));
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(18));
             mnl_attr_nest_end(nlh, nest);
         }
 
-        if (mark >= 10 && mark <= 20) {
+        if (mark >= 18 && mark <= 20) {
             setmark = mark + 1;
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
