@@ -28,7 +28,7 @@
 #define NF_ACCEPT 1
 
 
-#define NODEBUG
+#define RELEASE
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
@@ -252,7 +252,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     struct in_addr tmp2;
                     tmp2.s_addr = tmp;
                     ip = inet_ntoa(tmp2);
+                } else {
+                    ip = "0.0.0.0";
                 }
+            } else {
+                ip = "0.0.0.0";
             }
             if (originattr[CTA_TUPLE_PROTO]) {
                 mnl_attr_parse_nested(originattr[CTA_TUPLE_PROTO], parse_attrs , portattr);
@@ -376,7 +380,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 static void debugfunc() {
     syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d and breakpoint2 %d", debugflag, debugflag2);
     mnl_socket_close(nl);
-
     syslog(LOG_ALERT, "Meet fatal error, try to restart.");
     exit(EXIT_FAILURE);
 }
@@ -393,7 +396,7 @@ int main(int argc, char *argv[]) {
 
     signal(SIGSEGV, debugfunc);
 
-#ifndef DEBUG
+#ifdef RELEASE
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
 
