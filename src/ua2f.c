@@ -28,7 +28,7 @@
 #define NF_ACCEPT 1
 
 
-#define RELEASE
+// #define RELEASE
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
@@ -267,15 +267,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             if (ip && port!=0){
                 sprintf(addcmd,"add nohttp %s,%d",ip,port);
             }
-            if (ip) {
-                free(ip);
-            }
-        }/* else {
-            printf("no ctattr[CTA_TUPLE_ORIG] ");
-        }*/
-    }/* else {
-        printf("no attr[NFQA_CT] ");
-    }*/
+        }
+    }
 
 
 
