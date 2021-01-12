@@ -10,6 +10,8 @@
 
 > 由于新加入的 CONNMARK 影响，编译内核时需要添加 `NETFILTER_NETLINK_GLUE_CT` flag，否则会出现 `mnl_cb_run:Not supported` 错误
 
+> 由于新加入的 ipset 影响，需要确保你的内核支持 `hash:ip,port` 的 ipset 类型
+
 # iptables rules
 ```shell
 iptables -t mangle -N ua2f
@@ -19,10 +21,12 @@ iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN # 不处理流向保留�
 iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
 iptables -t mangle -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH 和 https
 iptables -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 24
+iptables -t mangle -A ua2f -m set --set nohttp dst,dst -j RETURN
 iptables -t mangle -A ua2f -m connmark --mark 23 -j RETURN # 不处理标记为非 http 的流 (实验性)
 iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
 
-iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f # 只处理出向流量
+iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir REPLY
 ```
 
 ## TODO
@@ -31,7 +35,7 @@ iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f # 
 - [ ] pthread 支持，由不同线程完成入队出队
 - [x] 修复偶现的非法内存访问，定位错误是一个麻烦的问题 (疑似修复，继续观察)
 - [ ] 期望对于 mips 硬件优化，减少内存读写
-- [x] 配合 CONNMARK，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (高度实验性实现)
+- [x] 配合 CONNMARK 与 ipset，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (高度实验性实现)
 
 
 ## Helpful Log
