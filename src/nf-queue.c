@@ -5,22 +5,25 @@
 #include <time.h>
 #include <arpa/inet.h>
 
-#include <libmnl/libmnl.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter/nfnetlink.h>
 
-#include <linux/types.h>
 #include <linux/netfilter/nfnetlink_queue.h>
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
+#include <libmnl/libmnl.h>
+#include <libipset/ipset.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 
 /* only for NFQA_CT, not needed otherwise: */
 
+static char ipsetcmd[50] = "ipse";
+
+
 static struct mnl_socket *nl;
 
-int parse_attrs(const struct nlattr *attr, void *data) {
+static int parse_attrs(const struct nlattr *attr, void *data) {
     const struct nlattr **tb = data;
     int type = mnl_attr_get_type(attr);
 
@@ -53,9 +56,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nlattr *nest;
     struct nlattr *attr[NFQA_MAX + 1] = {};
     struct nlattr *ctattr[CTA_MAX + 1] = {};
+    struct nlattr *originattr[CTA_TUPLE_MAX + 1] = {};
+    struct nlattr *ipattr[CTA_IP_MAX + 1] = {};
+    struct nlattr *portattr[CTA_PROTO_MAX + 1] = {};
     uint32_t id, skbinfo;
     struct nfgenmsg *nfg;
     uint16_t plen;
+    uint32_t mark;
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
         perror("problems parsing");
@@ -69,6 +76,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         return MNL_CB_ERROR;
     }
 
+
+
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
@@ -81,24 +90,37 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             printf("truncated ");
     }
 
-//    if (attr[NFQA_CT]) {
-//        printf("mark=");
-//        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
-//        if (ctattr[CTA_MARK]){
-//            uint32_t mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
-//            printf("%u ", mark);
-//        } else {
-//            printf("noexist ");
-//        }
-//    } else {
-//        printf("no attr[NFQA_CT] ");
-//    }
-//
+
+    if (attr[NFQA_CT]) {
+        mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+        if (ctattr[CTA_TUPLE_ORIG]) {
+            mnl_attr_parse_nested(ctattr[CTA_TUPLE_ORIG], parse_attrs, originattr);
+            if (originattr[CTA_TUPLE_IP]) {
+                mnl_attr_parse_nested(originattr[CTA_TUPLE_IP], parse_attrs, ipattr);
+                if (ipattr[CTA_IP_V4_DST]){
+                    uint32_t tmp = mnl_attr_get_u32(ipattr[CTA_IP_V4_DST]);
+                    struct in_addr tmp2;
+                    tmp2.s_addr = tmp;
+                    char *ip = inet_ntoa(tmp2);
+                }
+            }
+            if (originattr[CTA_TUPLE_PROTO]) {
+                mnl_attr_parse_nested(originattr[CTA_TUPLE_PROTO], parse_attrs , portattr);
+                if (portattr[CTA_PROTO_DST_PORT]){
+                    uint16_t port = ntohs(mnl_attr_get_u16(portattr[CTA_PROTO_DST_PORT]));
+                }
+            }
+        } else {
+            printf("no ctattr[CTA_TUPLE_ORIG] ");
+        }
+    } else {
+        printf("no attr[NFQA_CT] ");
+    }
+
 
 
 
     id = ntohl(ph->packet_id);
-
 
 
     printf("packet received (id=%u hw=0x%04x hook=%u, payload len %u",
@@ -121,13 +143,12 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
 int main(int argc, char *argv[]) {
     char *buf;
-    /* largest possible packet payload, plus netlink data overhead: */
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE / 2);
     struct nlmsghdr *nlh;
     int ret;
     unsigned int portid, queue_num;
 
-    printf("3\n");
+    printf("5\n");
 
     queue_num = 10010;
 
@@ -160,11 +181,11 @@ int main(int argc, char *argv[]) {
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_num);
     nfq_nlmsg_cfg_put_params(nlh, NFQNL_COPY_PACKET, 0xffff);
 
-//    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
-//    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32(nlh, NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
+    mnl_attr_put_u32(nlh, NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_CONNTRACK));
 
-    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN));
-    mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN));
+    //mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_FLAGS, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN | NFQA_CFG_F_CONNTRACK));
+    //mnl_attr_put_u32_check(nlh,MNL_SOCKET_BUFFER_SIZE,NFQA_CFG_MASK, htonl(NFQA_CFG_F_GSO | NFQA_CFG_F_FAIL_OPEN | NFQA_CFG_F_CONNTRACK));
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -177,6 +198,12 @@ int main(int argc, char *argv[]) {
      */
     ret = 1;
     mnl_socket_setsockopt(nl, NETLINK_NO_ENOBUFS, &ret, sizeof(int));
+
+
+    ipset_load_types();
+
+    struct ipset *Pipset = ipset_init();
+
 
     for (;;) {
         ret = mnl_socket_recvfrom(nl, buf, sizeof_buf);

@@ -11,8 +11,12 @@
 #include <syslog.h>
 #include <signal.h>
 #include <arpa/inet.h>
+
+
 #include <libmnl/libmnl.h>
-#include <linux/netfilter.h>
+#include <libipset/ipset.h>
+// #include <linux/netfilter.h>
+
 #include <linux/netfilter/nfnetlink_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
@@ -20,6 +24,8 @@
 #include <libnetfilter_queue/pktbuff.h>
 #include <linux/netfilter/nfnetlink_conntrack.h>
 #include <errno.h>
+
+#define NF_ACCEPT 1
 
 
 #define NODEBUG
@@ -37,6 +43,8 @@ static time_t start_t, current_t;
 static int debugflag = 0;
 static int debugflag2 = 0;
 static char timestr[60];
+
+static struct ipset *Pipset;
 
 static char *time2str(int sec) {
     memset(timestr, 0, sizeof(timestr));
@@ -114,8 +122,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 }
 
 static void
-nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark,
-                 bool nohttp) { // http mark = 24, ukn mark = 18-20, no http mark = 23
+nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool nohttp, char addcmd[50]) { // http mark = 24, ukn mark = 18-20, no http mark = 23
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -135,16 +142,15 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
 
     debugflag2++;//flag3
 
-    // printf("get mark %u\n", mark);
 
     if (nohttp) {
         if (mark == 1) {
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
-            mnl_attr_put_u32(nlh, CTA_MARK, htonl(18));
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(16));
             mnl_attr_nest_end(nlh, nest);
         }
 
-        if (mark >= 18 && mark <= 20) {
+        if (mark >= 16 && mark <= 20) {
             setmark = mark + 1;
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
@@ -152,9 +158,13 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
         }
 
         if (mark == 21) { // 21 统计确定此连接为非http连接
+
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
-            mnl_attr_nest_end(nlh, nest);
+            mnl_attr_nest_end(nlh, nest); // 加 CONNMARK
+
+            ipset_parse_line(Pipset,addcmd); //加 ipset 标记
+
             nohttpmark++;
         }
     } else {
@@ -166,31 +176,6 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
         }
     }
 
-//    if (mark == 1) {
-//        if (nohttp) {
-//            setmark = 10; //非 http 流开始统计
-//        } else {
-//            setmark = 24; //http 流，必须处理，24
-//            httpmark++;
-//        }
-//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
-//        mnl_attr_nest_end(nlh, nest);
-//        // printf("has set ctmark %u\n",setmark);
-//    }
-//
-//    if (mark >= 10 && mark <= 20) {
-//        setmark = mark + 1;
-//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
-//        mnl_attr_nest_end(nlh, nest);
-//    }
-//
-//    if (mark == 21) { // 21 统计确定此连接为非http连接
-//        nest = mnl_attr_nest_start(nlh, NFQA_CT);
-//        mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
-//        mnl_attr_nest_end(nlh, nest);
-//    }
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
@@ -212,6 +197,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nfqnl_msg_packet_hdr *ph = NULL;
     struct nlattr *attr[NFQA_MAX + 1] = {};
     struct nlattr *ctattr[CTA_MAX + 1] = {};
+    struct nlattr *originattr[CTA_TUPLE_MAX + 1] = {};
+    struct nlattr *ipattr[CTA_IP_MAX + 1] = {};
+    struct nlattr *portattr[CTA_PROTO_MAX + 1] = {};
     uint16_t plen;
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
@@ -225,6 +213,10 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     void *payload;
     uint32_t mark = 0;
     bool nohttp = false;
+    char *ip;
+    uint16_t port = 0;
+
+    char addcmd[50] = {};
 
 
     debugflag = 0;
@@ -244,12 +236,44 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (attr[NFQA_CT]) {
         mnl_attr_parse_nested(attr[NFQA_CT], parse_attrs, ctattr);
+
         if (ctattr[CTA_MARK]) {
             mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
         } else {
             mark = 1; // no mark 1
-        }
-    } // NFQA_CT 一定存在，不存在说明有其他问题
+        } // NFQA_CT 一定存在，不存在说明有其他问题
+
+        if (ctattr[CTA_TUPLE_ORIG]) {
+            mnl_attr_parse_nested(ctattr[CTA_TUPLE_ORIG], parse_attrs, originattr);
+            if (originattr[CTA_TUPLE_IP]) {
+                mnl_attr_parse_nested(originattr[CTA_TUPLE_IP], parse_attrs, ipattr);
+                if (ipattr[CTA_IP_V4_DST]){
+                    uint32_t tmp = mnl_attr_get_u32(ipattr[CTA_IP_V4_DST]);
+                    struct in_addr tmp2;
+                    tmp2.s_addr = tmp;
+                    ip = inet_ntoa(tmp2);
+                }
+            }
+            if (originattr[CTA_TUPLE_PROTO]) {
+                mnl_attr_parse_nested(originattr[CTA_TUPLE_PROTO], parse_attrs , portattr);
+                if (portattr[CTA_PROTO_DST_PORT]){
+                    port = ntohs(mnl_attr_get_u16(portattr[CTA_PROTO_DST_PORT]));
+                }
+            }
+            if (ip && port!=0){
+                sprintf(addcmd,"add nohttp %s,%d",ip,port);
+            }
+            if (ip) {
+                free(ip);
+            }
+        }/* else {
+            printf("no ctattr[CTA_TUPLE_ORIG] ");
+        }*/
+    }/* else {
+        printf("no attr[NFQA_CT] ");
+    }*/
+
+
 
 
     debugflag++; //1
@@ -331,7 +355,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     debugflag++; //flag5
 
 
-    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp);
+    nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, addcmd);
 
 
     debugflag++; //flag6
@@ -399,6 +423,9 @@ int main(int argc, char *argv[]) {
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
     start_t = time(NULL);
+
+    ipset_load_types();
+    Pipset = ipset_init();
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
 

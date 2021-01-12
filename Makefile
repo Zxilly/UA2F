@@ -3,12 +3,12 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=UA2F
 PKG_VERSION:=2.1
 
-PKG_RELEASE:=7
+PKG_RELEASE:=8
 
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
-TARGET_LDFLAGS+=-lmnl -lnetfilter_queue
+TARGET_LDFLAGS+=-lmnl -lnetfilter_queue -lipset
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -18,7 +18,7 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords
   URL:=https://github.com/Zxilly/UA2F
-  DEPENDS:=+libmnl +libnetfilter-queue +iptables-mod-nfqueue
+  DEPENDS:=+libmnl +libnetfilter-queue +iptables-mod-nfqueue +libipset
 endef
 
 define Package/ua2f/description
