@@ -435,6 +435,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    syslog(LOG_NOTICE, "Pipset inited.");
+
     nl = mnl_socket_open(NETLINK_NETFILTER);
 
     if (nl == NULL) {
