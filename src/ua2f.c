@@ -28,7 +28,7 @@
 #define NF_ACCEPT 1
 
 
-// #define RELEASE
+#define RELEASE
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
@@ -500,10 +500,4 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
-
-
-    //mnl_socket_close(nl);
-
-
-    //return 0;
 }
