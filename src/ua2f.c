@@ -28,8 +28,6 @@
 #define NF_ACCEPT 1
 
 
-#define RELEASE
-
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
 static long long httpcount = 0;
@@ -216,7 +214,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     char *ip;
     uint16_t port = 0;
 
-    char addcmd[50] = {};
+    char addcmd[50];
 
 
     debugflag = 0;
@@ -389,7 +387,6 @@ int main(int argc, char *argv[]) {
 
     signal(SIGSEGV, debugfunc);
 
-#ifdef RELEASE
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
 
@@ -416,13 +413,13 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
-#endif
+
 
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
     start_t = time(NULL);
 
-    // ipset_load_types();
+    ipset_load_types();
     Pipset = ipset_init();
 
     if(!Pipset) {
