@@ -427,8 +427,13 @@ int main(int argc, char *argv[]) {
 
     start_t = time(NULL);
 
-    ipset_load_types();
+    // ipset_load_types();
     Pipset = ipset_init();
+
+    if(!Pipset) {
+        syslog(LOG_ERR, "Pipset not inited.");
+        exit(EXIT_FAILURE);
+    }
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
 
