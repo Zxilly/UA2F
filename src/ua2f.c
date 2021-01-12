@@ -2,6 +2,8 @@
 //#include <wait.h>
 //#include <sys/param.h>
 //#include <sys/stat.h>
+#include "ipset_hook.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -120,7 +122,8 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
 }
 
 static void
-nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool nohttp, char addcmd[50]) { // http mark = 24, ukn mark = 18-20, no http mark = 23
+nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool nohttp,
+                 char addcmd[50]) { // http mark = 24, ukn mark = 18-20, no http mark = 23
     char buf[0xffff + (MNL_SOCKET_BUFFER_SIZE / 2)];
     struct nlmsghdr *nlh;
     struct nlattr *nest;
@@ -161,7 +164,7 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
             mnl_attr_nest_end(nlh, nest); // 加 CONNMARK
 
-            ipset_parse_line(Pipset,addcmd); //加 ipset 标记
+            ipset_parse_line(Pipset, addcmd); //加 ipset 标记
 
             nohttpmark++;
         }
@@ -245,7 +248,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             mnl_attr_parse_nested(ctattr[CTA_TUPLE_ORIG], parse_attrs, originattr);
             if (originattr[CTA_TUPLE_IP]) {
                 mnl_attr_parse_nested(originattr[CTA_TUPLE_IP], parse_attrs, ipattr);
-                if (ipattr[CTA_IP_V4_DST]){
+                if (ipattr[CTA_IP_V4_DST]) {
                     uint32_t tmp = mnl_attr_get_u32(ipattr[CTA_IP_V4_DST]);
                     struct in_addr tmp2;
                     tmp2.s_addr = tmp;
@@ -257,18 +260,16 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 ip = "0.0.0.0";
             }
             if (originattr[CTA_TUPLE_PROTO]) {
-                mnl_attr_parse_nested(originattr[CTA_TUPLE_PROTO], parse_attrs , portattr);
-                if (portattr[CTA_PROTO_DST_PORT]){
+                mnl_attr_parse_nested(originattr[CTA_TUPLE_PROTO], parse_attrs, portattr);
+                if (portattr[CTA_PROTO_DST_PORT]) {
                     port = ntohs(mnl_attr_get_u16(portattr[CTA_PROTO_DST_PORT]));
                 }
             }
-            if (ip && port!=0){
-                sprintf(addcmd,"add nohttp %s,%d",ip,port);
+            if (ip && port != 0) {
+                sprintf(addcmd, "add nohttp %s,%d", ip, port);
             }
         }
     }
-
-
 
 
     debugflag++; //1
@@ -404,7 +405,11 @@ int main(int argc, char *argv[]) {
             int deadstat;
             int deadpid;
             deadpid = wait(&deadstat);
-            syslog(LOG_ERR, "Meet fatal error.[%d] dies by %d",deadpid,deadstat);
+            if (deadpid == -1) {
+                syslog(LOG_ERR, "Child sucide.");
+            } else {
+                syslog(LOG_ERR, "Meet fatal error.[%d] dies by %d", deadpid, deadstat);
+            }
         }
         errcount++;
         if (errcount > 50) {
@@ -422,10 +427,12 @@ int main(int argc, char *argv[]) {
     ipset_load_types();
     Pipset = ipset_init();
 
-    if(!Pipset) {
+    if (!Pipset) {
         syslog(LOG_ERR, "Pipset not inited.");
         exit(EXIT_FAILURE);
     }
+
+    ipset_custom_printf(Pipset, func, func2, func3, NULL); // hook 掉退出的输出函数
 
     syslog(LOG_NOTICE, "Pipset inited.");
 
