@@ -12,6 +12,14 @@
 
 > 由于新加入的 ipset 影响，需要确保你的内核支持 `hash:ip,port` 的 ipset 类型
 
+# ipset command
+
+请确保添加此语句至开机自启
+```bash
+ipset create nohttp hash:ip,port hashsize 16384 timeout 300
+```
+`UA2F` 运行时依赖名称为 `nohttp`，类型为 `hash:ip,port` 的 ipset
+
 # iptables rules
 ```shell
 iptables -t mangle -N ua2f
