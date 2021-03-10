@@ -1,13 +1,18 @@
-//#include <errno.h>
-//#include <wait.h>
-//#include <sys/param.h>
-//#include <sys/stat.h>
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif
+
 #include "ipset_hook.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+#include <memory.h>
 #include <time.h>
 #include <wait.h>
 #include <syslog.h>
@@ -32,12 +37,15 @@
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
+
 static long long httpcount = 0;
 static long long httpnouacount = 0;
 static long long tcpcount = 0;
 static long long httpmark = 0;
 static long long nohttpmark = 0;
 static long long oldhttpcount = 4;
+static long long http1_0count = 0;
+
 static time_t start_t, current_t;
 
 static int debugflag = 0;
@@ -71,40 +79,68 @@ static int parse_attrs(const struct nlattr *attr, void *data) {
     return MNL_CB_OK;
 }
 
-static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
+// static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
 
-static bool stringCmp(unsigned char *charp_to, char charp_from[]) {
+static bool stringCmp(const char *charp_to, const char charp_from[]) {
     return memcmp(charp_to, charp_from, strlen(charp_from)) == 0;
-
 }
 
-static bool http_judge(unsigned char *tcppayload, unsigned int tcplen) {
-    if (*tcppayload < 65 || *tcppayload > 90) { // ASCII
+static int probe_http_method(const char *p, const char *opt) {
+    return !strncmp(p, opt, strlen(opt));
+}
+
+static bool http_judge(char *tcppayload, unsigned int tcplen) {
+//    if (*tcppayload < 65 || *tcppayload > 90) { // ASCII
+//        return false;
+//    }
+//    switch (*tcppayload) {
+//        case 'G':
+//            return http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload);
+//        case 'P':
+//            return http_sign_check(
+//                    stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH"),
+//                    tcplen, tcppayload);
+//        case 'C':
+//            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug
+//        case 'D':
+//            return http_sign_check(stringCmp(tcppayload, "DELETE"), tcplen, tcppayload);
+//        case 'H':
+//            return http_sign_check(stringCmp(tcppayload, "HEAD"), tcplen, tcppayload);
+//        case 'T':
+//            return http_sign_check(stringCmp(tcppayload, "TRACE"), tcplen, tcppayload);
+//        case 'O':
+//            return http_sign_check(stringCmp(tcppayload, "OPTIONS"), tcplen, tcppayload);
+//        default:
+//            return false;
+//    }
+
+    if (tcplen <= 12) {
         return false;
     }
-    switch (*tcppayload) {
-        case 'G':
-            return http_sign_check(stringCmp(tcppayload, "GET"), tcplen, tcppayload);
-        case 'P':
-            return http_sign_check(
-                    stringCmp(tcppayload, "POST") || stringCmp(tcppayload, "PUT") || stringCmp(tcppayload, "PATCH"),
-                    tcplen, tcppayload);
-        case 'C':
-            return stringCmp(tcppayload, "CONNECT"); // 这个应该有bug
-        case 'D':
-            return http_sign_check(stringCmp(tcppayload, "DELETE"), tcplen, tcppayload);
-        case 'H':
-            return http_sign_check(stringCmp(tcppayload, "HEAD"), tcplen, tcppayload);
-        case 'T':
-            return http_sign_check(stringCmp(tcppayload, "TRACE"), tcplen, tcppayload);
-        case 'O':
-            return http_sign_check(stringCmp(tcppayload, "OPTIONS"), tcplen, tcppayload);
-        default:
-            return false;
+
+    if (memmem(tcppayload, tcplen, "HTTP", 4)) {
+        return true;
     }
+
+#define PROBE_HTTP_METHOD(option) if(probe_http_method(tcppayload, option)) {http1_0count++; return true;}
+
+    /* Otherwise it could be HTTP/1.0 without version: check if it's got an
+     * HTTP method (RFC2616 5.1.1) */
+    PROBE_HTTP_METHOD("GET")
+    PROBE_HTTP_METHOD("POST")
+    PROBE_HTTP_METHOD("OPTIONS")
+    PROBE_HTTP_METHOD("HEAD")
+    PROBE_HTTP_METHOD("PUT")
+    PROBE_HTTP_METHOD("DELETE")
+    PROBE_HTTP_METHOD("TRACE")
+    PROBE_HTTP_METHOD("CONNECT")
+
+#undef PROBE_HTTP_METHOD
+
+    return false;
 }
 
-static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned char *tcppayload) {
+/*static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned char *tcppayload) {
     if (!firstcheck) {
         return false;
     } else {
@@ -119,7 +155,7 @@ static bool http_sign_check(bool firstcheck, const unsigned int tcplen, unsigned
         } // 找不到 http 协议版本
         return false;
     }
-}
+}*/
 
 static void
 nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool nohttp,
@@ -206,7 +242,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
     struct nfgenmsg *nfg;
-    unsigned char *tcppkpayload;
+    char *tcppkpayload;
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
     unsigned int ualength = 0;
@@ -307,7 +343,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (tcppkpayload) {
         if (http_judge(tcppkpayload, tcppklen)) {
-            for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
+            /*for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
                 if (*(tcppkpayload + i) == '\n') {
                     if (*(tcppkpayload + i + 1) == '\r') {
                         httpnouacount++;
@@ -325,7 +361,21 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                         }
                     }
                 }
+            }*/
+            char *uapointer = memmem(tcppkpayload, tcppklen, "User-Agent", 10);
+
+            if (uapointer) {
+                uaoffset = uapointer - tcppkpayload + 12;
+                for (int i = 0; i < tcppklen - uaoffset; ++i) {
+                    if (*(uapointer + i) == '\r') {
+                        ualength = i;
+                        break;
+                    }
+                }
+            } else {
+                httpnouacount++;
             }
+
             if (uaoffset && ualength) {
                 str = malloc(ualength);
                 if (!str) {
@@ -350,17 +400,16 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //flag5
 
-
     nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, addcmd);
-
 
     debugflag++; //flag6
 
     if (httpcount / oldhttpcount == 2 || httpcount - oldhttpcount >= 8192) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
-        syslog(LOG_INFO, "UA2F has handled %lld http, %lld noua http, %lld tcp, %lld mark and %lld nohttp mark in %s",
-               httpcount, httpnouacount, tcpcount, httpmark, nohttpmark,
+        syslog(LOG_INFO,
+               "UA2F has handled %lld http, %lld http 1.0, %lld noua http, %lld tcp. Set  %lld mark and %lld nohttp mark in %s",
+               httpcount, http1_0count, httpnouacount, tcpcount, httpmark, nohttpmark,
                time2str((int) difftime(current_t, start_t)));
     }
 

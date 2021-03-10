@@ -77,7 +77,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     }
 
 
-
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
