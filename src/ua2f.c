@@ -407,7 +407,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         oldhttpcount = httpcount;
         current_t = time(NULL);
         syslog(LOG_INFO,
-               "UA2F has handled %lld http, %lld http 1.0, %lld noua http, %lld tcp. Set  %lld mark and %lld nohttp mark in %s",
+               "UA2F has handled %lld http, %lld http 1.0, %lld noua http, %lld tcp. Set %lld mark and %lld nohttp mark in %s",
                httpcount, http1_0count, httpnouacount, tcpcount, httpmark, nohttpmark,
                time2str((int) difftime(current_t, start_t)));
     }
