@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <memory.h>
 #include <time.h>
 #include <wait.h>
 #include <syslog.h>
@@ -367,8 +366,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             if (uapointer) {
                 uaoffset = uapointer - tcppkpayload + 12;
                 for (int i = 0; i < tcppklen - uaoffset; ++i) {
-                    if (*(uapointer + i) == '\r') {
-                        ualength = i;
+                    if (*(uapointer + 12 + i) == '\r') {
+                        ualength = i; // I don't know fucking why
                         break;
                     }
                 }
