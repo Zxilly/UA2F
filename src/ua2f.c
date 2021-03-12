@@ -267,7 +267,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (attr[NFQA_PACKET_HDR] == NULL) {
         // fputs("metaheader not set\n", stderr);
-        syslog(LOG_ERR,"metaheader not set");
+        syslog(LOG_ERR, "metaheader not set");
         return MNL_CB_ERROR;
     }
 
@@ -323,7 +323,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
 
     if (!pktb) {
-        syslog(LOG_ERR,"pktb malloc failed");
+        syslog(LOG_ERR, "pktb malloc failed");
         return MNL_CB_ERROR;
     }
 
@@ -332,7 +332,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
 
     if (nfq_ip_set_transport_header(pktb, ippkhdl) < 0) {
-        syslog(LOG_ERR,"set transport header failed");
+        syslog(LOG_ERR, "set transport header failed");
         pktb_free(pktb);
         return MNL_CB_ERROR;
     }
@@ -353,7 +353,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             if (uapointer) {
                 uaoffset = uapointer - tcppkpayload + 12;
 
-                for (int i = 0; i < tcppklen - uaoffset; ++i) {
+                for (int i = 0; i < tcppklen - uaoffset - 4; ++i) {
                     if (*(uapointer + 12 + i) == '\r') {
                         ualength = i;
                         break;
