@@ -266,7 +266,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     nfg = mnl_nlmsg_get_payload(nlh);
 
     if (attr[NFQA_PACKET_HDR] == NULL) {
-        fputs("metaheader not set\n", stderr);
+        // fputs("metaheader not set\n", stderr);
+        syslog(LOG_ERR,"metaheader not set");
         return MNL_CB_ERROR;
     }
 
@@ -322,6 +323,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
 
     if (!pktb) {
+        syslog(LOG_ERR,"pktb malloc failed");
         return MNL_CB_ERROR;
     }
 
@@ -330,7 +332,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
 
     if (nfq_ip_set_transport_header(pktb, ippkhdl) < 0) {
-        fputs("set transport header failed\n", stderr);
+        syslog(LOG_ERR,"set transport header failed");
         pktb_free(pktb);
         return MNL_CB_ERROR;
     }
@@ -342,25 +344,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (tcppkpayload) {
         if (http_judge(tcppkpayload, tcppklen)) {
-            /*for (unsigned int i = 0; i < tcppklen - 12; i++) { //UA长度大于12，结束段小于12不期望找到UA
-                if (*(tcppkpayload + i) == '\n') {
-                    if (*(tcppkpayload + i + 1) == '\r') {
-                        httpnouacount++;
-                        break; //http 头部结束，没有找到 User-Agent
-                    } else {
-                        if (stringCmp(tcppkpayload + i + 1, "User-Agent")) { //User-Agent: abcde
-                            uaoffset = i + 13;
-                            for (unsigned int j = i + 13; j < tcppklen; j++) {
-                                if (*(tcppkpayload + j) == '\r') {
-                                    ualength = j - i - 13;
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }*/
             char *uapointer = memmem(tcppkpayload, tcppklen, "User-Agent", 10);
 
             if (uapointer) {
