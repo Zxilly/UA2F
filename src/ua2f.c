@@ -344,19 +344,26 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     if (tcppkpayload) {
         if (http_judge(tcppkpayload, tcppklen)) {
-            char *uapointer = memmem(tcppkpayload, tcppklen, "User-Agent", 10);
+            debugflag++; //flag5
+
+            char *uapointer = memmem(tcppkpayload, tcppklen, "User-Agent:", 11);
+
+            debugflag++; //flag6
 
             if (uapointer) {
                 uaoffset = uapointer - tcppkpayload + 12;
+
                 for (int i = 0; i < tcppklen - uaoffset; ++i) {
                     if (*(uapointer + 12 + i) == '\r') {
-                        ualength = i; // I don't know fucking why
+                        ualength = i;
                         break;
                     }
                 }
             } else {
                 httpnouacount++;
             }
+
+            debugflag++; //flag7
 
             if (uaoffset && ualength) {
                 str = malloc(ualength);
@@ -375,16 +382,18 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     return MNL_CB_ERROR;
                 }
             }
+
+            debugflag++; //flag8
         } else {
             nohttp = true;
         }
     }
 
-    debugflag++; //flag5
+    debugflag++; //flag5 / 9
 
     nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, nohttp, addcmd);
 
-    debugflag++; //flag6
+    debugflag++; //flag6 / 10
 
     if (httpcount / oldhttpcount == 2 || httpcount - oldhttpcount >= 8192) {
         oldhttpcount = httpcount;
@@ -395,7 +404,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                time2str((int) difftime(current_t, start_t)));
     }
 
-    debugflag++;//flag7
+    debugflag++;//flag7 / 11
 
     return MNL_CB_OK;
 }
