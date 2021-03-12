@@ -125,14 +125,14 @@ static bool http_judge(char *tcppayload, unsigned int tcplen) {
 
     /* Otherwise it could be HTTP/1.0 without version: check if it's got an
      * HTTP method (RFC2616 5.1.1) */
-    PROBE_HTTP_METHOD("GET")
-    PROBE_HTTP_METHOD("POST")
-    PROBE_HTTP_METHOD("OPTIONS")
-    PROBE_HTTP_METHOD("HEAD")
-    PROBE_HTTP_METHOD("PUT")
-    PROBE_HTTP_METHOD("DELETE")
-    PROBE_HTTP_METHOD("TRACE")
-    PROBE_HTTP_METHOD("CONNECT")
+    PROBE_HTTP_METHOD("GET ")
+    PROBE_HTTP_METHOD("POST ")
+    PROBE_HTTP_METHOD("OPTIONS ")
+    PROBE_HTTP_METHOD("HEAD ")
+    PROBE_HTTP_METHOD("PUT ")
+    PROBE_HTTP_METHOD("DELETE ")
+    PROBE_HTTP_METHOD("TRACE ")
+    PROBE_HTTP_METHOD("CONNECT ")
 
 #undef PROBE_HTTP_METHOD
 
