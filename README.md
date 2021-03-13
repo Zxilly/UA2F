@@ -1,4 +1,4 @@
-# UA2F
+![UA2F](https://socialify.git.ci/Zxilly/UA2F/image?description=1&descriptionEditable=Change%20User-agent%20to%20F-words%20on%20OpenWRT%20router.&font=Inter&language=1&pattern=Plus&stargazers=1&theme=Light)
 
 ~~**当前 git HEAD 是一个高度实验性版本，请查找 commit 以获得可用版本**~~
 
