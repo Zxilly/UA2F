@@ -372,6 +372,15 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                     return MNL_CB_ERROR;
                 }
                 memset(str, 'F', ualength);
+
+                if (uaoffset >= tcppklen) {
+                    syslog(LOG_ERR, "Offset overflow");
+                    exit(EXIT_FAILURE);
+                }
+                if (ualength >= tcppklen) {
+                    syslog(LOG_ERR, "UA overflow");
+                    exit(EXIT_FAILURE);
+                }
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     httpcount++; //记录修改包的数量
                     free(str);//用完就丢
