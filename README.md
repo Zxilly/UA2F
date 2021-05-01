@@ -30,7 +30,7 @@ iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
 iptables -t mangle -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH 和 https
 iptables -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 24
 iptables -t mangle -A ua2f -m set --set nohttp dst,dst -j RETURN
-iptables -t mangle -A ua2f -m connmark --mark 28 -j RETURN # 不处理标记为非 http 的流 (实验性)
+iptables -t mangle -A ua2f -m connmark --mark 23 -j RETURN # 不处理标记为非 http 的流 (实验性)
 iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
 
 iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
