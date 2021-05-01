@@ -38,7 +38,7 @@ jobs:
         working-directory: ./openwrt-sdk-19.07.7-ramips-mt7620_gcc-7.5.0_musl.Linux-x86_64
         run: |
           make defconfig
-          make package/UA2F/compile
+          make package/UA2F/compile -j1 V=s
 
       - name: Release Package
         uses: "marvinpinto/action-automatic-releases@latest"
