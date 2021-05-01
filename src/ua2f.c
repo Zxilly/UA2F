@@ -302,9 +302,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
             debugflag++; //flag6
 
-            uaoffset = uapointer - tcppkpayload + 15;
+            uaoffset = uapointer - tcppkpayload + 14;
             for (int i = 0; i < tcppklen - uaoffset - 4; ++i) {
-                if (*(uapointer + 15 + i) == '\r') {
+                if (*(uapointer + 14 + i) == '\r') {
                     ualength = i;
                     break;
                 }
