@@ -262,12 +262,12 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (tcppkpayload) {
         char *uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser", 6);
         if (uapointer) {
-            uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-Agent: ", 14);
+            uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-Agent:", 13);
             if (!uapointer){
-                uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-agent: ", 14);
+                uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-agent:", 13);
             }
         } else {
-            uapointer = memmem(tcppkpayload, tcppklen, "\r\nuser-agent: ", 14);
+            uapointer = memmem(tcppkpayload, tcppklen, "\r\nuser-agent:", 13);
         }
 
         if (uapointer) {
@@ -276,7 +276,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             debugflag++; //flag6
 
             uaoffset = uapointer - tcppkpayload + 14;
-            for (int i = 0; i < tcppklen - uaoffset - 4; ++i) {
+            for (int i = 0; i < tcppklen - uaoffset - 2; ++i) {
                 if (*(uapointer + 14 + i) == '\r') {
                     ualength = i;
                     break;
