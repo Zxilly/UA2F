@@ -260,8 +260,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     tcppklen = nfq_tcp_get_payload_len(tcppkhdl, pktb); //获取 tcp长度
 
     if (tcppkpayload) {
-        char *uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-Agent: ", 14);
-
+        char *uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser", 6);
+        if (uapointer) {
+            uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-Agent: ", 14);
+        }
+        if (!uapointer) {
+            uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-agent: ", 14);
+        }
         if (uapointer) {
             debugflag++; //flag5
 
