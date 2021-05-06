@@ -21,7 +21,16 @@ jobs:
         run: |
           sudo apt -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
 
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64
+          key: ${{ runner.os }}-openwrt
+          restore-keys: |
+            ${{ runner.os }}-openwrt
+
       - name: Setup OpenWRT SDK
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           wget https://downloads.openwrt.org/releases/21.02.0-rc1/targets/ramips/mt7620/openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64.tar.xz
           tar -xvJf openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64.tar.xz
@@ -38,7 +47,7 @@ jobs:
         working-directory: ./openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64
         run: |
           make defconfig
-          make package/UA2F/compile -j1 V=s
+          make package/UA2F/compile -j2 V=s
 
       - name: Release Package
         uses: "marvinpinto/action-automatic-releases@latest"
