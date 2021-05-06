@@ -48,6 +48,8 @@ static int debugflag = 0;
 static int debugflag2 = 0;
 static char timestr[60];
 
+char *str = NULL;
+
 static struct ipset *Pipset;
 
 static char *time2str(int sec) {
@@ -161,7 +163,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     unsigned int tcppklen;
     unsigned int uaoffset = 0;
     unsigned int ualength = 0;
-    char *str = NULL;
     void *payload;
     uint32_t mark = 0;
     bool noUA = false;
@@ -277,12 +278,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             debugflag++; //flag7
 
             if (uaoffset && ualength) {
-                str = malloc(ualength);
-                if (!str) {
-                    pktb_free(pktb);
-                    return MNL_CB_ERROR;
-                }
-                memset(str, 'F', ualength);
 
                 if (uaoffset >= tcppklen) {
                     syslog(LOG_ERR, "Offset overflow");
@@ -294,10 +289,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
                     UAcount++; //记录修改包的数量
-                    free(str);//用完就丢
                     noUA = false;
                 } else {
-                    free(str);
                     pktb_free(pktb);
                     return MNL_CB_ERROR;
                 }
@@ -417,6 +410,9 @@ int main(int argc, char *argv[]) {
         syslog(LOG_ERR, "Exit at breakpoint 6.");
         exit(EXIT_FAILURE);
     }
+
+    str = malloc(sizeof_buf);
+    memset(str, 'F', sizeof_buf);
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
