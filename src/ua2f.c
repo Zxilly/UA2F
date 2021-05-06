@@ -75,40 +75,6 @@ static int parse_attrs(const struct nlattr *attr, void *data) {
     return MNL_CB_OK;
 }
 
-// static bool http_sign_check(bool firstcheck, unsigned int tcplen, unsigned char *tcppayload);
-
-//static int probe_http_method(const char *p, const char *opt) {
-//    return !strncmp(p, opt, strlen(opt));
-//}
-//
-//static bool http_judge(char *tcppayload, unsigned int tcplen) {
-//
-//    if (tcplen <= 12) {
-//        return false;
-//    }
-//
-//    if (memmem(tcppayload, tcplen, "HTTP", 4)) {
-//        return true;
-//    }
-//
-//#define PROBE_HTTP_METHOD(option) if(probe_http_method(tcppayload, option)) {http1_0count++; return true;}
-//
-//    /* Otherwise it could be HTTP/1.0 without version: check if it's got an
-//     * HTTP method (RFC2616 5.1.1) */
-//    PROBE_HTTP_METHOD("GET ")
-//    PROBE_HTTP_METHOD("POST ")
-//    PROBE_HTTP_METHOD("OPTIONS ")
-//    PROBE_HTTP_METHOD("HEAD ")
-//    PROBE_HTTP_METHOD("PUT ")
-//    PROBE_HTTP_METHOD("DELETE ")
-//    PROBE_HTTP_METHOD("TRACE ")
-//    PROBE_HTTP_METHOD("CONNECT ")
-//
-//#undef PROBE_HTTP_METHOD
-//
-//    return false;
-//}
-
 static void
 nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mark, bool noUA,
                  char addcmd[50]) { // http mark = 24, ukn mark = 16-20, no http mark = 23
@@ -139,17 +105,17 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
             mnl_attr_nest_end(nlh, nest);
         }
 
-        if (mark >= 16 && mark <= 20) {
+        if (mark >= 16 && mark <= 40) {
             setmark = mark + 1;
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(setmark));
             mnl_attr_nest_end(nlh, nest);
         }
 
-        if (mark == 21) { // 21 统计确定此连接为非http连接
+        if (mark == 41) { // 21 统计确定此连接为不含UA连接
 
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
-            mnl_attr_put_u32(nlh, CTA_MARK, htonl(23));
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(43));
             mnl_attr_nest_end(nlh, nest); // 加 CONNMARK
 
             ipset_parse_line(Pipset, addcmd); //加 ipset 标记
@@ -157,9 +123,9 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
             noUAmark++;
         }
     } else {
-        if (mark != 24) {
+        if (mark != 44) {
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
-            mnl_attr_put_u32(nlh, CTA_MARK, htonl(24));
+            mnl_attr_put_u32(nlh, CTA_MARK, htonl(44));
             mnl_attr_nest_end(nlh, nest);
             UAmark++;
         }
