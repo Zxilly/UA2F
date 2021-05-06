@@ -264,8 +264,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         if (uapointer) {
             debugflag++; //flag5
 
-
-
             debugflag++; //flag6
 
             uaoffset = uapointer - tcppkpayload + 14;

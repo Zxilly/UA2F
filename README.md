@@ -28,8 +28,8 @@ iptables -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
 iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN # 不处理流向保留地址的包
 iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
 iptables -t mangle -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH 和 https
-iptables -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 54
-iptables -t mangle -A ua2f -m connmark --mark 53 -j RETURN # 不处理标记为非 http 的流 (实验性)
+iptables -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
+iptables -t mangle -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
 iptables -t mangle -A ua2f -m set --set nohttp dst,dst -j RETURN
 iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
 
