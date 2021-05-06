@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
-PKG_VERSION:=3.4
+PKG_VERSION:=3.5
 
 PKG_RELEASE:=8
 

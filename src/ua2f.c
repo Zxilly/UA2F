@@ -263,10 +263,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         char *uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser", 6);
         if (uapointer) {
             uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-Agent: ", 14);
+            if (!uapointer){
+                uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-agent: ", 14);
+            }
+        } else {
+            uapointer = memmem(tcppkpayload, tcppklen, "\r\nuser-agent: ", 14);
         }
-        if (!uapointer) {
-            uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-agent: ", 14);
-        }
+
         if (uapointer) {
             debugflag++; //flag5
 
