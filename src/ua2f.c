@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <time.h>
 #include <wait.h>
@@ -35,12 +36,10 @@ static struct mnl_socket *nl;
 static const int queue_number = 10010;
 
 static long long UAcount = 0;
-//static long long httpnouacount = 0;
 static long long tcpcount = 0;
 static long long UAmark = 0;
 static long long noUAmark = 0;
 static long long oldhttpcount = 4;
-//static long long http1_0count = 0;
 
 static time_t start_t, current_t;
 
@@ -183,7 +182,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     nfg = mnl_nlmsg_get_payload(nlh);
 
     if (attr[NFQA_PACKET_HDR] == NULL) {
-        // fputs("metaheader not set\n", stderr);
         syslog(LOG_ERR, "metaheader not set");
         return MNL_CB_ERROR;
     }
@@ -263,7 +261,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         char *uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser", 6);
         if (uapointer) {
             uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-Agent:", 13);
-            if (!uapointer){
+            if (!uapointer) {
                 uapointer = memmem(tcppkpayload, tcppklen, "\r\nUser-agent:", 13);
             }
         } else {
@@ -271,11 +269,14 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         }
 
         if (uapointer) {
-            debugflag++; //flag5
-
-            debugflag++; //flag6
-
             uaoffset = uapointer - tcppkpayload + 14;
+
+            if (uaoffset >= tcppklen) {
+                syslog(LOG_WARNING, "Offset overflow");
+                pktb_free(pktb);
+                return MNL_CB_OK;
+            }
+
             for (int i = 0; i < tcppklen - uaoffset - 2; ++i) {
                 if (*(uapointer + 14 + i) == '\r') {
                     ualength = i;
@@ -283,26 +284,20 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }
             }
 
-            debugflag++; //flag7
-
-            if (uaoffset && ualength) {
-
-                if (uaoffset >= tcppklen) {
-                    syslog(LOG_ERR, "Offset overflow");
-                    exit(EXIT_FAILURE);
-                }
-                if (ualength >= tcppklen) {
-                    syslog(LOG_ERR, "UA overflow");
-                    exit(EXIT_FAILURE);
-                }
-                if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
-                    UAcount++; //记录修改包的数量
-                    noUA = false;
-                } else {
-                    pktb_free(pktb);
-                    return MNL_CB_ERROR;
-                }
+            if (ualength + uaoffset > tcppklen) {
+                syslog(LOG_WARNING, "UA overflow");
+                pktb_free(pktb);
+                return MNL_CB_OK;
             }
+
+            if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
+                UAcount++; //记录修改包的数量
+                noUA = false;
+            } else {
+                pktb_free(pktb);
+                return MNL_CB_ERROR;
+            }
+
 
             debugflag++; //flag8
         } else {

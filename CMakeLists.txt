@@ -7,9 +7,9 @@ include_directories("/usr/local/include")
 
 add_executable(ua2f src/ua2f.c)
 add_executable(test test/test.c)
-add_executable(nf-queue src/nf-queue.c)
+add_executable(nf-queue ref/nf-queue.c)
 add_executable(clocktest test/clocktest.c)
-add_executable(nfct-event src/nfct-event.c)
+add_executable(nfct-event ref/nfct-event.c)
 add_executable(nfq test/nfq.c)
 
 target_link_libraries(ua2f mnl netfilter_queue ipset)
