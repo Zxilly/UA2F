@@ -1,8 +1,0 @@
-/rtnl-addr-add
-/rtnl-link-dump
-/rtnl-link-dump2
-/rtnl-link-dump3
-/rtnl-link-event
-/rtnl-link-set
-/rtnl-route-add
-/rtnl-route-dump
