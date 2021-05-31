@@ -1,4 +1,5 @@
 ![UA2F](https://socialify.git.ci/Zxilly/UA2F/image?description=1&descriptionEditable=Change%20User-agent%20to%20F-words%20on%20OpenWRT%20router.&font=Inter&language=1&pattern=Plus&stargazers=1&theme=Light)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZxilly%2FUA2F.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FZxilly%2FUA2F?ref=badge_shield)
 
 ~~**当前 git HEAD 是一个高度实验性版本，请查找 commit 以获得可用版本**~~
 
@@ -116,3 +117,7 @@ Mon Mar 15 11:39:34 2021 syslog.info UA2F[24049]: UA2F has handled 73728 http, 8
 
 debug断点
 > 在断点 9 和 16 会出现内存非法访问，暂时做重启处理
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZxilly%2FUA2F.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FZxilly%2FUA2F?ref=badge_large)
