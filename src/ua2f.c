@@ -14,7 +14,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <time.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <syslog.h>
 #include <signal.h>
 #include <arpa/inet.h>

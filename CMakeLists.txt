@@ -5,8 +5,8 @@ set(CMAKE_C_STANDARD 11)
 
 include_directories("/usr/local/include")
 
-add_executable(src/ua2f src/ua2f.c)
+add_executable(ua2f src/ua2f.c)
 
 target_link_libraries(ua2f mnl netfilter_queue ipset)
 
-install(TARGETS src/ua2f RUNTIME DESTINATION bin)
+install(TARGETS ua2f RUNTIME DESTINATION bin)
