@@ -2,13 +2,10 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
 PKG_VERSION:=3.7
+PKG_RELEASE:=11
 
-PKG_RELEASE:=10
-
-
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-
-TARGET_LDFLAGS+=-lmnl -lnetfilter_queue -lipset
+PKG_LICENSE:=GPL-3.0-only
+PKG_LICENSE_FILE:=LICENSE
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -18,27 +15,23 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords
   URL:=https://github.com/Zxilly/UA2F
-  DEPENDS:=+libmnl +libnetfilter-queue +iptables-mod-nfqueue +libipset
+  DEPENDS:=+iptables-mod-nfqueue +libipset +libnetfilter-conntrack +libnetfilter-queue
 endef
 
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being checked by Dr.Com.
 endef
 
-define Build/Prepare
-	mkdir -p $(PKG_BUILD_DIR)
-	cp ./src/* $(PKG_BUILD_DIR)
-	$(Build/Patch)
-endef
+EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lipset
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/ua2f.o -c $(PKG_BUILD_DIR)/ua2f.c
-	$(TARGET_CC) $(TARGET_LDFLAGS) -o $(PKG_BUILD_DIR)/$1 $(PKG_BUILD_DIR)/ua2f.o
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) $(EXTRA_LDFLAGS) \
+		$(PKG_BUILD_DIR)/src/ua2f.c -o $(PKG_BUILD_DIR)/src/ua2f
 endef
 
 define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ua2f $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/ua2f $(1)/usr/bin/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./init/ua2f $(1)/etc/init.d/ua2f
 endef
