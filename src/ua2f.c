@@ -443,6 +443,7 @@ int main(int argc, char *argv[]) {
 
     str = malloc(sizeof_buf);
     memset(str, 'F', sizeof_buf);
+    memcpy(str,"Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)",47);
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
