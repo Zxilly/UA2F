@@ -39,7 +39,7 @@ static long long UAcount = 0;
 static long long tcpcount = 0;
 static long long UAmark = 0;
 static long long noUAmark = 0;
-static long long oldhttpcount = 4;
+static long long httpcount = 4;
 
 static time_t start_t, current_t;
 
@@ -338,8 +338,8 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     debugflag++; //flag6 / 10
 
-    if (UAcount / oldhttpcount == 2 || UAcount - oldhttpcount >= 8192) {
-        oldhttpcount = UAcount;
+    if (UAcount / httpcount == 2 || UAcount - httpcount >= 8192) {
+        httpcount = UAcount;
         current_t = time(NULL);
         syslog(LOG_INFO,
                "UA2F has handled %lld ua http, %lld tcp. Set %lld mark and %lld noUA mark in %s",
