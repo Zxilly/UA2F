@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
 PKG_VERSION:=3.7
-PKG_RELEASE:=13
+PKG_RELEASE:=14
 
 PKG_LICENSE:=GPL-3.0-only
 PKG_LICENSE_FILE:=LICENSE
@@ -15,7 +15,7 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords
   URL:=https://github.com/Zxilly/UA2F
-  DEPENDS:=+iptables-mod-nfqueue +libipset +libnetfilter-conntrack +libnetfilter-queue
+  DEPENDS:=+ipset +iptables-mod-nfqueue +libnetfilter-conntrack +libnetfilter-queue
 endef
 
 define Package/ua2f/description
@@ -32,8 +32,21 @@ endef
 define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ua2f $(1)/usr/bin/
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./init/ua2f $(1)/etc/init.d/ua2f
+
+	$(INSTALL_DIR) $(1)/etc/config $(1)/etc/init.d $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./files/ua2f.config $(1)/etc/config/ua2f
+	$(INSTALL_BIN) ./files/ua2f.init $(1)/etc/init.d/ua2f
+	$(INSTALL_BIN) ./files/ua2f.uci $(1)/etc/uci-defaults/80-ua2f
+endef
+
+define Package/ua2f/postinst
+#!/bin/sh
+
+# check if we are on real system
+[ -n "$${IPKG_INSTROOT}" ] || {
+	(. /etc/uci-defaults/80-ua2f) && rm -f /etc/uci-defaults/80-ua2f
+	exit 0
+}
 endef
 
 $(eval $(call BuildPackage,ua2f))

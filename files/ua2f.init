@@ -1,0 +1,75 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2020 Zxilly <zhouxinyu1001@gmail.com>
+# Copyright (C) 2021 Tianling Shen <cnsztl@immortalwrt.org>
+
+USE_PROCD=1
+
+START=99
+STOP=10
+
+NAME="ua2f"
+FW_DIR="/var/etc"
+FW_CONF="$FW_DIR/ua2f.include"
+
+start_service() {
+	config_load "$NAME"
+	local enabled
+	config_get enabled "enabled" "enabled" "0"
+	[ "$enabled" -eq "1" ] || exit 1
+
+	local handle_fw
+	local handle_tls
+	config_get handle_fw "firewall" "handle_fw"
+	config_get handle_tls "firewall" "handle_tls"
+
+	procd_open_instance "$NAME"
+	procd_set_param command "$NAME"
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_set_param respawn
+	procd_close_instance
+
+	[ "$handle_fw" -eq "1" ] && {
+		ipset create nohttp hash:ip,port hashsize 16384 timeout 300
+		iptables -t mangle -N ua2f
+		iptables -t mangle -A ua2f -d 0.0.0.0/8 -j RETURN
+		iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+		iptables -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
+		iptables -t mangle -A ua2f -d 169.254.0.0/16 -j RETURN
+		iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
+		iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+		iptables -t mangle -A ua2f -d 224.0.0.0/4 -j RETURN
+		iptables -t mangle -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
+		iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
+		iptables -t mangle -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
+		[ "$handle_tls" -eq "1" ] || iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
+		iptables -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
+		iptables -t mangle -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
+		iptables -t mangle -A ua2f -m set --set nohttp dst,dst -j RETURN
+		iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
+		iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+		iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir REPLY
+	}
+
+	mkdir -p "$FW_DIR"
+	echo -e "/etc/init.d/$NAME restart" > "$FW_CONF"
+}
+
+stop_service() {
+	iptables -t mangle -D FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+	iptables -t mangle -D FORWARD -p tcp -m conntrack --ctdir REPLY
+	iptables -t mangle -F ua2f
+	iptables -t mangle -X ua2f
+	ipset destroy nohttp
+	rm -f "$FW_CONF"
+}
+
+reload_service() {
+	stop
+	sleep 2s
+	start
+}
+
+service_triggers() {
+	procd_add_reload_trigger "$NAME"
+}
