@@ -19,8 +19,10 @@ start_service() {
 
 	local handle_fw
 	local handle_tls
+	local handle_intranet
 	config_get handle_fw "firewall" "handle_fw"
 	config_get handle_tls "firewall" "handle_tls"
+	config_get handle_intranet "firewall" "handle_intranet"
 
 	procd_open_instance "$NAME"
 	procd_set_param command "$NAME"
@@ -29,15 +31,24 @@ start_service() {
 	procd_set_param respawn
 	procd_close_instance
 
+	local wan
+	wan=$(ubus call network.interface.wan status | grep nexthop | grep -oE "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)")
+
 	[ "$handle_fw" -eq "1" ] && {
 		ipset create nohttp hash:ip,port hashsize 16384 timeout 300
 		iptables -t mangle -N ua2f
 		iptables -t mangle -A ua2f -d 0.0.0.0/8 -j RETURN
-		iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+		[ "$handle_intranet" -eq "1" ] && {
+			[[ $wan =~ ^10. ]] && iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+			[[ $wan =~ ^172.((1[6-9])|(2[0-9])|(3[0-1])) ]] && iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
+			[[ $wan =~ ^192.168 ]] && iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+		} || {
+			iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+			iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
+			iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+		}
 		iptables -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
 		iptables -t mangle -A ua2f -d 169.254.0.0/16 -j RETURN
-		iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
-		iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
 		iptables -t mangle -A ua2f -d 224.0.0.0/4 -j RETURN
 		iptables -t mangle -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
 		iptables -t mangle -A ua2f -p tcp --dport 443 -j RETURN
