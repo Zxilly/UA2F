@@ -37,25 +37,21 @@ start_service() {
 	[ "$handle_fw" -eq "1" ] && {
 		ipset create nohttp hash:ip,port hashsize 16384 timeout 300
 		iptables -t mangle -N ua2f
-		iptables -t mangle -A ua2f -d 0.0.0.0/8 -j RETURN
+		iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+		iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
+		iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
 		[ "$handle_intranet" -eq "1" ] && {
 			[[ $wan =~ ^10. ]] && {
-				iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
-				iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+				iptables -t mangle -D ua2f 1
 			}
 			[[ $wan =~ ^172.((1[6-9])|(2[0-9])|(3[0-1])) ]] && {
-				iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
-				iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+				iptables -t mangle -D ua2f 2
 			}
 			[[ $wan =~ ^192.168 ]] && {
-				iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
-				iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
+				iptables -t mangle -D ua2f 3
 			}
-		} || {
-			iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
-			iptables -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
-			iptables -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
 		}
+		iptables -t mangle -A ua2f -d 0.0.0.0/8 -j RETURN
 		iptables -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
 		iptables -t mangle -A ua2f -d 169.254.0.0/16 -j RETURN
 		iptables -t mangle -A ua2f -d 224.0.0.0/4 -j RETURN
