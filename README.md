@@ -13,7 +13,26 @@
 
 > 由于新加入的 ipset 影响，需要确保你的内核支持 `hash:ip,port` 的 ipset 类型
 
-# ipset command
+# uci command
+
+```bash
+# Enable the daemon
+uci set ua2f.enabled.enabled=1
+# At your option set fw rules
+uci set ua2f.firewall.handle_fw=1
+uci set ua2f.firewall.handle_tls=1
+uci set ua2f.firewall.handle_intranet=1
+
+# Apply your modifications
+uci commit ua2f
+
+service ua2f enable
+# Start the daemon
+service ua2f start
+```
+
+# Manual configure
+## ipset command
 
 请确保添加此语句至开机自启
 ```bash
@@ -21,7 +40,7 @@ ipset create nohttp hash:ip,port hashsize 16384 timeout 300
 ```
 `UA2F` 运行时依赖名称为 `nohttp`，类型为 `hash:ip,port` 的 ipset
 
-# iptables rules
+## iptables rules
 ```shell
 iptables -t mangle -N ua2f
 iptables -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
@@ -114,9 +133,6 @@ Sun Mar 14 18:50:18 2021 syslog.info UA2F[24049]: UA2F has handled 57344 http, 8
 Mon Mar 15 00:41:03 2021 syslog.info UA2F[24049]: UA2F has handled 65536 http, 8686 http 1.0, 12738 noua http, 3194659 tcp. Set 1830 mark and 2941 nohttp mark in 1 days, 10 hours, 14 minutes and 15 seconds
 Mon Mar 15 11:39:34 2021 syslog.info UA2F[24049]: UA2F has handled 73728 http, 8691 http 1.0, 13282 noua http, 3360247 tcp. Set 1867 mark and 4219 nohttp mark in 1 days, 21 hours, 12 minutes and 46 seconds
 ```
-
-debug断点
-> 在断点 9 和 16 会出现内存非法访问，暂时做重启处理
 
 
 ## License
