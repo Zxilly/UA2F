@@ -32,7 +32,7 @@ start_service() {
 	procd_close_instance
 
 	local wan
-	wan=$(ubus call network.interface.wan status | grep nexthop | grep -oE "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)")
+	wan=$(route -n | grep UG | awk '{print $2}')
 
 	[ "$handle_fw" -eq "1" ] && {
 		ipset create nohttp hash:ip,port hashsize 16384 timeout 300
@@ -44,7 +44,7 @@ start_service() {
 			[[ $wan =~ ^10. ]] && {
 				iptables -t mangle -D ua2f 1
 			}
-			[[ $wan =~ ^172.((1[6-9])|(2[0-9])|(3[0-1])) ]] && {
+			( echo "$wan" | grep -Eq "^172\.((1[6-9])|(2[0-9])|(3[0-1]))\." ) && {
 				iptables -t mangle -D ua2f 2
 			}
 			[[ $wan =~ ^192.168 ]] && {
