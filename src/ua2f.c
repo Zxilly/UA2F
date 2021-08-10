@@ -395,7 +395,7 @@ int main(int argc, char *argv[]) {
             }
         }
         errcount++;
-        if (errcount > 50) {
+        if (errcount > 10) {
             syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
             syslog(LOG_ERR, "Exit at breakpoint 3.");
             exit(EXIT_FAILURE);
