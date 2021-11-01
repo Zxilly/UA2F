@@ -31,6 +31,7 @@
 
 #define NF_ACCEPT 1
 
+int child_status;
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
@@ -288,7 +289,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             uaoffset = uapointer - tcppkpayload + 14; // 应该指向 UA 的第一个字符
 
             if (uaoffset >= tcppklen) {
-                syslog(LOG_WARNING, "User-Agent position overflow, may cause by TCP Segment Reassembled.");
+                syslog(LOG_WARNING, "User-Agent position overflow, may caused by TCP Segment Reassembled.");
                 pktb_free(pktb);
                 return MNL_CB_OK;
             }
@@ -350,20 +351,26 @@ static void debugfunc() {
     exit(EXIT_FAILURE);
 }
 
+static void killChild() {
+    syslog(LOG_INFO, "Received SIGTERM, kill child %d", child_status);
+    kill(child_status, SIGKILL); // Not graceful, but work
+}
+
 int main(int argc, char *argv[]) {
     char *buf;
     size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE / 2);
     struct nlmsghdr *nlh;
     ssize_t ret;
     unsigned int portid;
-    int child_status;
 
     int errcount = 0;
 
     signal(SIGSEGV, debugfunc);
 
-    signal(SIGCHLD, SIG_IGN);
-    signal(SIGHUP, SIG_IGN);
+//    signal(SIGCHLD, SIG_IGN);
+//    signal(SIGHUP, SIG_IGN);
+
+    signal(SIGTERM, killChild);
 
     while (true) {
         child_status = fork();
@@ -380,7 +387,7 @@ int main(int argc, char *argv[]) {
             int deadpid;
             deadpid = wait(&deadstat);
             if (deadpid == -1) {
-                syslog(LOG_ERR, "Child sucide.");
+                syslog(LOG_ERR, "Child suicide.");
             } else {
                 syslog(LOG_ERR, "Meet fatal error.[%d] dies by %d", deadpid, deadstat);
             }
