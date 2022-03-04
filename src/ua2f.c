@@ -44,8 +44,6 @@ static long long httpcount = 4;
 
 static time_t start_t, current_t;
 
-static int debugflag = 0;
-static int debugflag2 = 0;
 static char timestr[60];
 
 char *str = NULL;
@@ -112,19 +110,12 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
     struct nlattr *nest;
     uint32_t setmark;
 
-    debugflag2 = 0;
-    debugflag2++;//flag1
-
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_VERDICT, queue_num);
-    nfq_nlmsg_verdict_put(nlh, id, NF_ACCEPT);
-
-    debugflag2++;//flag2
+    nfq_nlmsg_verdict_put(nlh, (int) id, NF_ACCEPT);
 
     if (pktb_mangled(pktb)) {
         nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(pktb), pktb_len(pktb));
     }
-
-    debugflag2++;//flag3
 
 
     if (noUA) {
@@ -167,11 +158,8 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
         exit(EXIT_FAILURE);
     }
 
-    debugflag2++;//flag4
-
     tcpcount++;
     pktb_free(pktb);
-    debugflag2++;//flag5
 }
 
 static int queue_cb(const struct nlmsghdr *nlh, void *data) {
@@ -196,8 +184,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     char *ip;
     uint16_t port = 0;
     char addcmd[50];
-
-    debugflag = 0;
 
     if (nfq_nlmsg_parse(nlh, attr) < 0) {
         perror("problems parsing");
@@ -247,18 +233,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         }
     }
 
-
-    debugflag++; //1
-
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
-
-    debugflag++; //2
 
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-
-    debugflag++; //3
 
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
 
@@ -266,8 +245,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         syslog(LOG_ERR, "pktb malloc failed");
         return MNL_CB_ERROR;
     }
-
-    debugflag++; //4
 
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
 
@@ -288,8 +265,9 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         if (uapointer) {
             uaoffset = uapointer - tcppkpayload + 14; // 应该指向 UA 的第一个字符
 
-            if (uaoffset >= tcppklen) {
-                syslog(LOG_WARNING, "User-Agent position overflow, may caused by TCP Segment Reassembled.");
+            if (uaoffset > tcppklen - 2) { // User-Agent: XXX\r\n
+                syslog(LOG_WARNING, "User-Agent has no content");
+                // https://github.com/Zxilly/UA2F/pull/42#issue-1159773997
                 nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, noUA, addcmd);
                 return MNL_CB_OK;
             }
@@ -303,33 +281,27 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 }
             }
 
-            if (ualength + uaoffset > tcppklen) {
-                syslog(LOG_ERR, "UA overflow, this is an unexpected error."); // 不应该出现，出现说明指针越界了
-                pktb_free(pktb);
-                return MNL_CB_OK;
+//            if (ualength + uaoffset > tcppklen) {
+//                syslog(LOG_ERR, "UA overflow, this is an unexpected error."); // 不应该出现，出现说明指针越界了
+//                pktb_free(pktb);
+//                return MNL_CB_OK;
+//            }
+
+            if (ualength > 0) {
+                if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
+                    UAcount++; //记录修改包的数量
+                } else {
+                    syslog(LOG_ERR, "Mangle packet failed.");
+                    pktb_free(pktb);
+                    return MNL_CB_ERROR;
+                }
             }
-
-            if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
-                UAcount++; //记录修改包的数量
-                noUA = false;
-            } else {
-                syslog(LOG_ERR, "Mangle packet failed.");
-                pktb_free(pktb);
-                return MNL_CB_ERROR;
-            }
-
-
-            debugflag++; //flag8
         } else {
             noUA = true;
         }
     }
 
-    debugflag++; //flag5 / 9
-
     nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, noUA, addcmd);
-
-    debugflag++; //flag6 / 10
 
     if (UAcount / httpcount == 2 || UAcount - httpcount >= 8192) {
         httpcount = UAcount;
@@ -340,16 +312,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                time2str((int) difftime(current_t, start_t)));
     }
 
-    debugflag++;//flag7 / 11
-
     return MNL_CB_OK;
-}
-
-static void debugfunc() {
-    syslog(LOG_ERR, "Catch SIGSEGV at breakpoint %d and breakpoint2 %d", debugflag, debugflag2);
-    mnl_socket_close(nl);
-    syslog(LOG_ALERT, "Meet fatal error, try to restart.");
-    exit(EXIT_FAILURE);
 }
 
 static void killChild() {
@@ -367,8 +330,6 @@ int main(int argc, char *argv[]) {
     unsigned int portid;
 
     int errcount = 0;
-
-    signal(SIGSEGV, debugfunc);
 
 //    signal(SIGCHLD, SIG_IGN);
 //    signal(SIGHUP, SIG_IGN);
@@ -482,9 +443,7 @@ int main(int argc, char *argv[]) {
             syslog(LOG_ERR, "Exit at breakpoint 9.");
             exit(EXIT_FAILURE);
         }
-        debugflag++; //1 或 16
         ret = mnl_cb_run(buf, ret, 0, portid, (mnl_cb_t) queue_cb, NULL);
-        debugflag++; //15
         if (ret < 0) { //stop at failure
             // printf("errno=%d\n", errno);
             perror("mnl_cb_run");
