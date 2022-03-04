@@ -290,12 +290,13 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
             if (uaoffset >= tcppklen) {
                 syslog(LOG_WARNING, "User-Agent position overflow, may caused by TCP Segment Reassembled.");
-                pktb_free(pktb);
+                nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, noUA, addcmd);
                 return MNL_CB_OK;
             }
 
             char *uaStartPointer = uapointer + 14;
-            for (int i = 0; i < tcppklen - uaoffset - 2; ++i) {
+            const unsigned int uaLengthBound = tcppklen - uaoffset;
+            for (unsigned int i = 0; i < uaLengthBound; ++i) {
                 if (*(uaStartPointer + i) == '\r') {
                     ualength = i;
                     break;
