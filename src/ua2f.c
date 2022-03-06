@@ -1,3 +1,5 @@
+//#define SELECT_IPV6
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -25,7 +27,11 @@
 #include <linux/netfilter/nfnetlink_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
+#ifndef SELECT_IPV6
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
+#else
+#include <libnetfilter_queue/libnetfilter_queue_ipv6.h>
+#endif
 #include <libnetfilter_queue/pktbuff.h>
 #include <linux/netfilter/nfnetlink_conntrack.h>
 
@@ -34,7 +40,11 @@
 int child_status;
 
 static struct mnl_socket *nl;
+#ifndef SELECT_IPV6
 static const int queue_number = 10010;
+#else
+static const int queue_number = 10020;
+#endif
 
 static long long UAcount = 0;
 static long long tcpcount = 0;
@@ -137,9 +147,9 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(43));
             mnl_attr_nest_end(nlh, nest); // 加 CONNMARK
-
+#ifndef SELECT_IPV6
             ipset_parse_line(Pipset, addcmd); //加 ipset 标记
-
+#endif
             noUAmark++;
         }
     } else {
@@ -171,7 +181,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nlattr *portattr[CTA_PROTO_MAX + 1] = {};
     uint16_t plen;
     struct pkt_buff *pktb;
+#ifndef SELECT_IPV6
     struct iphdr *ippkhdl;
+#else
+    struct ip6_hdr *ippkhdl;
+#endif
     struct tcphdr *tcppkhdl;
     struct nfgenmsg *nfg;
     char *tcppkpayload;
@@ -205,7 +219,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
         } else {
             mark = 1; // no mark 1
         } // NFQA_CT 一定存在，不存在说明有其他问题
-
+#ifndef SELECT_IPV6
         if (ctattr[CTA_TUPLE_ORIG]) {
             mnl_attr_parse_nested(ctattr[CTA_TUPLE_ORIG], parse_attrs, originattr);
             if (originattr[CTA_TUPLE_IP]) {
@@ -231,6 +245,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
                 sprintf(addcmd, "add nohttp %s,%d", ip, port);
             }
         }
+#endif
     }
 
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
@@ -238,17 +253,23 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
-
+#ifndef SELECT_IPV6
     pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
+#else
+    pktb = pktb_alloc(AF_INET6, payload, plen, 0); //IPv6包
+#endif
 
     if (!pktb) {
         syslog(LOG_ERR, "pktb malloc failed");
         return MNL_CB_ERROR;
     }
-
+#ifndef SELECT_IPV6
     ippkhdl = nfq_ip_get_hdr(pktb); //获取ip header
-
     if (nfq_ip_set_transport_header(pktb, ippkhdl) < 0) {
+#else
+    ippkhdl = nfq_ip6_get_hdr(pktb); //获取IPv6 header
+    if (nfq_ip6_set_transport_header(pktb, ippkhdl, IPPROTO_TCP) < 0) {
+#endif
         syslog(LOG_ERR, "set transport header failed");
         pktb_free(pktb);
         return MNL_CB_ERROR;
@@ -288,7 +309,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 //            }
 
             if (ualength > 0) {
+#ifndef SELECT_IPV6
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, str, ualength) == 1) {
+#else
+                if (nfq_tcp_mangle_ipv6(pktb, uaoffset, ualength, str, ualength) == 1) {
+#endif
                     UAcount++; //记录修改包的数量
                 } else {
                     syslog(LOG_ERR, "Mangle packet failed.");
@@ -364,8 +389,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-
+#ifndef SELECT_IPV6
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
+#else
+    openlog("UA2F6", LOG_PID, LOG_SYSLOG);
+#endif
 
     start_t = time(NULL);
 
@@ -408,7 +436,11 @@ int main(int argc, char *argv[]) {
     memcpy(str, "Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)", 47);
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
+#ifndef SELECT_IPV6
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
+#else
+    nfq_nlmsg_cfg_put_cmd(nlh, AF_INET6, NFQNL_CFG_CMD_BIND);
+#endif
 
     if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
         perror("mnl_socket_send");
