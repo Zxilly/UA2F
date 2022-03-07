@@ -268,7 +268,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     if (nfq_ip_set_transport_header(pktb, ippkhdl) < 0) {
 #else
     ippkhdl = nfq_ip6_get_hdr(pktb); //获取IPv6 header
-    if (nfq_ip6_set_transport_header(pktb, ippkhdl, IPPROTO_TCP) < 0) {
+    if (nfq_ip6_set_transport_header(pktb, ippkhdl, IPPROTO_TCP) != 1) {
 #endif
         syslog(LOG_ERR, "set transport header failed");
         pktb_free(pktb);
