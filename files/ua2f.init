@@ -24,6 +24,7 @@ start_service() {
 	config_get_bool handle_fw "firewall" "handle_fw"
 	config_get_bool handle_tls "firewall" "handle_tls"
 	config_get_bool handle_intranet "firewall" "handle_intranet"
+	config_get_bool handle_mmtls "firewall" "handle_mmtls"
 
 	procd_open_instance "$NAME"
 
@@ -40,15 +41,14 @@ start_service() {
 		$IPT_M -A ua2f -d 169.254.0.0/16 -j RETURN
 		$IPT_M -A ua2f -d 224.0.0.0/4 -j RETURN
 		$IPT_M -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
-		$IPT_M -A ua2f -p tcp --dport 443 -j RETURN
 		$IPT_M -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
 		[ "$handle_tls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
 		$IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
 		$IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
 		$IPT_M -A ua2f -m set --match-set nohttp dst,dst -j RETURN
+		[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
 		$IPT_M -A ua2f -j NFQUEUE --queue-num 10010
 		$IPT_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
-		$IPT_M -A FORWARD -p tcp -m conntrack --ctdir REPLY
 
 		[ "$handle_intranet" -eq "1" ] && {
 			local wan="$(route -n | grep UG | awk '{print $2}')"

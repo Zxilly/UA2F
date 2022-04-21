@@ -21,6 +21,7 @@ uci set ua2f.enabled.enabled=1
 # At your option set fw rules
 uci set ua2f.firewall.handle_fw=1
 uci set ua2f.firewall.handle_tls=1
+uci set ua2f.firewall.handle_mmtls=1
 uci set ua2f.firewall.handle_intranet=1
 
 # Apply your modifications
@@ -51,10 +52,10 @@ iptables -t mangle -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH 和 https
 iptables -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
 iptables -t mangle -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
 iptables -t mangle -A ua2f -m set --set nohttp dst,dst -j RETURN
+iptables -t mangle -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的 mmtls
 iptables -t mangle -A ua2f -j NFQUEUE --queue-num 10010
 
 iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
-iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir REPLY
 ```
 
 ## TODO
@@ -62,7 +63,6 @@ iptables -t mangle -A FORWARD -p tcp -m conntrack --ctdir REPLY
 - [x] 灾难恢复
 - [ ] pthread 支持，由不同线程完成入队出队
 - [x] 修复偶现的非法内存访问，定位错误是一个麻烦的问题 (疑似修复，继续观察)
-- [ ] 期望对于 mips 硬件优化，减少内存读写
 - [x] 配合 CONNMARK 与 ipset，不再修改已被判定为非 http 的 tcp 连接，期望减少 80% 以上的负载 (高度实验性实现)
 - [ ] 清除 TCP Header 中的 timestamp，有论文认为这可以被用来识别 NAT 后的多设备，劫持 NTP 服务器并不一定有效
 
