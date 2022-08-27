@@ -4,7 +4,7 @@ uci -q batch <<-EOF >/dev/null
 	delete firewall.ua2f
 	set firewall.ua2f=include
 	set firewall.ua2f.type=script
-	set firewall.ua2f.path=/var/etc/ua2f.include
+	set firewall.ua2f.path=/etc/ua2f.include
 	set firewall.ua2f.reload=1
 	commit firewall
 EOF

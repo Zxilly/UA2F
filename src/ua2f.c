@@ -312,7 +312,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 static void killChild() {
     syslog(LOG_INFO, "Received SIGTERM, kill child %d", child_status);
     kill(child_status, SIGKILL); // Not graceful, but work
-    mnl_socket_close(nl);
     exit(EXIT_SUCCESS);
 }
 

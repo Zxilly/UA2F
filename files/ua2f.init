@@ -1,95 +1,83 @@
 #!/bin/sh /etc/rc.common
 # Copyright (C) 2020 Zxilly <zhouxinyu1001@gmail.com>
 # Copyright (C) 2021 Tianling Shen <cnsztl@immortalwrt.org>
-
-USE_PROCD=1
+# Copyright (C) 2022 wulishui <wulishui@gmail.com>
 
 START=99
+USE_PROCD=1
+EXTRA_COMMANDS="handle_firewall"
 
-NAME="ua2f"
-PROG="/usr/bin/$NAME"
-IPT_M="iptables -t mangle"
+flush_ipts() {
+	iptables -w -t mangle -D POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f 2>/dev/null
+	iptables -w -t mangle -D POSTROUTING -p tcp -m conntrack --ctdir REPLY 2>/dev/null
+	iptables -w -t mangle -F ua2f 2>/dev/null
+	iptables -w -t mangle -X ua2f 2>/dev/null
+	ipset flush nohttp 2>/dev/null
+	ipset destroy nohttp 2>/dev/null
+}
 
-FW_DIR="/var/etc"
-FW_CONF="$FW_DIR/ua2f.include"
+handle_firewall() {
+	flush_ipts
+	handle_fw=$(uci -q get ua2f.firewall.handle_fw) ; [ "$handle_fw" == 1 ] || return
+	handle_tls=$(uci -q get ua2f.firewall.handle_tls)
+	handle_intranet=$(uci -q get ua2f.firewall.handle_intranet)
+	handle_mmtls=$(uci -q get ua2f.firewall.handle_mmtls)
+
+	iptables -w -t mangle -N ua2f 2>/dev/null
+	iptables -w -t mangle -A ua2f -d 10.0.0.0/8 -j RETURN
+	iptables -w -t mangle -A ua2f -d 172.16.0.0/12 -j RETURN
+	iptables -w -t mangle -A ua2f -d 192.168.0.0/16 -j RETURN
+	iptables -w -t mangle -A ua2f -d 0.0.0.0/8 -j RETURN
+	iptables -w -t mangle -A ua2f -d 127.0.0.0/8 -j RETURN
+	iptables -w -t mangle -A ua2f -d 169.254.0.0/16 -j RETURN
+	iptables -w -t mangle -A ua2f -d 224.0.0.0/4 -j RETURN
+	iptables -w -t mangle -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
+	iptables -w -t mangle -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
+	[ "$handle_tls" == 1 ] || iptables -w -t mangle -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
+	iptables -w -t mangle -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
+	iptables -w -t mangle -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
+	[ "$handle_mmtls" == 1 ] || iptables -w -t mangle -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
+
+	ipset create nohttp hash:ip,port hashsize 16384 timeout 300
+	iptables -w -t mangle -A ua2f -m set --match-set nohttp dst,dst -j RETURN
+
+	iptables -w -t mangle -A ua2f -j NFQUEUE --queue-num 10010
+	iptables -w -t mangle -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+	[ "$handle_intranet" == 1 ] && {
+		local wan="$(route -n | grep UG | awk '{print $2}')"
+		if [[ "$wan" =~ ^"10." ]]; then
+		iptables -w -t mangle -D ua2f 1
+		elif echo "$wan" | egrep -q "^172\.((1[6-9])|(2[0-9])|(3[0-1]))\."; then
+			iptables -w -t mangle -D ua2f 2
+		elif [[ "$wan" =~ ^"192.168" ]]; then
+			iptables -w -t mangle -D ua2f 3
+		fi
+	}
+}
 
 start_service() {
-	config_load "$NAME"
+	enabled=$(uci -q get ua2f.enabled.enabled)
+	if [ "$enabled" == 1 ]; then
+	handle_firewall
 
-	local enabled
-	config_get_bool enabled "enabled" "enabled" "0"
-	[ "$enabled" -eq "1" ] || exit 1
-
-	local handle_fw handle_tls handle_intranet
-	config_get_bool handle_fw "firewall" "handle_fw"
-	config_get_bool handle_tls "firewall" "handle_tls"
-	config_get_bool handle_intranet "firewall" "handle_intranet"
-	config_get_bool handle_mmtls "firewall" "handle_mmtls"
-
-	procd_open_instance "$NAME"
-
-	procd_set_param command "$PROG"
-
-	[ "$handle_fw" -eq "1" ] && {
-		ipset create nohttp hash:ip,port hashsize 16384 timeout 300
-		$IPT_M -N ua2f
-		$IPT_M -A ua2f -d 10.0.0.0/8 -j RETURN
-		$IPT_M -A ua2f -d 172.16.0.0/12 -j RETURN
-		$IPT_M -A ua2f -d 192.168.0.0/16 -j RETURN
-		$IPT_M -A ua2f -d 0.0.0.0/8 -j RETURN
-		$IPT_M -A ua2f -d 127.0.0.0/8 -j RETURN
-		$IPT_M -A ua2f -d 169.254.0.0/16 -j RETURN
-		$IPT_M -A ua2f -d 224.0.0.0/4 -j RETURN
-		$IPT_M -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
-		$IPT_M -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
-		[ "$handle_tls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
-		$IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
-		$IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
-		$IPT_M -A ua2f -m set --match-set nohttp dst,dst -j RETURN
-		[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-		$IPT_M -A ua2f -j NFQUEUE --queue-num 10010
-		$IPT_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
-
-		[ "$handle_intranet" -eq "1" ] && {
-			local wan="$(route -n | grep UG | awk '{print $2}')"
-
-			if [[ "$wan" =~ ^"10." ]]; then
-				$IPT_M -D ua2f 1
-			elif echo "$wan" | grep -Eq "^172\.((1[6-9])|(2[0-9])|(3[0-1]))\."; then
-				$IPT_M -D ua2f 2
-			elif [[ "$wan" =~ ^"192.168" ]]; then
-				$IPT_M -D ua2f 3
-			fi
-		}
-
-		mkdir -p "$FW_DIR"
-		echo -e "/etc/init.d/$NAME restart" > "$FW_CONF"
-	}
-
-	procd_set_param stdout 1
-	procd_set_param stderr 1
+	procd_open_instance ua2f
+	procd_set_param command /usr/bin/ua2f
 	procd_set_param respawn
-
 	procd_close_instance
+	fi
+}
+
+service_triggers() {
+	procd_add_reload_trigger ua2f
 }
 
 stop_service() {
-	(
-		$IPT_M -D FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
-		$IPT_M -D FORWARD -p tcp -m conntrack --ctdir REPLY
-		$IPT_M -F ua2f
-		$IPT_M -X ua2f
-		ipset destroy nohttp
-		echo > "$FW_CONF"
-	) 2>"/dev/null"
+	flush_ipts
 }
 
 reload_service() {
 	stop
-	sleep 2s
+	sleep 2
 	start
 }
 
-service_triggers() {
-	procd_add_reload_trigger "$NAME"
-}
