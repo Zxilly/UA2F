@@ -16,7 +16,7 @@ define Package/ua2f
   TITLE:=Change User-Agent to Fwords on the fly.
   URL:=https://github.com/Zxilly/UA2F
   DEPENDS:=+ipset +iptables-mod-conntrack-extra +iptables-mod-nfqueue \
-    +libnetfilter-conntrack +libnetfilter-queue
+    +libnetfilter-conntrack +libnetfilter-queue +iptables-mod-filter +iptables-mod-ipopt
 endef
 
 define Package/ua2f/description
@@ -27,7 +27,7 @@ EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lipset
 
 define Build/Compile
 	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) $(EXTRA_LDFLAGS) \
-		$(PKG_BUILD_DIR)/ua2f.c -o $(PKG_BUILD_DIR)/ua2f
+		$(PKG_BUILD_DIR)/ua2f.c $(PKG_BUILD_DIR)/statistics.c -o $(PKG_BUILD_DIR)/ua2f
 endef
 
 define Package/ua2f/install

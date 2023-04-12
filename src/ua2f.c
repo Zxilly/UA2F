@@ -1,12 +1,5 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#ifndef __USE_GNU
-#define __USE_GNU
-#endif
-
 #include "ipset_hook.h"
+#include "statistics.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,16 +28,6 @@ int child_status;
 
 static struct mnl_socket *nl;
 static const int queue_number = 10010;
-
-static long long UAcount = 0;
-static long long tcpcount = 0;
-static long long UAmark = 0;
-static long long noUAmark = 0;
-static long long httpcount = 4;
-
-static time_t start_t, current_t;
-
-static char timestr[60];
 
 char *UAstr = NULL;
 
@@ -75,22 +58,6 @@ void *memncasemem(const void *l, size_t l_len, const void *s, size_t s_len) {
             return cur;
 
     return NULL;
-}
-
-static char *time2str(int sec) {
-    memset(timestr, 0, sizeof(timestr));
-    if (sec <= 60) {
-        sprintf(timestr, "%d seconds", sec);
-    } else if (sec <= 3600) {
-        sprintf(timestr, "%d minutes and %d seconds", sec / 60, sec % 60);
-    } else if (sec <= 86400) {
-        sprintf(timestr, "%d hours, %d minutes and %d seconds", sec / 3600, sec % 3600 / 60, sec % 60);
-    } else {
-        sprintf(timestr, "%d days, %d hours, %d minutes and %d seconds", sec / 86400, sec % 86400 / 3600,
-                sec % 3600 / 60,
-                sec % 60);
-    }
-    return timestr;
 }
 
 static int parse_attrs(const struct nlattr *attr, void *data) {
@@ -140,14 +107,14 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
 
             ipset_parse_line(Pipset, addcmd); //加 ipset 标记
 
-            noUAmark++;
+            count_packet_without_user_agent_mark();
         }
     } else {
         if (mark != 44) {
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(44));
             mnl_attr_nest_end(nlh, nest);
-            UAmark++;
+            count_packet_with_user_agent_mark();
         }
     }
 
@@ -158,7 +125,7 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
         exit(EXIT_FAILURE);
     }
 
-    tcpcount++;
+    count_tcp_packet();
     pktb_free(pktb);
 }
 
@@ -169,7 +136,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     struct nlattr *originattr[CTA_TUPLE_MAX + 1] = {};
     struct nlattr *ipattr[CTA_IP_MAX + 1] = {};
     struct nlattr *portattr[CTA_PROTO_MAX + 1] = {};
-    uint16_t plen;
+    uint16_t payloadLength;
     struct pkt_buff *pktb;
     struct iphdr *ippkhdl;
     struct tcphdr *tcppkhdl;
@@ -235,11 +202,11 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
     ph = mnl_attr_get_payload(attr[NFQA_PACKET_HDR]);
 
-    plen = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
+    payloadLength = mnl_attr_get_payload_len(attr[NFQA_PAYLOAD]);
     payload = mnl_attr_get_payload(attr[NFQA_PAYLOAD]);
 
 
-    pktb = pktb_alloc(AF_INET, payload, plen, 0); //IP包
+    pktb = pktb_alloc(AF_INET, payload, payloadLength, 0); //IP包
 
     if (!pktb) {
         syslog(LOG_ERR, "pktb malloc failed");
@@ -283,7 +250,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
 
             if (ualength > 0) {
                 if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, UAstr, ualength) == 1) {
-                    UAcount++; //记录修改包的数量
+                    count_user_agent_packet();
                 } else {
                     syslog(LOG_ERR, "Mangle packet failed.");
                     pktb_free(pktb);
@@ -296,15 +263,6 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     }
 
     nfq_send_verdict(ntohs(nfg->res_id), ntohl((uint32_t) ph->packet_id), pktb, mark, noUA, addcmd);
-
-    if (UAcount / httpcount == 2 || UAcount - httpcount >= 8192) {
-        httpcount = UAcount;
-        current_t = time(NULL);
-        syslog(LOG_INFO,
-               "UA2F has handled %lld ua http, %lld tcp. Set %lld mark and %lld noUA mark in %s",
-               UAcount, tcpcount, UAmark, noUAmark,
-               time2str((int) difftime(current_t, start_t)));
-    }
 
     return MNL_CB_OK;
 }
@@ -357,7 +315,7 @@ int main(int argc, char *argv[]) {
 
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
-    start_t = time(NULL);
+    init_statistics();
 
     ipset_load_types();
     Pipset = ipset_init();
