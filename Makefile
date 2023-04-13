@@ -15,19 +15,24 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords on the fly.
   URL:=https://github.com/Zxilly/UA2F
-  DEPENDS:=+ipset +iptables-mod-conntrack-extra +iptables-mod-nfqueue \
-    +libnetfilter-conntrack +libnetfilter-queue +iptables-mod-filter +iptables-mod-ipopt
+  DEPENDS:=+iptables-mod-conntrack-extra +iptables-mod-nfqueue \
+    +libnetfilter-conntrack +libnetfilter-queue +iptables-mod-filter
 endef
 
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being checked by Dr.Com.
 endef
 
-EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lipset
+EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lpthread
 
 define Build/Compile
 	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) $(EXTRA_LDFLAGS) \
-		$(PKG_BUILD_DIR)/ua2f.c $(PKG_BUILD_DIR)/statistics.c -o $(PKG_BUILD_DIR)/ua2f
+		$(PKG_BUILD_DIR)/ua2f.c \
+		$(PKG_BUILD_DIR)/statistics.c \
+		$(PKG_BUILD_DIR)/child.c \
+		$(PKG_BUILD_DIR)/util.c \
+		$(PKG_BUILD_DIR)/cache.c \
+		-o $(PKG_BUILD_DIR)/ua2f
 endef
 
 define Package/ua2f/install

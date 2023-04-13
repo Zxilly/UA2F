@@ -111,7 +111,7 @@ Mon Jan  4 13:25:04 2021 syslog.info UA2F[5219]: UA2F has handled 65536 http pac
 ```
 Sat Mar 13 14:26:48 2021 user.notice : Try to start UA2F processor at [24049].
 Sat Mar 13 14:26:48 2021 user.notice : UA2F processor start at [24049].
-Sat Mar 13 14:26:48 2021 syslog.notice UA2F[24049]: Pipset inited.
+Sat Mar 13 14:26:48 2021 syslog.notice UA2F[24049]: ipset inited.
 Sat Mar 13 14:26:48 2021 syslog.notice UA2F[24049]: UA2F has inited successful.
 Sat Mar 13 14:26:51 2021 syslog.info UA2F[24049]: UA2F has handled 8 http, 0 http 1.0, 0 noua http, 58 tcp. Set 0 mark and 0 nohttp mark in 3 seconds
 Sat Mar 13 14:26:57 2021 syslog.info UA2F[24049]: UA2F has handled 16 http, 0 http 1.0, 1 noua http, 140 tcp. Set 0 mark and 1 nohttp mark in 9 seconds

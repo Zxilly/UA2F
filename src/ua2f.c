@@ -1,5 +1,6 @@
-#include "ipset_hook.h"
 #include "statistics.h"
+#include "util.h"
+#include "child.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,52 +14,20 @@
 #include <arpa/inet.h>
 
 
-#include <libmnl/libmnl.h>
-
 #include <linux/netfilter/nfnetlink_queue.h>
+#include <linux/netfilter/nfnetlink_conntrack.h>
+#include <libmnl/libmnl.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/pktbuff.h>
-#include <linux/netfilter/nfnetlink_conntrack.h>
 
 #define NF_ACCEPT 1
 
-int child_status;
-
 static struct mnl_socket *nl;
-static const int queue_number = 10010;
+const int queue_number = 10010;
 
-char *UAstr = NULL;
-
-static struct ipset *Pipset;
-
-void *memncasemem(const void *l, size_t l_len, const void *s, size_t s_len) {
-    register char *cur, *last;
-    const char *cl = (const char *) l;
-    const char *cs = (const char *) s;
-
-    /* we need something to compare */
-    if (l_len == 0 || s_len == 0)
-        return NULL;
-
-    /* "s" must be smaller or equal to "l" */
-    if (l_len < s_len)
-        return NULL;
-
-    /* special case where s_len == 1 */
-    if (s_len == 1)
-        return memchr(l, (int) *cs, l_len);
-
-    /* the last position where its possible to find "s" in "l" */
-    last = (char *) cl + l_len - s_len;
-
-    for (cur = (char *) cl; cur <= last; cur++)
-        if (cur[0] == cs[0] && strncasecmp(cur, cs, s_len) == 0)
-            return cur;
-
-    return NULL;
-}
+char *replacement_user_agent_string = NULL;
 
 static int parse_attrs(const struct nlattr *attr, void *data) {
     const struct nlattr **tb = data;
@@ -104,8 +73,6 @@ nfq_send_verdict(int queue_num, uint32_t id, struct pkt_buff *pktb, uint32_t mar
             nest = mnl_attr_nest_start(nlh, NFQA_CT);
             mnl_attr_put_u32(nlh, CTA_MARK, htonl(43));
             mnl_attr_nest_end(nlh, nest); // 加 CONNMARK
-
-            ipset_parse_line(Pipset, addcmd); //加 ipset 标记
 
             count_packet_without_user_agent_mark();
         }
@@ -171,7 +138,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             mark = ntohl(mnl_attr_get_u32(ctattr[CTA_MARK]));
         } else {
             mark = 1; // no mark 1
-        } // NFQA_CT 一定存在，不存在说明有其他问题
+        }
 
         if (ctattr[CTA_TUPLE_ORIG]) {
             mnl_attr_parse_nested(ctattr[CTA_TUPLE_ORIG], parse_attrs, originattr);
@@ -249,7 +216,7 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
             }
 
             if (ualength > 0) {
-                if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, UAstr, ualength) == 1) {
+                if (nfq_tcp_mangle_ipv4(pktb, uaoffset, ualength, replacement_user_agent_string, ualength) == 1) {
                     count_user_agent_packet();
                 } else {
                     syslog(LOG_ERR, "Mangle packet failed.");
@@ -267,67 +234,18 @@ static int queue_cb(const struct nlmsghdr *nlh, void *data) {
     return MNL_CB_OK;
 }
 
-static void killChild() {
-    syslog(LOG_INFO, "Received SIGTERM, kill child %d", child_status);
-    kill(child_status, SIGKILL); // Not graceful, but work
-    exit(EXIT_SUCCESS);
-}
-
 int main(int argc, char *argv[]) {
     char *buf;
-    size_t sizeof_buf = 0xffff + (MNL_SOCKET_BUFFER_SIZE / 2);
+
     struct nlmsghdr *nlh;
     ssize_t ret;
     unsigned int portid;
 
-    int errcount = 0;
-
-    signal(SIGTERM, killChild);
-
-    while (true) {
-        child_status = fork();
-        if (child_status < 0) {
-            syslog(LOG_ERR, "Failed to give birth.");
-            syslog(LOG_ERR, "Exit at fork.");
-            exit(EXIT_FAILURE);
-        } else if (child_status == 0) {
-            syslog(LOG_NOTICE, "UA2F processor start at [%d].", getpid());
-            break;
-        } else {
-            syslog(LOG_NOTICE, "Try to start UA2F processor at [%d].", child_status);
-            int deadstat;
-            int deadpid;
-            deadpid = wait(&deadstat);
-            if (deadpid == -1) {
-                syslog(LOG_ERR, "Child suicide.");
-            } else {
-                syslog(LOG_ERR, "Meet fatal error.[%d] dies by %d", deadpid, deadstat);
-            }
-        }
-        errcount++;
-        if (errcount > 10) {
-            syslog(LOG_ERR, "Meet too many fatal error, no longer try to recover.");
-            syslog(LOG_ERR, "Exit with too many error.");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
+    works_as_child();
+
     init_statistics();
-
-    ipset_load_types();
-    Pipset = ipset_init();
-
-    if (!Pipset) {
-        syslog(LOG_ERR, "Pipset not inited.");
-        exit(EXIT_FAILURE);
-    }
-
-    ipset_custom_printf(Pipset, func, func2, func3, NULL); // hook 掉退出的输出函数
-
-    syslog(LOG_NOTICE, "Pipset inited.");
 
     nl = mnl_socket_open(NETLINK_NETFILTER);
 
@@ -338,21 +256,19 @@ int main(int argc, char *argv[]) {
     }
 
     if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
-        perror("mnl_socket_bind");
         syslog(LOG_ERR, "Exit at mnl_socket_bind.");
         exit(EXIT_FAILURE);
     }
     portid = mnl_socket_get_portid(nl);
 
-    buf = malloc(sizeof_buf);
+    buf = malloc(MNL_SOCKET_BUFFER_SIZE);
     if (!buf) {
-        perror("allocate receive buffer");
-        syslog(LOG_ERR, "Exit at breakpoint 6.");
+        syslog(LOG_ERR, "Failed to allocate buffer memory.");
         exit(EXIT_FAILURE);
     }
 
-    UAstr = malloc(sizeof_buf);
-    memset(UAstr, 'F', sizeof_buf);
+    replacement_user_agent_string = malloc(MNL_SOCKET_BUFFER_SIZE);
+    memset(replacement_user_agent_string, 'F', MNL_SOCKET_BUFFER_SIZE);
 
     nlh = nfq_nlmsg_put(buf, NFQNL_MSG_CONFIG, queue_number);
     nfq_nlmsg_cfg_put_cmd(nlh, AF_INET, NFQNL_CFG_CMD_BIND);
