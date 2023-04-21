@@ -7,7 +7,11 @@ PKG_RELEASE:=1
 PKG_LICENSE:=GPL-3.0-only
 PKG_LICENSE_FILE:=LICENSE
 
+PKG_BUILD_DIR:=$(CURDIR)/..
+CMAKE_BINARY_SUBDIR:=build
+
 include $(INCLUDE_DIR)/package.mk
+include $(INCLUDE_DIR)/cmake.mk
 
 define Package/ua2f
   SECTION:=net
@@ -16,30 +20,17 @@ define Package/ua2f
   TITLE:=Change User-Agent to Fwords on the fly.
   URL:=https://github.com/Zxilly/UA2F
   DEPENDS:=+iptables-mod-conntrack-extra +iptables-mod-nfqueue \
-    +libnetfilter-conntrack +libnetfilter-queue +iptables-mod-filter \
-    +libnfnetlink +libmnl +libpthread
+    +iptables-mod-filter +libnetfilter-conntrack +libnetfilter-queue \
+    +libpthread
 endef
 
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being checked by Dr.Com.
 endef
 
-EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lpthread -lnfnetlink
-
-define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) $(EXTRA_LDFLAGS) \
-		$(PKG_BUILD_DIR)/ua2f.c \
-		$(PKG_BUILD_DIR)/statistics.c \
-		$(PKG_BUILD_DIR)/util.c \
-		$(PKG_BUILD_DIR)/cache.c \
-		$(PKG_BUILD_DIR)/handler.c \
-		$(PKG_BUILD_DIR)/third/nfqueue-mnl.c \
-		-o $(PKG_BUILD_DIR)/ua2f
-endef
-
 define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ua2f $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/ua2f $(1)/usr/bin/
 
 	$(INSTALL_DIR) $(1)/etc/config $(1)/etc/init.d $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/ua2f.config $(1)/etc/config/ua2f
