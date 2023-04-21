@@ -349,11 +349,11 @@ static bool inline read_ip_addr(struct nlattr *attr, int af, ip_address_t *ip_nu
             return false;
         int ip_ver = 0;
         if (af == AF_INET) {
-            ip_num->ip = 0; // clear unused bits
+            memset(&ip_num->ip, 16, sizeof(uint8_t)); // clear unused bits
             memcpy(&ip_num->ip4, addr, sizeof(uint32_t));
             ip_ver = IPV4;
-        } else if (af == AF_INET6) {
-            memcpy(&ip_num->ip, addr, sizeof(__uint128_t));
+        } else {
+            memcpy(&ip_num->ip, addr, sizeof(uint8_t) * 16);
             ip_ver = IPV6;
         }
         if (*ip_version == 0) // not set yet
@@ -501,7 +501,7 @@ static bool nfqueue_parse(const struct nlmsghdr *nlh, struct nf_packet *packet) 
     if (attr[NFQA_CT_INFO])
         packet->conn_state = ntohl(mnl_attr_get_u32(attr[NFQA_CT_INFO]));
     else
-        DEBUG("Conntrack state not passed by kernel");
+            DEBUG("Conntrack state not passed by kernel");
 
     return true;
 }
@@ -602,7 +602,7 @@ bool nfqueue_open(struct nf_queue *q, int queue_num, uint32_t queue_len) {
     }
 
     ssize_t sockopt = 1;
-    mnl_socket_setsockopt(q->nl_socket,  NETLINK_NO_ENOBUFS, &sockopt, sizeof(sockopt));
+    mnl_socket_setsockopt(q->nl_socket, NETLINK_NO_ENOBUFS, &sockopt, sizeof(sockopt));
 
     DEBUG("nfqueue %d initialized", queue_num);
     return true;

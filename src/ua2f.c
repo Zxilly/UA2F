@@ -7,13 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <bits/types/sig_atomic_t.h>
 #include <signal.h>
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
-volatile sig_atomic_t should_exit = false;
+volatile int should_exit = false;
 
 void signal_handler(int signum) {
     should_exit = true;
