@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(UA2F C)
 
-set(CMAKE_C_STANDARD 17)
+include(CheckSymbolExists)
+check_symbol_exists(__malloc_hook "malloc.h" IS_LIBC_GLIBC)
 
-add_compile_options(-fsanitize=address)
-add_link_options(-fsanitize=address)
+if(IS_LIBC_GLIBC)
+	add_compile_options(-fsanitize=address)
+	add_link_options(-fsanitize=address)
+else()
+	message(STATUS "AddressSanitizer is disabled.")
+endif()
+
+add_compile_options(-std=gnu17)
 
 add_executable(ua2f
         src/ua2f.c
