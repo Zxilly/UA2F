@@ -4,32 +4,33 @@
 #include <syslog.h>
 #include "statistics.h"
 
-static long long UserAgentPacketCount = 0;
-static long long TcpPacketCount = 0;
-static long long PacketWithUserAgentMark = 0;
-static long long PacketWithoutUserAgentMark = 0;
-static long long LastReportCount = 4;
+static long long user_agent_packet_count = 0;
+static long long tcp_packet_count = 0;
+static long long ipv4_packet_count = 0;
+static long long ipv6_packet_count = 0;
+static long long last_report_count = 4;
 
 static time_t start_t;
 
 void init_statistics() {
     start_t = time(NULL);
+    syslog(LOG_INFO, "Statistics initialized.");
 }
 
 void count_user_agent_packet() {
-    UserAgentPacketCount++;
+    user_agent_packet_count++;
 }
 
 void count_tcp_packet() {
-    TcpPacketCount++;
+    tcp_packet_count++;
 }
 
-void count_packet_with_user_agent_mark() {
-    PacketWithUserAgentMark++;
+void count_ipv4_packet() {
+    ipv4_packet_count++;
 }
 
-void count_packet_without_user_agent_mark() {
-    PacketWithoutUserAgentMark++;
+void count_ipv6_packet() {
+    ipv6_packet_count++;
 }
 
 static char TimeStringBuffer[60];
@@ -52,13 +53,18 @@ char *fill_time_string(double sec) {
 }
 
 void try_print_statistics() {
-    if (UserAgentPacketCount / LastReportCount == 2 || UserAgentPacketCount - LastReportCount >= 16384) {
-        LastReportCount = UserAgentPacketCount;
+    if (user_agent_packet_count / last_report_count == 2 || user_agent_packet_count - last_report_count >= 16384) {
+        last_report_count = user_agent_packet_count;
         time_t current_t = time(NULL);
-        syslog(LOG_INFO,
-               "UA2F has handled %lld ua http, %lld tcp. Set %lld mark and %lld noUA mark in %s",
-               UserAgentPacketCount, TcpPacketCount, PacketWithUserAgentMark, PacketWithoutUserAgentMark,
-               fill_time_string(difftime(current_t, start_t)));
+        syslog(
+                LOG_INFO,
+                "UA2F has handled %lld ua http, %lld tcp. %lld ipv4, %lld ipv6 packets in %s.",
+                user_agent_packet_count,
+                tcp_packet_count,
+                ipv4_packet_count,
+                ipv6_packet_count,
+                fill_time_string(difftime(current_t, start_t))
+        );
     }
 }
 

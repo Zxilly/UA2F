@@ -1,51 +1,35 @@
-name: C/C++ CI
+name: Build OpenWRT Package
 
 on:
-  push:
+  release:
+    types: [published]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-
-      - name: Get current time
-        uses: 1466587594/get-current-time@v2
-        id: current-time
-        with:
-          format: YYYYMMDDTHHmmss
-          utcOffset: "+08:00"
-
       - name: Setup Environment
         run: |
           sudo apt-fast update
-          sudo apt-fast -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
-
-      - uses: actions/cache@v2
-        id: cache
-        with:
-          path: openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64
-          key: ${{ runner.os }}-openwrt
-          restore-keys: |
-            ${{ runner.os }}-openwrt
+          sudo apt-fast -y install build-essential binutils bzip2 \
+            diff find flex gawk gcc-6+ getopt grep install libc-dev \
+            libz-dev make4.1+ perl python3.6+ rsync subversion unzip which
 
       - name: Setup OpenWRT SDK
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          wget https://downloads.openwrt.org/releases/21.02.0-rc1/targets/ramips/mt7620/openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64.tar.xz
-          tar -xvJf openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64.tar.xz
-          cd openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64
+          wget https://downloads.openwrt.org/releases/22.03.4/targets/ramips/mt7620/openwrt-sdk-22.03.4-ramips-mt7620_gcc-11.2.0_musl.Linux-x86_64.tar.xz -O openwrt.tar.xz
+          tar -xvJf openwrt.tar.xz
+          cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          path: openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64/package/UA2F
+          path: openwrt/package/UA2F
 
       - name: Compile Package
-        working-directory: ./openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64
+        working-directory: ./openwrt
         run: |
           make defconfig
           make package/UA2F/compile -j2 V=s
@@ -57,7 +41,7 @@ jobs:
           automatic_release_tag: "${{ steps.current-time.outputs.formattedTime }}"
           prerelease: true
           files: |
-            openwrt-sdk-21.02.0-rc1-ramips-mt7620_gcc-8.4.0_musl.Linux-x86_64/bin/packages/mipsel_24kc/base/ua2f*
+            openwrt/bin/packages/mipsel_24kc/base/ua2f*
 
 
 

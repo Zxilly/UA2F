@@ -1,48 +1,42 @@
 #include "cache.h"
-#include "hashmap.h"
-#include "rwmutex.h"
+#include "third/uthash.h"
 
 #include <pthread.h>
-#include <stdatomic.h>
 #include <sys/syslog.h>
 #include <stdbool.h>
+#include <unistd.h>
 
-RWMutex lock;
+pthread_rwlock_t cacheLock;
 
-const double CACHE_TIMEOUT = 600;
-
-struct hashmap_s no_http_dst_cache;
-
-static int iterate_pairs(void *const context, struct hashmap_element_s *const e) {
-    __auto_type current_time = (time_t) context;
-
-    __auto_type store_time = (time_t) e->data;
-
-    if (difftime(current_time, store_time) > CACHE_TIMEOUT) {
-        return -1;
-    }
-
-    return 0;
-}
+struct cache *not_http_dst_cache = NULL;
 
 _Noreturn static void check_cache() {
     while (true) {
-        rw_mutex_write_lock(&lock);
+        pthread_rwlock_wrlock(&cacheLock);
 
-        __auto_type current_time = time(NULL);
+        time_t now = time(NULL);
+        struct cache *cur, *tmp;
 
-        hashmap_iterate_pairs(&no_http_dst_cache, iterate_pairs, (void *) current_time);
+        HASH_ITER(hh, not_http_dst_cache, cur, tmp) {
+            if (difftime(now, cur->last_time) > CACHE_TIMEOUT) {
+                HASH_DEL(not_http_dst_cache, cur);
+                free(cur);
+            }
+        }
 
-        rw_mutex_read_unlock(&lock);
+        pthread_rwlock_unlock(&cacheLock);
 
         // wait for 1 minute
-        thrd_sleep(&(struct timespec) {60, 0}, NULL);
+        sleep(CACHE_CHECK_INTERVAL);
     }
 }
 
-void init_cache() {
-    rw_mutex_init(&lock);
-    hashmap_create(1024, &no_http_dst_cache);
+void init_not_http_cache() {
+    if (pthread_rwlock_init(&cacheLock, NULL) != 0) {
+        syslog(LOG_ERR, "Failed to init cache lock");
+        exit(EXIT_FAILURE);
+    }
+    syslog(LOG_INFO, "Cache lock initialized");
 
     pthread_t cleanup_thread;
     __auto_type ret = pthread_create(&cleanup_thread, NULL, (void *(*)(void *)) check_cache, NULL);
@@ -50,18 +44,48 @@ void init_cache() {
         syslog(LOG_ERR, "Failed to create cleanup thread: %d", ret);
         exit(EXIT_FAILURE);
     }
+    syslog(LOG_INFO, "Cleanup thread created");
 }
 
-bool check_addr_port(const char *addr_port, const int len) {
-    rw_mutex_read_lock(&lock);
-    __auto_type ret = hashmap_get(&no_http_dst_cache, addr_port, len) != NULL;
-    rw_mutex_read_unlock(&lock);
+bool cache_contains(const char* addr_port) {
+    pthread_rwlock_rdlock(&cacheLock);
 
-    rw_mutex_write_lock(&lock);
-    if (ret) {
-        hashmap_put(&no_http_dst_cache, addr_port, len, (void *) time(NULL));
+    struct cache *s;
+    HASH_FIND_STR(not_http_dst_cache, addr_port, s);
+
+    pthread_rwlock_unlock(&cacheLock);
+
+    if (s != NULL) {
+        bool ret;
+        pthread_rwlock_wrlock(&cacheLock);
+        if (difftime(time(NULL), s->last_time) > CACHE_TIMEOUT) {
+            HASH_DEL(not_http_dst_cache, s);
+            free(s);
+            ret = false;
+        } else {
+            s->last_time = time(NULL);
+            ret = true;
+        }
+        pthread_rwlock_unlock(&cacheLock);
+        return ret;
     }
-    rw_mutex_write_unlock(&lock);
 
-    return ret;
+    return false;
+}
+
+void cache_add(const char *addr_port) {
+    pthread_rwlock_wrlock(&cacheLock);
+
+    struct cache *s;
+    HASH_FIND_STR(not_http_dst_cache, addr_port, s);
+    if (s != NULL) {
+        s->last_time = time(NULL);
+    } else {
+        s = malloc(sizeof(struct cache));
+        strcpy(s->addr_port, addr_port);
+        s->last_time = time(NULL);
+        HASH_ADD_STR(not_http_dst_cache, addr_port, s);
+    }
+
+    pthread_rwlock_unlock(&cacheLock);
 }

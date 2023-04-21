@@ -9,6 +9,7 @@ START=99
 NAME="ua2f"
 PROG="/usr/bin/$NAME"
 IPT_M="iptables -t mangle"
+IPT6_M="ip6tables -t mangle"
 
 FW_DIR="/var/etc"
 FW_CONF="$FW_DIR/ua2f.include"
@@ -43,10 +44,22 @@ setup_firewall() {
 	$IPT_M -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
 	[ "$handle_tls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
 	$IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
-	$IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流 (实验性)
+	$IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 	[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
 	$IPT_M -A ua2f -j NFQUEUE --queue-num 10010
 	$IPT_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+
+	# if ip6tables exists
+	if command -v ip6tables >"/dev/null" 2>&1; then
+    $IPT6_M -N ua2f
+    $IPT6_M -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
+    [ "$handle_tls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
+    $IPT6_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
+    $IPT6_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
+    [ "$handle_mmtls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
+    $IPT6_M -A ua2f -j NFQUEUE --queue-num 10010
+    $IPT6_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+  fi
 
 	[ "$handle_intranet" -eq "1" ] && {
 		local wan="$(route -n | grep UG | awk '{print $2}')"

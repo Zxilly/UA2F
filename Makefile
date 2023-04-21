@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
-PKG_VERSION:=3.10
+PKG_VERSION:=4.0.0
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-3.0-only
@@ -16,22 +16,24 @@ define Package/ua2f
   TITLE:=Change User-Agent to Fwords on the fly.
   URL:=https://github.com/Zxilly/UA2F
   DEPENDS:=+iptables-mod-conntrack-extra +iptables-mod-nfqueue \
-    +libnetfilter-conntrack +libnetfilter-queue +iptables-mod-filter
+    +libnetfilter-conntrack +libnetfilter-queue +iptables-mod-filter \
+    +libnfnetlink +libmnl +libpthread
 endef
 
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being checked by Dr.Com.
 endef
 
-EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lpthread
+EXTRA_LDFLAGS += -lmnl -lnetfilter_queue -lpthread -lnfnetlink
 
 define Build/Compile
 	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) $(EXTRA_LDFLAGS) \
 		$(PKG_BUILD_DIR)/ua2f.c \
 		$(PKG_BUILD_DIR)/statistics.c \
-		$(PKG_BUILD_DIR)/child.c \
 		$(PKG_BUILD_DIR)/util.c \
 		$(PKG_BUILD_DIR)/cache.c \
+		$(PKG_BUILD_DIR)/handler.c \
+		$(PKG_BUILD_DIR)/third/nfqueue-mnl.c \
 		-o $(PKG_BUILD_DIR)/ua2f
 endef
 
