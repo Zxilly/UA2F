@@ -40,8 +40,7 @@ jobs:
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-#          automatic_release_tag: "${{ github.ref }}"
-          automatic_release_tag: "v4.0.0"
+          automatic_release_tag: "${{ github.ref }}"
           files: |
             openwrt/bin/packages/mipsel_24kc/base/ua2f*
 
