@@ -1,6 +1,7 @@
 name: Build OpenWRT Package
 
 on:
+  push:
   release:
     types: [published]
 
@@ -10,10 +11,8 @@ jobs:
     steps:
       - name: Setup Environment
         run: |
-          sudo apt-fast update
-          sudo apt-fast -y install build-essential binutils bzip2 \
-            diff find flex gawk gcc-6+ getopt grep install libc-dev \
-            libz-dev make4.1+ perl python3.6+ rsync subversion unzip which
+          sudo apt update
+          sudo apt -y install build-essential binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev make4.1+ perl python3.6+ rsync subversion unzip which
 
       - name: Setup OpenWRT SDK
         run: |
@@ -38,8 +37,8 @@ jobs:
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ github.ref }}"
-          prerelease: true
+#          automatic_release_tag: "${{ github.ref }}"
+          automatic_release_tag: "v4.0.0"
           files: |
             openwrt/bin/packages/mipsel_24kc/base/ua2f*
 
