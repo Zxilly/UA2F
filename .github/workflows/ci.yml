@@ -34,7 +34,7 @@ jobs:
         working-directory: ./openwrt
         run: |
           make defconfig
-          make package/UA2F/compile -j2 V=s
+          make package/UA2F/openwrt/compile -j2 V=s
 
       - name: Release Package
         uses: "marvinpinto/action-automatic-releases@latest"
