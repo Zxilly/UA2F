@@ -38,7 +38,7 @@ jobs:
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "${{ steps.current-time.outputs.formattedTime }}"
+          automatic_release_tag: "${{ github.ref }}"
           prerelease: true
           files: |
             openwrt/bin/packages/mipsel_24kc/base/ua2f*
