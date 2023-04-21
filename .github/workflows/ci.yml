@@ -20,6 +20,7 @@ jobs:
         run: |
           wget https://downloads.openwrt.org/releases/22.03.4/targets/ramips/mt7620/openwrt-sdk-22.03.4-ramips-mt7620_gcc-11.2.0_musl.Linux-x86_64.tar.xz -O openwrt.tar.xz
           tar -xvJf openwrt.tar.xz
+          mv openwrt-sdk-22.03.4-ramips-mt7620_gcc-11.2.0_musl.Linux-x86_64/ openwrt/
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
