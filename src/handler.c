@@ -115,7 +115,7 @@ static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
         return (struct mark_op) {true, CONNMARK_HTTP};
     }
 
-    if (!pkt->has_connmark) {
+    if (!pkt->has_connmark || pkt->conn_mark == 0) {
         return (struct mark_op) {true, CONNMARK_ESTIMATE_START};
     }
 
