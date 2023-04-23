@@ -11,4 +11,6 @@ void count_ipv6_packet();
 
 void init_statistics();
 
+void try_print_statistics();
+
 #endif //UA2F_STATISTICS_H

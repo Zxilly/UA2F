@@ -216,13 +216,12 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
     unsigned int ua_len = ua_end - ua_start;
     __auto_type ua_offset = ua_start - tcp_payload;
 
-    // Looks it's impossible to mangle pocked failed, so we just drop it
+    // Looks it's impossible to mangle pock failed, so we just drop it
     if (type == IPV4) {
         nfq_tcp_mangle_ipv4(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
     } else {
         nfq_tcp_mangle_ipv6(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
     }
-    count_user_agent_packet();
 
     send_verdict(queue, pkt, get_next_mark(pkt, true), pkt_buff);
 
@@ -231,4 +230,6 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
     if (pkt_buff != NULL) {
         pktb_free(pkt_buff);
     }
+
+    try_print_statistics();
 }
