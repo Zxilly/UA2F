@@ -75,7 +75,7 @@ enum {
 };
 
 typedef union __attribute__((packed, may_alias)) {
-    uint8_t ip[16];
+    uint8_t ip[16]; // alternative for __uint128_t
     uint32_t ip4;
     struct in_addr in4;
     struct in6_addr in6;

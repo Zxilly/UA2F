@@ -349,11 +349,11 @@ static bool inline read_ip_addr(struct nlattr *attr, int af, ip_address_t *ip_nu
             return false;
         int ip_ver = 0;
         if (af == AF_INET) {
-            memset(&ip_num->ip, 16, sizeof(uint8_t)); // clear unused bits
+            memset(&ip_num->ip, 0, sizeof(ip_num->ip));
             memcpy(&ip_num->ip4, addr, sizeof(uint32_t));
             ip_ver = IPV4;
         } else {
-            memcpy(&ip_num->ip, addr, sizeof(uint8_t) * 16);
+            memcpy(&ip_num->ip, addr, sizeof(ip_num->ip));
             ip_ver = IPV6;
         }
         if (*ip_version == 0) // not set yet
