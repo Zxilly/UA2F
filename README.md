@@ -26,6 +26,14 @@ service ua2f enable
 service ua2f start
 ```
 
+# 自定义 User-Agent
+
+如果想自定义 User-Agent， 当前可以修改代码中的 `/src/custom.h`，取消 `#define UA2F_CUSTOM_UA` 的注释，然后修改 `UA2F_CUSTOM_UA` 的值即可。
+
+UA2F_CUSTOM_UA 的值必须是一个字符串，且长度不超过 `(65535 + (MNL_SOCKET_BUFFER_SIZE / 2))` 字节。 MNL_SOCKET_BUFFER_SIZE 的值通常为 8192。
+
+UA2F 不会修改包的大小，因此即使自定义了 User-Agent， 运行时实际的 User-Agent 会是一个从 custom ua 中截取的长度与原始 User-Agent 相同的子串。
+
 ## TODO
 
 - [ ] pthread 支持，由不同线程完成入队出队
