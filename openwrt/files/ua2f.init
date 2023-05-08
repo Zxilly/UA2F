@@ -72,9 +72,9 @@ setup_ipv4_firewall_iptables() {
 
 setup_ipv6_firewall_iptables() {
   local handle_tls handle_intranet handle_mmtls
-  handle_tls=$0
-  handle_intranet=$1
-  handle_mmtls=$2
+  handle_tls=$1
+  handle_intranet=$2
+  handle_mmtls=$3
 
   $IPT6_M -N ua2f
   $IPT6_M -A ua2f -p tcp --dport 22 -j RETURN                               # 不处理 SSH
@@ -87,19 +87,13 @@ setup_ipv6_firewall_iptables() {
 }
 
 setup_firewall_nftables() {
-  local ipt_version handle_tls handle_intranet handle_mmtls
-  ipt_version=$1
-  handle_tls=$2
-  handle_intranet=$3
-  handle_mmtls=$4
+  local handle_tls handle_intranet handle_mmtls
+  handle_tls=$1
+  handle_intranet=$2
+  handle_mmtls=$3
 
-  # Define nftables and conntrack module
   local NFT_CONNTRACK
-  if [ "$ipt_version" == "ipv6" ]; then
-    NFT_CONNTRACK="ct state established"
-  else
-    NFT_CONNTRACK="ct state new"
-  fi
+  NFT_CONNTRACK="ct state new"
 
   nft add table inet ua2f
   nft add chain inet ua2f prerouting { type filter hook prerouting priority 0 \; }
@@ -108,7 +102,7 @@ setup_firewall_nftables() {
   [ "$handle_tls" -eq "1" ] || nft add rule inet ua2f prerouting tcp dport 443 counter accept
   nft add rule inet ua2f prerouting tcp dport 80 counter mark set 44
 
-  [ "$handle_mmtls" -eq "1" ] || nft add rule inet ua2f prerouting tcp dport 80 $NFT_CONNTRACK payload 80 bsearch "/mmtls/" counter accept
+  [ "$handle_mmtls" -eq "1" ] || nft add rule inet ua2f prerouting tcp dport 80 "$NFT_CONNTRACK" payload 80 bsearch "/mmtls/" counter accept
 
   nft add rule inet ua2f prerouting tcp dport 80 counter queue num 10010 bypass
 
@@ -138,10 +132,7 @@ setup_firewall() {
   config_get_bool handle_mmtls "firewall" "handle_mmtls" "0"
 
   if [ "$nftables_available" -eq "1" ]; then
-    setup_firewall_nftables "ipv4" "$handle_tls" "$handle_intranet" "$handle_mmtls"
-    if [ "$ipv6_available" -eq "1" ]; then
-      setup_firewall_nftables "ipv6" "$handle_tls" "$handle_intranet" "$handle_mmtls"
-    fi
+    setup_firewall_nftables "$handle_tls" "$handle_intranet" "$handle_mmtls"
   else
     setup_ipv4_firewall_iptables "$handle_tls" "$handle_intranet" "$handle_mmtls"
     if [ "$ipv6_available" -eq "1" ]; then
@@ -176,14 +167,25 @@ start_service() {
 }
 
 stop_service() {
-  (
+  if [ "$nftables_available" -eq "1" ]; then
+    nft delete chain inet ua2f prerouting
+    nft delete table inet ua2f
+  else
     $IPT_M -D FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
-    $IPT_M -D FORWARD -p tcp -m conntrack --ctdir REPLY
+    if [ "$ipv6_available" -eq "1" ]; then
+      $IPT6_M -D FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
+    fi
+
     $IPT_M -F ua2f
     $IPT_M -X ua2f
 
-    echo >"$FW_CONF"
-  ) 2>"/dev/null"
+    if [ "$ipv6_available" -eq "1" ]; then
+      $IPT6_M -F ua2f
+      $IPT6_M -X ua2f
+    fi
+  fi
+
+  echo >"$FW_CONF"
 }
 
 reload_service() {
