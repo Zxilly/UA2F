@@ -36,9 +36,9 @@ fi
 
 setup_ipv4_firewall_iptables() {
   local handle_tls handle_intranet handle_mmtls
-  handle_tls=$0
-  handle_intranet=$1
-  handle_mmtls=$2
+  handle_tls=$1
+  handle_intranet=$2
+  handle_mmtls=$3
 
   $IPT_M -N ua2f
   $IPT_M -A ua2f -d 10.0.0.0/8 -j RETURN
