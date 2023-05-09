@@ -19,9 +19,15 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords on the fly.
   URL:=https://github.com/Zxilly/UA2F
-  DEPENDS:=+iptables-mod-conntrack-extra +iptables-mod-nfqueue \
-    +iptables-mod-filter +libnetfilter-conntrack +libnetfilter-queue \
-    +libpthread
+  DEPENDS:= \
+    +libnetfilter-conntrack \
+    +libnetfilter-queue \
+    +libpthread \
+    +USE_GLIBC:libasan \
+    +(PACKAGE_nftables-json||PACKAGE_nftables-nojson):kmod-nft-queue \
+    +PACKAGE_firewall:iptables-mod-conntrack-extra \
+    +PACKAGE_firewall:iptables-mod-filter \
+    +PACKAGE_firewall:iptables-mod-nfqueue
 endef
 
 define Package/ua2f/description
