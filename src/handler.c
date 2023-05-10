@@ -230,14 +230,14 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
             ua_start++;
         }
 
-        __auto_type *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
+        void *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
         if (ua_end == NULL) {
             syslog(LOG_INFO, "User-Agent header is not terminated with \\r, not mangled.");
             send_verdict(queue, pkt, get_next_mark(pkt, true), NULL);
             goto end;
         }
         unsigned int ua_len = ua_end - ua_start;
-        __auto_type ua_offset = ua_start - tcp_payload;
+        unsigned long ua_offset = ua_start - tcp_payload;
 
         // Looks it's impossible to mangle pocket failed, so we just drop it
         if (type == IPV4) {
