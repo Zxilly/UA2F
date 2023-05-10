@@ -16,8 +16,8 @@
 #define MAX_USER_AGENT_LENGTH (0xffff + (MNL_SOCKET_BUFFER_SIZE / 2))
 static char *replacement_user_agent_string = NULL;
 
-#define USER_AGENT_MATCH "\r\nUser-Agent: "
-#define USER_AGENT_MATCH_LENGTH 14
+#define USER_AGENT_MATCH "\r\nUser-Agent:"
+#define USER_AGENT_MATCH_LENGTH 13
 
 #define CONNMARK_ESTIMATE_START 16
 #define CONNMARK_ESTIMATE_END 32
@@ -207,7 +207,13 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
     count_user_agent_packet();
 
     void *ua_start = ua_pos + USER_AGENT_MATCH_LENGTH;
-    void *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
+
+    // for non-standard user-agent like User-Agent:XXX with no space after colon
+    if ((char) (*(char *) (ua_start)) == ' ') {
+        ua_start++;
+    }
+
+    __auto_type *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
     if (ua_end == NULL) {
         syslog(LOG_INFO, "User-Agent header is not terminated with \\r, not mangled.");
         send_verdict(queue, pkt, get_next_mark(pkt, true), NULL);
@@ -216,7 +222,7 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
     unsigned int ua_len = ua_end - ua_start;
     __auto_type ua_offset = ua_start - tcp_payload;
 
-    // Looks it's impossible to mangle pock failed, so we just drop it
+    // Looks it's impossible to mangle pocket failed, so we just drop it
     if (type == IPV4) {
         nfq_tcp_mangle_ipv4(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
     } else {
