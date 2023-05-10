@@ -198,38 +198,55 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
         goto end;
     }
 
-    char *ua_pos = memncasemem(tcp_payload, tcp_payload_len, USER_AGENT_MATCH, USER_AGENT_MATCH_LENGTH);
-    if (ua_pos == NULL) {
-        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
-        goto end;
+    void *search_start = tcp_payload;
+    unsigned int search_length = tcp_payload_len;
+    bool has_ua = false;
+
+    while (true) {
+        // mininal length of User-Agent: is 12
+        if (search_length - 2 < USER_AGENT_MATCH_LENGTH) {
+            break;
+        }
+
+        char *ua_pos = memncasemem(search_start, search_length, USER_AGENT_MATCH, USER_AGENT_MATCH_LENGTH);
+        if (ua_pos == NULL) {
+            break;
+        }
+
+        has_ua = true;
+
+        void *ua_start = ua_pos + USER_AGENT_MATCH_LENGTH;
+
+        // for non-standard user-agent like User-Agent:XXX with no space after colon
+        if ((char) (*(char *) (ua_start)) == ' ') {
+            ua_start++;
+        }
+
+        __auto_type *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
+        if (ua_end == NULL) {
+            syslog(LOG_INFO, "User-Agent header is not terminated with \\r, not mangled.");
+            send_verdict(queue, pkt, get_next_mark(pkt, true), NULL);
+            goto end;
+        }
+        unsigned int ua_len = ua_end - ua_start;
+        __auto_type ua_offset = ua_start - tcp_payload;
+
+        // Looks it's impossible to mangle pocket failed, so we just drop it
+        if (type == IPV4) {
+            nfq_tcp_mangle_ipv4(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
+        } else {
+            nfq_tcp_mangle_ipv6(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
+        }
+
+        search_length = tcp_payload_len - (ua_end - tcp_payload);
+        search_start = ua_end;
     }
 
-    count_user_agent_packet();
-
-    void *ua_start = ua_pos + USER_AGENT_MATCH_LENGTH;
-
-    // for non-standard user-agent like User-Agent:XXX with no space after colon
-    if ((char) (*(char *) (ua_start)) == ' ') {
-        ua_start++;
+    if (has_ua) {
+        count_user_agent_packet();
     }
 
-    __auto_type *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
-    if (ua_end == NULL) {
-        syslog(LOG_INFO, "User-Agent header is not terminated with \\r, not mangled.");
-        send_verdict(queue, pkt, get_next_mark(pkt, true), NULL);
-        goto end;
-    }
-    unsigned int ua_len = ua_end - ua_start;
-    __auto_type ua_offset = ua_start - tcp_payload;
-
-    // Looks it's impossible to mangle pocket failed, so we just drop it
-    if (type == IPV4) {
-        nfq_tcp_mangle_ipv4(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
-    } else {
-        nfq_tcp_mangle_ipv6(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len);
-    }
-
-    send_verdict(queue, pkt, get_next_mark(pkt, true), pkt_buff);
+    send_verdict(queue, pkt, get_next_mark(pkt, has_ua), pkt_buff);
 
     end:
     free(pkt->payload);
