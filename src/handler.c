@@ -31,7 +31,8 @@ void init_handler() {
     replacement_user_agent_string = malloc(MAX_USER_AGENT_LENGTH);
 
 #ifdef UA2F_CUSTOM_UA
-    strncpy(replacement_user_agent_string, UA2F_CUSTOM_UA, MAX_USER_AGENT_LENGTH);
+    memset(replacement_user_agent_string, ' ', MAX_USER_AGENT_LENGTH);
+    strncpy(replacement_user_agent_string, UA2F_CUSTOM_UA, strlen(UA2F_CUSTOM_UA));
     syslog(LOG_INFO, "Custom user agent string: %s", replacement_user_agent_string);
 #else
     memset(replacement_user_agent_string, 'F', MAX_USER_AGENT_LENGTH);
