@@ -10,19 +10,29 @@
 # uci command
 
 ```bash
-# Enable the daemon
+# 启用 UA2F
 uci set ua2f.enabled.enabled=1
-# At your option set fw rules
+
+# 可选的防火墙配置选项
+# 是否自动添加防火墙规则
 uci set ua2f.firewall.handle_fw=1
+
+# 是否尝试处理 443 端口的流量， 通常来说，流经 443 端口的流量是加密的，因此无需处理
 uci set ua2f.firewall.handle_tls=1
+
+# 是否处理微信的流量，微信的流量通常是加密的，因此无需处理。这一规则在启用 nftables 时无效
 uci set ua2f.firewall.handle_mmtls=1
+
+# 是否处理内网流量，如果你的路由器是在内网中，且你想要处理内网中的流量，那么请启用这一选项
 uci set ua2f.firewall.handle_intranet=1
 
-# Apply your modifications
+# 应用配置
 uci commit ua2f
 
+# 开机自启
 service ua2f enable
-# Start the daemon
+
+# 启动 UA2F
 service ua2f start
 ```
 
