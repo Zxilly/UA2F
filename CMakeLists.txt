@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(UA2F C)
 
-
 # Find Git
 find_package(Git)
 
