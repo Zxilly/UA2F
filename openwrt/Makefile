@@ -19,7 +19,6 @@ define Package/ua2f
   SUBMENU:=Routing and Redirection
   TITLE:=Change User-Agent to Fwords on the fly.
   URL:=https://github.com/Zxilly/UA2F
-  MENU:=1
   DEPENDS:= \
     +libnetfilter-conntrack \
     +libnetfilter-queue \
@@ -32,11 +31,9 @@ define Package/ua2f
 endef
 
 define Package/ua2f/config
-  menu "Configuration"
-    depends on PACKAGE_ua2f
-
   config UA2F_CUSTOM_USER_AGENT
     bool "Enable custom User-Agent"
+    depends on PACKAGE_ua2f
     default n
     help
       Enable this option to use a custom User-Agent string.
@@ -47,8 +44,6 @@ define Package/ua2f/config
     default "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.68"
     help
       Specify the custom User-Agent string to use when UA2F_CUSTOM_USER_AGENT is enabled.
-
-  endmenu
 endef
 
 define Build/Configure
