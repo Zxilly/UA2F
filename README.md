@@ -1,4 +1,7 @@
 ![UA2F](https://socialify.git.ci/Zxilly/UA2F/image?description=1&descriptionEditable=Change%20User-agent%20to%20F-words%20on%20OpenWRT%20router.&font=Inter&language=1&pattern=Plus&stargazers=1&theme=Light)
+
+# UA2F
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZxilly%2FUA2F.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FZxilly%2FUA2F?ref=badge_shield)
 
 暂时来说，懒得写 README，请先参照 [博客文章](https://learningman.top/archives/304) 完成操作
@@ -7,7 +10,7 @@
 
 > 由于新加入的 CONNMARK 影响，编译内核时需要添加 `NETFILTER_NETLINK_GLUE_CT` flag
 
-# uci command
+## uci command
 
 ```bash
 # 启用 UA2F
@@ -36,7 +39,16 @@ service ua2f enable
 service ua2f start
 ```
 
-# 自定义 User-Agent
+## 自定义 User-Agent
+
+### 使用 Option
+
+`make menuconfig` 后，使用 option 设置
+
+![image](https://github.com/Zxilly/UA2F/assets/31370133/09469f69-4481-4bd8-9ce3-7029df33838d)
+
+
+### 手动设置
 
 如果想自定义 User-Agent， 当前可以修改代码中的 `/src/custom.h`，取消 `#define UA2F_CUSTOM_UA` 的注释，然后修改 `UA2F_CUSTOM_UA` 的值即可。
 
