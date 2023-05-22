@@ -16,6 +16,13 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-gc-sections")
 
 add_compile_options(-std=gnu17)
 
+if(UA2F_CUSTOM_USER_AGENT)
+    if(NOT UA2F_USER_AGENT_STRING)
+        message(FATAL_ERROR "UA2F_USER_AGENT_STRING is not set")
+    endif()
+    add_compile_definitions(UA2F_CUSTOM_UA="${UA2F_USER_AGENT_STRING}")
+endif()
+
 add_executable(ua2f
         src/ua2f.c
         src/statistics.c
