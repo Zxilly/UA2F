@@ -2,6 +2,7 @@
 #include "handler.h"
 #include "cache.h"
 #include "util.h"
+#include "cli.h"
 #include "third/nfqueue-mnl.h"
 
 #include <stdlib.h>
@@ -20,6 +21,8 @@ void signal_handler(int signum) {
 
 int main(int argc, char *argv[]) {
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
+
+    try_print_info(argc, argv);
 
     init_statistics();
     init_handler();

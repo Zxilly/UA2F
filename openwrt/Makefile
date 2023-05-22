@@ -55,6 +55,7 @@ define Build/Configure
 	$(call Build/Configure/Default, \
 		-DUA2F_CUSTOM_USER_AGENT=$(if $(CONFIG_UA2F_CUSTOM_USER_AGENT),ON,OFF), \
 		-DUA2F_USER_AGENT_STRING="$(CONFIG_UA2F_USER_AGENT_STRING)" \
+		-DUA2F_VERSION="$(PKG_VERSION)" \
 	)
 endef
 
