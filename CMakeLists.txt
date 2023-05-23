@@ -19,7 +19,7 @@ endif()
 # Get Git branch
 if(GIT_FOUND)
     execute_process(
-            COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+            COMMAND ${GIT_EXECUTABLE} branch --show-current
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE GIT_BRANCH
             OUTPUT_STRIP_TRAILING_WHITESPACE

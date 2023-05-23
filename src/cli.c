@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "cli.h"
 
 // handle print --version and --help
@@ -19,18 +20,19 @@ void try_print_info(int argc, char *argv[]) {
 #else
         printf("Custom UA: not set\n");
 #endif
-        return;
+        exit(0);
     }
 
     if (strcmp(argv[1], "--help") == 0) {
         printf("Usage: ua2f\n");
         printf("  --version\n");
         printf("  --help\n");
-        return;
+        exit(0);
     }
 
     printf("Unknown option: %s\n", argv[1]);
     printf("Usage: ua2f\n");
     printf("  --version\n");
     printf("  --help\n");
+    exit(1);
 }
