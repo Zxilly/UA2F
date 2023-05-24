@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
-PKG_VERSION:=4.1.1
+PKG_VERSION:=4.1.2
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-3.0-only
@@ -46,13 +46,10 @@ define Package/ua2f/config
       Specify the custom User-Agent string to use when UA2F_CUSTOM_USER_AGENT is enabled.
 endef
 
-define Build/Configure
-	$(call Build/Configure/Default, \
-		-DUA2F_CUSTOM_USER_AGENT=$(if $(CONFIG_UA2F_CUSTOM_USER_AGENT),ON,OFF), \
-		-DUA2F_USER_AGENT_STRING="$(CONFIG_UA2F_USER_AGENT_STRING)" \
-		-DUA2F_VERSION="$(PKG_VERSION)" \
-	)
-endef
+CMAKE_OPTIONS += \
+	-DUA2F_VERSION_STR="$(PKG_VERSION)" \
+	-DUA2F_CUSTOM_USER_AGENT=$(if $(CONFIG_UA2F_CUSTOM_USER_AGENT),ON,OFF) \
+	-DUA2F_USER_AGENT_STRING=$(CONFIG_UA2F_USER_AGENT_STRING) \
 
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being checked by Dr.Com.

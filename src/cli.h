@@ -5,6 +5,8 @@
 #ifndef UA2F_CLI_H
 #define UA2F_CLI_H
 
+#include "custom.h"
+
 #ifndef UA2F_GIT_COMMIT
 #define UA2F_GIT_COMMIT "unknown"
 #endif
