@@ -164,19 +164,14 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
 
     struct pkt_buff *pkt_buff = NULL;
 
-    bool nocache_mode = false;
-
-    if (!is_cache_enabled() || !pkt->has_conntrack) {
-        syslog(LOG_WARNING, "Packet has no conntrack. Cache will be disabled. This may cause performance issue.");
-        disable_not_http_cache();
-        nocache_mode = true;
+    if (!pkt->has_conntrack) {
+        syslog(LOG_ERR, "Packet has no conntrack.");
+        exit(EXIT_FAILURE);
     }
 
-    if (!nocache_mode) {
-        if (should_ignore(pkt)) {
-            send_verdict(queue, pkt, (struct mark_op) {true, CONNMARK_NOT_HTTP}, NULL);
-            goto end;
-        }
+    if (should_ignore(pkt)) {
+        send_verdict(queue, pkt, (struct mark_op) {true, CONNMARK_NOT_HTTP}, NULL);
+        goto end;
     }
 
     if (type == IPV4) {
@@ -260,12 +255,7 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
         count_user_agent_packet();
     }
 
-    if (!nocache_mode) {
-        send_verdict(queue, pkt, get_next_mark(pkt, has_ua), pkt_buff);
-    } else {
-        // Can not get connmark, set it has no meaning
-        send_verdict(queue, pkt, (struct mark_op) {false, 0}, pkt_buff);
-    }
+    send_verdict(queue, pkt, get_next_mark(pkt, has_ua), pkt_buff);
 
     end:
     free(pkt->payload);

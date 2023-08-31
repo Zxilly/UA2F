@@ -23,8 +23,6 @@ struct cache {
 };
 
 void init_not_http_cache();
-void disable_not_http_cache();
-bool is_cache_enabled();
 
 // add addr_port to cache, assume it's not a http dst
 void cache_add(const char* addr_port);
