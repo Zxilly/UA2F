@@ -71,9 +71,9 @@ setup_firewall() {
 
 					tcp dport 22 counter return comment "!ua2f: bypass SSH";
 					$([ "$handle_tls" -eq "1" ] || echo 'tcp dport 443 counter return comment "!ua2f: bypass HTTPS";')
-					tcp dport 80 counter mark set 44;
-					meta mark 43 counter return comment "!ua2f: bypass non-http stream";
-					tcp dport 80 counter queue num 10010 bypass;
+					tcp dport 80 counter ct mark set 44;
+					ct mark 43 counter return comment "!ua2f: bypass non-http stream";
+					ct original counter queue num 10010 bypass;
 				}
 			}
 		EOF
