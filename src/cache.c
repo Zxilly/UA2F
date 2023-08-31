@@ -31,6 +31,31 @@ _Noreturn static void check_cache() {
     }
 }
 
+static pthread_t cleanup_thread;
+// if conntrack info not exist, just disable cache
+static _Atomic bool conntrack_exist = true;
+
+inline bool is_cache_enabled() {
+    return conntrack_exist;
+}
+
+void disable_not_http_cache() {
+    if (!conntrack_exist) {
+        syslog(LOG_DEBUG, "cache already disabled");
+        return;
+    }
+    conntrack_exist = false;
+
+    syslog(LOG_INFO, "Disabling cache");
+
+    __auto_type ret = pthread_cancel(cleanup_thread);
+    if (ret) {
+        syslog(LOG_ERR, "Failed to cancel cleanup thread: %d", ret);
+        exit(EXIT_FAILURE);
+    }
+    syslog(LOG_INFO, "Cleanup thread canceled");
+}
+
 void init_not_http_cache() {
     if (pthread_rwlock_init(&cacheLock, NULL) != 0) {
         syslog(LOG_ERR, "Failed to init cache lock");
@@ -38,7 +63,6 @@ void init_not_http_cache() {
     }
     syslog(LOG_INFO, "Cache lock initialized");
 
-    pthread_t cleanup_thread;
     __auto_type ret = pthread_create(&cleanup_thread, NULL, (void *(*)(void *)) check_cache, NULL);
     if (ret) {
         syslog(LOG_ERR, "Failed to create cleanup thread: %d", ret);
