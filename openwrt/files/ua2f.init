@@ -36,7 +36,6 @@ setup_firewall() {
 	config_get_bool handle_mmtls "firewall" "handle_mmtls" "0"
 
 	if [ -n "$FW4" ]; then
-	  modprobe nf_conntrack
 		nft -f- <<-EOF
 			table inet ua2f {
 				set localaddr_v4 {
