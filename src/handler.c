@@ -191,6 +191,12 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
         }
     }
 
+    if (type == IPV4){
+        count_ipv4_packet();
+    } else {
+        count_ipv6_packet();
+    }
+
     if (type == IPV4) {
         __auto_type ip_hdr = nfq_ip_get_hdr(pkt_buff);
         if (nfq_ip_set_transport_header(pkt_buff, ip_hdr) < 0) {
@@ -213,6 +219,7 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
         send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
         goto end;
     }
+    count_tcp_packet();
 
     void *search_start = tcp_payload;
     unsigned int search_length = tcp_payload_len;
