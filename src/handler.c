@@ -212,6 +212,13 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
     }
 
     __auto_type tcp_hdr = nfq_tcp_get_hdr(pkt_buff);
+    if (tcp_hdr == NULL) {
+        // This packet is not tcp, just pass it
+        send_verdict(queue, pkt, (struct mark_op) {false, 0}, NULL);
+        syslog(LOG_WARNING, "Received non-tcp packet. You may set wrong firewall rules.");
+        goto end;
+    }
+
     __auto_type tcp_payload = nfq_tcp_get_payload(tcp_hdr, pkt_buff);
     __auto_type tcp_payload_len = nfq_tcp_get_payload_len(tcp_hdr, pkt_buff);
 
