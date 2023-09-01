@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
 
     init_statistics();
     init_handler();
-    init_not_http_cache();
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);

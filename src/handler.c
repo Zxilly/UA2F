@@ -107,13 +107,19 @@ static void send_verdict(
     }
 }
 
-static void add_to_no_http_cache(struct nf_packet *pkt) {
+static _Atomic bool conntrack_info_available = true;
+
+static void add_to_cache(struct nf_packet *pkt) {
     char *ip_str = ip_to_str(&pkt->orig.dst, pkt->orig.dst_port, pkt->orig.ip_version);
     cache_add(ip_str);
     free(ip_str);
 }
 
 static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
+    if (!conntrack_info_available) {
+        return (struct mark_op) {false, 0};
+    }
+
     // I didn't think this will happen, but just in case
     // iptables should already have a rule to return all marked with CONNMARK_HTTP
     if (pkt->conn_mark == CONNMARK_HTTP) {
@@ -129,7 +135,7 @@ static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
     }
 
     if (pkt->conn_mark == CONNMARK_ESTIMATE_VERDICT) {
-        add_to_no_http_cache(pkt);
+        add_to_cache(pkt);
         return (struct mark_op) {true, CONNMARK_NOT_HTTP};
     }
 
@@ -151,38 +157,39 @@ bool should_ignore(struct nf_packet *pkt) {
     return retval;
 }
 
-
 void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
-    int type = pkt->orig.ip_version;
-
-    if (type == IPV4) {
-        count_ipv4_packet();
-    } else if (type == IPV6) {
-        count_ipv6_packet();
+    if (conntrack_info_available) {
+        if (!pkt->has_conntrack) {
+            conntrack_info_available = false;
+            syslog(LOG_WARNING, "Packet has no conntrack. Switching to no cache mode.");
+            syslog(LOG_WARNING, "Note that this may lead to performance degradation. Especially on low-end routers.");
+        } else {
+            init_not_http_cache();
+        }
     }
-    count_tcp_packet();
 
     struct pkt_buff *pkt_buff = NULL;
-
-    if (!pkt->has_conntrack) {
-        syslog(LOG_ERR, "Packet has no conntrack.");
-        exit(EXIT_FAILURE);
-    }
-
-    if (should_ignore(pkt)) {
+    if (conntrack_info_available && should_ignore(pkt)) {
         send_verdict(queue, pkt, (struct mark_op) {true, CONNMARK_NOT_HTTP}, NULL);
         goto end;
     }
 
-    if (type == IPV4) {
-        pkt_buff = pktb_alloc(AF_INET, pkt->payload, pkt->payload_len, 0);
-    } else if (type == IPV6) {
-        pkt_buff = pktb_alloc(AF_INET6, pkt->payload, pkt->payload_len, 0);
-    } else {
-        syslog(LOG_ERR, "Unknown ip version: %d", pkt->orig.ip_version);
-        exit(EXIT_FAILURE);
-    }
+    pkt_buff = pktb_alloc(AF_INET, pkt->payload, pkt->payload_len, 0);
+
     ASSERT(pkt_buff != NULL);
+
+    int type;
+
+    if (conntrack_info_available) {
+        type = pkt->orig.ip_version;
+    } else {
+        __auto_type ip_hdr = nfq_ip_get_hdr(pkt_buff);
+        if (ip_hdr == NULL) {
+            type = IPV6;
+        } else {
+            type = IPV4;
+        }
+    }
 
     if (type == IPV4) {
         __auto_type ip_hdr = nfq_ip_get_hdr(pkt_buff);
