@@ -68,8 +68,8 @@ setup_firewall() {
 
           meta l4proto != tcp counter return comment "!ua2f: not tcp";
 
-					ip daddr @localaddr_v4 counter return;
-					ip6 daddr @localaddr_v6 counter return;
+					$([ "$handle_intranet" -ne "1" ] || echo 'ip daddr @localaddr_v4 counter return;')
+					$([ "$handle_intranet" -ne "1" ] || echo 'ip6 daddr @localaddr_v6 counter return;')
 
 					tcp dport 22 counter return comment "!ua2f: bypass SSH";
 					$([ "$handle_tls" -eq "1" ] || echo 'tcp dport 443 counter return comment "!ua2f: bypass HTTPS";')
