@@ -85,14 +85,14 @@ setup_firewall() {
 
 		if $IPT_M -N ua2f; then
 			if [ "$handle_intranet" -ne "1" ]; then
-		    $IPT_M -A ua2f -d 10.0.0.0/8 -j RETURN
-			  $IPT_M -A ua2f -d 172.16.0.0/12 -j RETURN
-			  $IPT_M -A ua2f -d 192.168.0.0/16 -j RETURN
-			  $IPT_M -A ua2f -d 0.0.0.0/8 -j RETURN
-			  $IPT_M -A ua2f -d 127.0.0.0/8 -j RETURN
-			  $IPT_M -A ua2f -d 169.254.0.0/16 -j RETURN
-			  $IPT_M -A ua2f -d 224.0.0.0/4 -j RETURN
-			  $IPT_M -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
+				$IPT_M -A ua2f -d 10.0.0.0/8 -j RETURN
+				$IPT_M -A ua2f -d 172.16.0.0/12 -j RETURN
+				$IPT_M -A ua2f -d 192.168.0.0/16 -j RETURN
+				$IPT_M -A ua2f -d 0.0.0.0/8 -j RETURN
+				$IPT_M -A ua2f -d 127.0.0.0/8 -j RETURN
+				$IPT_M -A ua2f -d 169.254.0.0/16 -j RETURN
+				$IPT_M -A ua2f -d 224.0.0.0/4 -j RETURN
+				$IPT_M -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
 			fi
 
 			[ "$handle_tls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
@@ -109,19 +109,19 @@ setup_firewall() {
 
 			if $IPT6_M -N ua2f; then
 				if [ "$handle_intranet" -ne "1" ]; then
-			    $IPT6_M -A ua2f -d ::/128 -j RETURN
-				  $IPT6_M -A ua2f -d ::1/128 -j RETURN
-				  $IPT6_M -A ua2f -d ::ffff:0:0/96 -j RETURN
-				  $IPT6_M -A ua2f -d 100::/64 -j RETURN
-				  $IPT6_M -A ua2f -d 64:ff9b::/96 -j RETURN
-				  $IPT6_M -A ua2f -d 2001::/32 -j RETURN
-				  $IPT6_M -A ua2f -d 2001:10::/28 -j RETURN
-				  $IPT6_M -A ua2f -d 2001:20::/28 -j RETURN
-				  $IPT6_M -A ua2f -d 2001:db8::/28 -j RETURN
-				  $IPT6_M -A ua2f -d 2002::/16 -j RETURN
-				  $IPT6_M -A ua2f -d fc00::/7 -j RETURN
-				  $IPT6_M -A ua2f -d fe80::/10 -j RETURN
-				  $IPT6_M -A ua2f -d ff00::/8 -j RETURN # 不处理流向保留地址的包
+					$IPT6_M -A ua2f -d ::/128 -j RETURN
+					$IPT6_M -A ua2f -d ::1/128 -j RETURN
+					$IPT6_M -A ua2f -d ::ffff:0:0/96 -j RETURN
+					$IPT6_M -A ua2f -d 100::/64 -j RETURN
+					$IPT6_M -A ua2f -d 64:ff9b::/96 -j RETURN
+					$IPT6_M -A ua2f -d 2001::/32 -j RETURN
+					$IPT6_M -A ua2f -d 2001:10::/28 -j RETURN
+					$IPT6_M -A ua2f -d 2001:20::/28 -j RETURN
+					$IPT6_M -A ua2f -d 2001:db8::/28 -j RETURN
+					$IPT6_M -A ua2f -d 2002::/16 -j RETURN
+					$IPT6_M -A ua2f -d fc00::/7 -j RETURN
+					$IPT6_M -A ua2f -d fe80::/10 -j RETURN
+					$IPT6_M -A ua2f -d ff00::/8 -j RETURN # 不处理流向保留地址的包
 				fi
 
 				[ "$handle_tls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
