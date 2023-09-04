@@ -66,7 +66,7 @@ setup_firewall() {
 				chain prerouting {
 					type filter hook prerouting priority mangle -5; policy accept;
 
-          meta l4proto != tcp counter return comment "!ua2f: not tcp";
+					meta l4proto != tcp counter return comment "!ua2f: not tcp";
 
 					$([ "$handle_intranet" -ne "1" ] || echo 'ip daddr @localaddr_v4 counter return;')
 					$([ "$handle_intranet" -ne "1" ] || echo 'ip6 daddr @localaddr_v6 counter return;')
