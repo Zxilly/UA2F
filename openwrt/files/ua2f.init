@@ -84,20 +84,22 @@ setup_firewall() {
 		$IPT_M -D FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f 2>"/dev/null"
 
 		if $IPT_M -N ua2f; then
-			$IPT_M -A ua2f -d 10.0.0.0/8 -j RETURN
-			$IPT_M -A ua2f -d 172.16.0.0/12 -j RETURN
-			$IPT_M -A ua2f -d 192.168.0.0/16 -j RETURN
-			$IPT_M -A ua2f -d 0.0.0.0/8 -j RETURN
-			$IPT_M -A ua2f -d 127.0.0.0/8 -j RETURN
-			$IPT_M -A ua2f -d 169.254.0.0/16 -j RETURN
-			$IPT_M -A ua2f -d 224.0.0.0/4 -j RETURN
-			$IPT_M -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
-			$IPT_M -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
+		  if [ "$handle_intranet" -ne "1" ]; then
+		    $IPT_M -A ua2f -d 10.0.0.0/8 -j RETURN
+			  $IPT_M -A ua2f -d 172.16.0.0/12 -j RETURN
+			  $IPT_M -A ua2f -d 192.168.0.0/16 -j RETURN
+			  $IPT_M -A ua2f -d 0.0.0.0/8 -j RETURN
+			  $IPT_M -A ua2f -d 127.0.0.0/8 -j RETURN
+			  $IPT_M -A ua2f -d 169.254.0.0/16 -j RETURN
+			  $IPT_M -A ua2f -d 224.0.0.0/4 -j RETURN
+			  $IPT_M -A ua2f -d 240.0.0.0/4 -j RETURN # 不处理流向保留地址的包
+	    fi
+
 			[ "$handle_tls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
 			$IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
 			$IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 			[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-			$IPT_M -A ua2f -j NFQUEUE --queue-num 10010
+			$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 -–queue-bypass
 		fi
 		$IPT_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 
@@ -106,51 +108,29 @@ setup_firewall() {
 			$IPT6_M -D FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f 2>"/dev/null"
 
 			if $IPT6_M -N ua2f; then
-				$IPT6_M -A ua2f -d ::/128 -j RETURN
-				$IPT6_M -A ua2f -d ::1/128 -j RETURN
-				$IPT6_M -A ua2f -d ::ffff:0:0/96 -j RETURN
-				$IPT6_M -A ua2f -d 100::/64 -j RETURN
-				$IPT6_M -A ua2f -d 64:ff9b::/96 -j RETURN
-				$IPT6_M -A ua2f -d 2001::/32 -j RETURN
-				$IPT6_M -A ua2f -d 2001:10::/28 -j RETURN
-				$IPT6_M -A ua2f -d 2001:20::/28 -j RETURN
-				$IPT6_M -A ua2f -d 2001:db8::/28 -j RETURN
-				$IPT6_M -A ua2f -d 2002::/16 -j RETURN
-				$IPT6_M -A ua2f -d fc00::/7 -j RETURN
-				$IPT6_M -A ua2f -d fe80::/10 -j RETURN
-				$IPT6_M -A ua2f -d ff00::/8 -j RETURN # 不处理流向保留地址的包
-				$IPT6_M -A ua2f -p tcp --dport 22 -j RETURN # 不处理 SSH
+			  if [ "$handle_intranet" -ne "1" ]; then
+			    $IPT6_M -A ua2f -d ::/128 -j RETURN
+				  $IPT6_M -A ua2f -d ::1/128 -j RETURN
+				  $IPT6_M -A ua2f -d ::ffff:0:0/96 -j RETURN
+				  $IPT6_M -A ua2f -d 100::/64 -j RETURN
+				  $IPT6_M -A ua2f -d 64:ff9b::/96 -j RETURN
+				  $IPT6_M -A ua2f -d 2001::/32 -j RETURN
+				  $IPT6_M -A ua2f -d 2001:10::/28 -j RETURN
+				  $IPT6_M -A ua2f -d 2001:20::/28 -j RETURN
+				  $IPT6_M -A ua2f -d 2001:db8::/28 -j RETURN
+				  $IPT6_M -A ua2f -d 2002::/16 -j RETURN
+				  $IPT6_M -A ua2f -d fc00::/7 -j RETURN
+				  $IPT6_M -A ua2f -d fe80::/10 -j RETURN
+				  $IPT6_M -A ua2f -d ff00::/8 -j RETURN # 不处理流向保留地址的包
+	      fi
+
 				[ "$handle_tls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 443 -j RETURN # 不处理 HTTPS
 				$IPT6_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
 				$IPT6_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 				[ "$handle_mmtls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-				$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010
+				$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 -–queue-bypass
 			fi
 			$IPT6_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
-		fi
-	fi
-
-	if [ "$handle_intranet" -eq "1" ]; then
-		local wan="$(route -n | grep UG | awk '{print $2}')"
-
-		if [[ "$wan" =~ ^"10." ]]; then
-			if [ -n "$FW4" ]; then
-				nft delete element inet ua2f localaddr_v4 '{ 10.0.0.0/8 }'
-			else
-				$IPT_M -D ua2f 1
-			fi
-		elif echo "$wan" | grep -Eq "^172\.((1[6-9])|(2[0-9])|(3[0-1]))\."; then
-			if [ -n "$FW4" ]; then
-				nft delete element inet ua2f localaddr_v4 '{ 172.16.0.0/12 }'
-			else
-				$IPT_M -D ua2f 2
-			fi
-		elif [[ "$wan" =~ ^"192.168" ]]; then
-			if [ -n "$FW4" ]; then
-				nft delete element inet ua2f localaddr_v4 '{ 192.168.0.0/16 }'
-			else
-				$IPT_M -D ua2f 3
-			fi
 		fi
 	fi
 }
