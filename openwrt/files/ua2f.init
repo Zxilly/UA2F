@@ -99,7 +99,7 @@ setup_firewall() {
 			$IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
 			$IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 			[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-			$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 -–queue-bypass
+			$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
 		fi
 		$IPT_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 
@@ -128,7 +128,7 @@ setup_firewall() {
 				$IPT6_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
 				$IPT6_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 				[ "$handle_mmtls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-				$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 -–queue-bypass
+				$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
 			fi
 			$IPT6_M -A FORWARD -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 		fi
