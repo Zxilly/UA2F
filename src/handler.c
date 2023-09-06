@@ -20,8 +20,8 @@ static char *replacement_user_agent_string = NULL;
 #define USER_AGENT_MATCH "\r\nUser-Agent:"
 #define USER_AGENT_MATCH_LENGTH 13
 
-#define CONNMARK_ESTIMATE_START 16
-#define CONNMARK_ESTIMATE_END 32
+#define CONNMARK_ESTIMATE_LOWER 16
+#define CONNMARK_ESTIMATE_UPPER 32
 #define CONNMARK_ESTIMATE_VERDICT 33
 
 #define CONNMARK_NOT_HTTP 43
@@ -122,7 +122,7 @@ static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
 
     // I didn't think this will happen, but just in case
     // iptables should already have a rule to return all marked with CONNMARK_HTTP
-    if (pkt->conn_mark == CONNMARK_HTTP) {
+    if (pkt->conn_mark == CONNMARK_NOT_HTTP) {
         return (struct mark_op) {false, 0};
     }
 
@@ -131,7 +131,7 @@ static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
     }
 
     if (!pkt->has_connmark || pkt->conn_mark == 0) {
-        return (struct mark_op) {true, CONNMARK_ESTIMATE_START};
+        return (struct mark_op) {true, CONNMARK_ESTIMATE_LOWER};
     }
 
     if (pkt->conn_mark == CONNMARK_ESTIMATE_VERDICT) {
@@ -139,7 +139,7 @@ static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
         return (struct mark_op) {true, CONNMARK_NOT_HTTP};
     }
 
-    if (pkt->conn_mark >= CONNMARK_ESTIMATE_START && pkt->conn_mark <= CONNMARK_ESTIMATE_END) {
+    if (pkt->conn_mark >= CONNMARK_ESTIMATE_LOWER && pkt->conn_mark <= CONNMARK_ESTIMATE_UPPER) {
         return (struct mark_op) {true, pkt->conn_mark + 1};
     }
 
@@ -233,7 +233,7 @@ void handle_packet(struct nf_queue *queue, struct nf_packet *pkt) {
     bool has_ua = false;
 
     while (true) {
-        // mininal length of User-Agent: is 12
+        // minimal length of User-Agent: is 12
         if (search_length - 2 < USER_AGENT_MATCH_LENGTH) {
             break;
         }
