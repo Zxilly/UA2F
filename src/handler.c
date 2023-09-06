@@ -121,8 +121,9 @@ static struct mark_op get_next_mark(struct nf_packet *pkt, bool has_ua) {
     }
 
     // I didn't think this will happen, but just in case
-    // iptables should already have a rule to return all marked with CONNMARK_HTTP
+    // firewall should already have a rule to return all marked with CONNMARK_NOT_HTTP packets
     if (pkt->conn_mark == CONNMARK_NOT_HTTP) {
+        syslog(LOG_WARNING, "Packet has already been marked as not http. Maybe firewall rules are wrong?");
         return (struct mark_op) {false, 0};
     }
 
