@@ -6,6 +6,7 @@
 #define UA2F_CACHE_H
 
 #include <stdbool.h>
+#include <time.h>
 #include "third/uthash.h"
 
 #define CACHE_TIMEOUT 127
