@@ -2,17 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 project(UA2F LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-include(FetchContent)
-FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-)
-
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
 
 find_package(Git)
 if(GIT_FOUND)
@@ -93,20 +82,36 @@ target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
 
 install(TARGETS ua2f RUNTIME DESTINATION bin)
 
-enable_testing()
+if (UA2F_BUILD_TESTS)
+    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(
-        ua2f_test
-        test/util_test.cc
-        src/util.c
-        src/cache.c
-        src/cli.c
-)
-target_link_libraries(
-        ua2f_test
-        GTest::gtest_main
-)
-target_include_directories(ua2f_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    cmake_policy(SET CMP0135 NEW)
+    include(FetchContent)
+    FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    )
 
-include(GoogleTest)
-gtest_discover_tests(ua2f_test)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    enable_testing()
+    add_executable(
+            ua2f_test
+            test/util_test.cc
+            src/util.c
+            src/cache.c
+            src/cli.c
+    )
+    target_link_libraries(
+            ua2f_test
+            GTest::gtest_main
+    )
+    target_include_directories(ua2f_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+    include(GoogleTest)
+    gtest_discover_tests(ua2f_test)
+else ()
+    message(STATUS "Tests are disabled.")
+endif ()

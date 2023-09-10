@@ -25,7 +25,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cmake -S . -B build
+          cmake -S . -B build -DUA2F_BUILD_TESTS=ON
           cmake --build build --target ua2f_test
           ./build/ua2f_test
             
