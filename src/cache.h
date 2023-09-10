@@ -6,12 +6,12 @@
 #define UA2F_CACHE_H
 
 #include <stdbool.h>
-#include "third/nfqueue-mnl.h"
 #include "third/uthash.h"
 
 #define CACHE_TIMEOUT 127
 #define CACHE_CHECK_INTERVAL 128
 
+#define INET6_ADDRSTRLEN 46
 // 1111:1111:1111:1111:1111:1111:111.111.111.111:65535
 // with null terminator
 #define MAX_ADDR_PORT_LENGTH (INET6_ADDRSTRLEN + 7)
