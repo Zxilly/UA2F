@@ -1,9 +1,20 @@
 cmake_minimum_required(VERSION 3.16)
-project(UA2F C)
+project(UA2F LANGUAGES C CXX)
 
-# Find Git
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 find_package(Git)
-
 if(GIT_FOUND)
     execute_process(
             COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
@@ -30,10 +41,10 @@ else()
 endif()
 
 if(UA2F_VERSION_STR)
-    message(STATUS "Using custom version string: ${UA2F_VERSION_STR}")
+    message(STATUS "Using version string: ${UA2F_VERSION_STR}")
 else ()
     set(UA2F_VERSION_STR "unknown")
-    message(STATUS "Using unknown version string")
+    message(STATUS "Using version string: unknown")
 endif()
 
 # Define macros
@@ -54,8 +65,6 @@ endif ()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-gc-sections")
-
-add_compile_options(-std=gnu17)
 
 if(UA2F_CUSTOM_USER_AGENT)
     if(NOT UA2F_USER_AGENT_STRING)
@@ -83,3 +92,21 @@ add_executable(ua2f
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
 
 install(TARGETS ua2f RUNTIME DESTINATION bin)
+
+enable_testing()
+
+add_executable(
+        ua2f_test
+        test/util_test.cc
+        src/util.c
+        src/cache.c
+        src/cli.c
+)
+target_link_libraries(
+        ua2f_test
+        GTest::gtest_main
+)
+target_include_directories(ua2f_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+include(GoogleTest)
+gtest_discover_tests(ua2f_test)

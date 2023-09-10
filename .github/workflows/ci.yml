@@ -10,9 +10,26 @@ on:
       - '**.md'
 
 jobs:
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run unit tests
+        run: |
+          cmake -S . -B build
+          cmake --build build --target ua2f_test
+          ./build/ua2f_test
+            
+
   build:
     name: Build ${{ matrix.arch }}
     runs-on: ubuntu-latest
+    needs:
+      - test
     strategy:
       fail-fast: false
       matrix:
