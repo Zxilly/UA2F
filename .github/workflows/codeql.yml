@@ -42,7 +42,7 @@ jobs:
       working-directory: /tmp
       run: |
         git clone https://github.com/openwrt/libubox.git
-        cd libubus
+        cd libubox
         mkdir build
         cd build
         cmake .. -DBUILD_LUA=OFF -DBUILD_EXAMPLES=OFF
