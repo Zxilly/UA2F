@@ -3,6 +3,8 @@ project(UA2F LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 17)
 
+OPTION(UA2F_BUILD_TESTS "Build tests" OFF)
+
 find_package(Git)
 if(GIT_FOUND)
     execute_process(

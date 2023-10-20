@@ -38,6 +38,25 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
+    - name: Build and install libubox
+      run: |
+        git clone https://github.com/openwrt/libubox.git
+        cd libubus
+        mkdir build
+        cd build
+        cmake .. -DBUILD_LUA=OFF -DBUILD_EXAMPLES=OFF
+        make
+        sudo make instal
+    - name: Build and install libuci
+      run: |
+        git clone https://github.com/openwrt/uci.git
+        cd uci
+        mkdir build
+        cd build
+        cmake .. -DBUILD_LUA=OFF
+        make
+        sudo make install
+
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2
 
