@@ -24,9 +24,10 @@ jobs:
           sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Build and install libubox
+        working-directory: /tmp
         run: |
           git clone https://github.com/openwrt/libubox.git
-          cd libubus
+          cd libubox
           mkdir build
           cd build
           cmake .. -DBUILD_LUA=OFF -DBUILD_EXAMPLES=OFF
@@ -34,6 +35,7 @@ jobs:
           sudo make install
 
       - name: Build and install libuci
+        working-directory: /tmp
         run: |
           git clone https://github.com/openwrt/uci.git
           cd uci
