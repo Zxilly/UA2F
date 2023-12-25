@@ -66,7 +66,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_USE_UCI=OFF
+          cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF
           cmake --build build
           ./build/ua2f_test
             
