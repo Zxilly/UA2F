@@ -48,11 +48,11 @@ jobs:
       - name: Run unit tests
         run: |
           cmake -S . -B build -DUA2F_BUILD_TESTS=ON
-          cmake --build build --target ua2f_test
+          cmake --build build
           ./build/ua2f_test
 
   test-standalone:
-    name: Run unit tests
+    name: Run unit tests without uci support
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -67,7 +67,7 @@ jobs:
       - name: Run unit tests
         run: |
           cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_USE_UCI=OFF
-          cmake --build build --target ua2f_test
+          cmake --build build
           ./build/ua2f_test
             
 
