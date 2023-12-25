@@ -85,7 +85,7 @@ add_executable(ua2f
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
 
 if (UA2F_ENABLE_UCI)
-    add_compile_definitions(UA2F_USE_UCI=1)
+    add_compile_definitions(UA2F_ENABLE_UCI=1)
     target_link_libraries(ua2f uci)
 else ()
     message(STATUS "UCI support is disabled.")

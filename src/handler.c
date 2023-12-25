@@ -5,10 +5,8 @@
 #include "statistics.h"
 #include "custom.h"
 
-#ifdef UA2F_USE_UCI
-
+#ifdef UA2F_ENABLE_UCI
 #include "config.h"
-
 #endif
 
 #include <libnetfilter_queue/pktbuff.h>
@@ -34,7 +32,7 @@ void init_handler() {
 
     bool ua_set = false;
 
-#ifdef UA2F_USE_UCI
+#ifdef UA2F_ENABLE_UCI
     if (config.use_custom_ua) {
         memset(replacement_user_agent_string, ' ', MAX_USER_AGENT_LENGTH);
         strncpy(replacement_user_agent_string, config.custom_ua, strlen(config.custom_ua));

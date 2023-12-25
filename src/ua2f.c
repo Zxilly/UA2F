@@ -4,7 +4,7 @@
 #include "cli.h"
 #include "third/nfqueue-mnl.h"
 
-#ifdef UA2F_USE_UCI
+#ifdef UA2F_ENABLE_UCI
 #include "config.h"
 #endif
 
@@ -26,11 +26,11 @@ void signal_handler(const int signum) {
 int main(const int argc, char *argv[]) {
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
-#ifdef UA2F_USE_UCI
+#ifdef UA2F_ENABLE_UCI
     load_config();
 #else
     syslog(LOG_INFO, "uci support is disabled");
-#endif //UA2F_USE_UCI
+#endif
 
     try_print_info(argc, argv);
 
