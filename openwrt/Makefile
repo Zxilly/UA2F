@@ -59,11 +59,19 @@ endef
 define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/ua2f $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller/
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi/
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/ua2f/
 
 	$(INSTALL_DIR) $(1)/etc/config $(1)/etc/init.d $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/ua2f.config $(1)/etc/config/ua2f
 	$(INSTALL_BIN) ./files/ua2f.init $(1)/etc/init.d/ua2f
 	$(INSTALL_BIN) ./files/ua2f.uci $(1)/etc/uci-defaults/80-ua2f
+	$(INSTALL_BIN) ./files/controller/autoua2f.lua $(1)/usr/lib/lua/luci/controller/autoua2f.lua
+	$(INSTALL_BIN) ./files/model/cbi/autoua2f.lua $(1)/usr/lib/lua/luci/model/cbi/autoua2f.lua
+	$(INSTALL_DATA) ./files/view/ua2f/* $(1)/usr/lib/lua/luci/view/ua2f/
+	$(INSTALL_CONF) ./files/etc/config/autoua2f $(1)/etc/config/autoua2f
+	$(INSTALL_BIN) ./files/etc/init.d/autoua2f $(1)/etc/init.d/autoua2f
 endef
 
 define Package/ua2f/postinst
