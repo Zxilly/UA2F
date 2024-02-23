@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTTP User Agent</title>
+    <style>
+        .content {
+            text-align: left;
+            color: lightgreen;
+            font-size: 17px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <script>
+            function updateServerUserAgent() {
+                fetch('http://httpbin.org/user-agent')
+                    .then(response => response.json())
+                    .then(data => {
+                        const serverUserAgent = JSON.stringify(data);
+                        const formattedServerUserAgent = serverUserAgent.replace(/[{""}]/g, '').replace("user-agent:", '');
+                        const browserUserAgent = "浏览器真实的UA：" + navigator.userAgent;
+                        const finalUserAgent = "服务器获取的UA：" + formattedServerUserAgent.trim();
+                        document.querySelector('.content').innerText = browserUserAgent + "\n" + finalUserAgent;
+                    })
+                    .catch(error => console.error(error));
+            }
+            updateServerUserAgent()  
+            setInterval(updateServerUserAgent, 3000);
+        </script>
+    </div>
+</body>
+</html>

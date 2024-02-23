@@ -1,0 +1,7 @@
+
+config autoua2f 'config'
+	option handle_fw '1'
+	option handle_intranet '1'
+	option enabled '0'
+	option handle_tls '0'
+	option handle_mmtls '0'

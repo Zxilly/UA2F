@@ -1,0 +1,32 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+enabled="$(uci get autoua2f.config.enabled)"
+handle_fw="$(uci get autoua2f.config.handle_fw)"
+handle_intranet="$(uci get autoua2f.config.handle_intranet)"
+handle_tls="$(uci get autoua2f.config.handle_tls)"
+handle_mmtls="$(uci get autoua2f.config.handle_mmtls)"
+
+start() {
+    uci set ua2f.enabled.enabled=$enabled
+    uci set ua2f.firewall.handle_fw=$handle_fw
+    uci set ua2f.firewall.handle_tls=$handle_tls
+    uci set ua2f.firewall.handle_intranet=$handle_intranet
+    uci set ua2f.firewall.handle_mmtls=$handle_mmtls
+    uci set ua2f.main.custom_ua="$(uci get autoua2f.config.Custom_UA)"
+    uci commit ua2f
+    if [ "$enabled" = "1" ]; then
+    	/etc/init.d/ua2f stop
+	/etc/init.d/ua2f start
+	logger "ua2f已开启"
+    elif [ "$enabled" = "0" ]; then
+	/etc/init.d/ua2f stop
+	logger "ua2f已停止"
+    fi
+}
+
+stop() {
+    /etc/init.d/ua2f stop
+    logger "ua2f已停止"
+}
