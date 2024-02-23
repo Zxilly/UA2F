@@ -26,7 +26,7 @@ o4.rmempty = false
 o5 = e:option(Flag, "handle_mmtls", translate("处理微信流量"), translate("微信的流量通常是加密的，因此无需处理，这一规则在启用 nftables 时无效"))
 o5.rmempty = false
 
-o6 = e:option(Value, "Custom_UA", translate("处理微信流量"), translate("自定义用户代理字符串，长度不足则填充空格，过长则截取与原来长度相同的子串"))
+o6 = e:option(Value, "Custom_UA", translate("自定义UA字段"), translate("自定义用户代理字符串，长度不足则填充空格，过长则截取与原来长度相同的子串"))
 o6.default = "Mozilla/5.0 (Window NT 10.0;Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/555.66"
 
 local apply = luci.http.formvalue("cbi.apply")
