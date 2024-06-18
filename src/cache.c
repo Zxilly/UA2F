@@ -5,10 +5,13 @@
 #include <stdbool.h>
 #include <sys/syslog.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 pthread_rwlock_t cacheLock;
 
-struct cache *not_http_dst_cache;
+struct cache *not_http_dst_cache = NULL;
 static int check_interval;
 
 _Noreturn static void check_cache() {
@@ -47,6 +50,8 @@ void init_not_http_cache(const int interval) {
         exit(EXIT_FAILURE);
     }
     syslog(LOG_INFO, "Cleanup thread created");
+
+    pthread_detach(cleanup_thread);
 }
 
 bool cache_contains(struct addr_port target) {
