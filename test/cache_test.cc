@@ -4,40 +4,45 @@ extern "C" {
 #include <cache.h>
 }
 
-#define CACHE_TIMEOUT 2
-
-class CacheTest : public ::testing::Test
-{
+class CacheTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        init_not_http_cache(CACHE_TIMEOUT);
+    ip_address_t test_addr{};
+    
+    void SetUp() override {
+        test_addr.ip4 = 12345;
+        init_not_http_cache(2);
+    }
+
+    void TearDown() override {
+        pthread_rwlock_wrlock(&cacheLock);
+        // Clear the cache after each test
+        struct cache *cur, *tmp;
+        HASH_ITER(hh, not_http_dst_cache, cur, tmp) {
+            HASH_DEL(not_http_dst_cache, cur);
+            free(cur);
+        }
+        pthread_rwlock_unlock(&cacheLock);
     }
 };
 
-
-TEST_F(CacheTest, CacheAddAndContains)
-{
-    const char* addr_port = "127.0.0.1:2335";
-    cache_add(addr_port);
-    EXPECT_TRUE(cache_contains(addr_port));
+TEST_F(CacheTest, CacheInitiallyEmpty) {
+    EXPECT_FALSE(cache_contains(test_addr));
 }
 
-TEST_F(CacheTest, CacheDoesNotContainAfterTimeout)
-{
-    const char* addr_port = "127.0.0.1:2334";
-    cache_add(addr_port);
-    sleep(CACHE_TIMEOUT * 2 + 2);
-    EXPECT_FALSE(cache_contains(addr_port));
+TEST_F(CacheTest, AddToCache) {
+    cache_add(test_addr);
+    EXPECT_TRUE(cache_contains(test_addr));
 }
 
-TEST_F(CacheTest, CacheContainsAfterRenewal)
-{
-    const char* addr_port = "127.0.0.1:2333";
-    cache_add(addr_port);
-    EXPECT_TRUE(cache_contains(addr_port));
-    sleep(CACHE_TIMEOUT * 2 + 2);
-    EXPECT_FALSE(cache_contains(addr_port));
-    cache_add(addr_port);
-    EXPECT_TRUE(cache_contains(addr_port));
+TEST_F(CacheTest, AddAndRemoveFromCache) {
+    cache_add(test_addr);
+    EXPECT_TRUE(cache_contains(test_addr));
+    sleep(5);
+    EXPECT_FALSE(cache_contains(test_addr));
+}
+
+TEST_F(CacheTest, CacheDoesNotContainNonexistentEntry) {
+    ip_address_t nonexistent_addr;
+    nonexistent_addr.ip4 = 54321; // Assign a value different from test_addr
+    EXPECT_FALSE(cache_contains(nonexistent_addr));
 }

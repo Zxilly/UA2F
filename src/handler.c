@@ -56,27 +56,6 @@ void init_handler() {
     syslog(LOG_INFO, "Handler initialized.");
 }
 
-// should free the ret value
-static char *ip_to_str(const ip_address_t *ip, const uint16_t port, const int ip_version) {
-    ASSERT(ip_version == IPV4 || ip_version == IPV6);
-    char *ip_buf = malloc(MAX_ADDR_PORT_LENGTH);
-    memset(ip_buf, 0, MAX_ADDR_PORT_LENGTH);
-    const char *retval = NULL;
-
-    if (ip_version == IPV4) {
-        retval = inet_ntop(AF_INET, &ip->in4, ip_buf, INET_ADDRSTRLEN);
-    } else {
-        retval = inet_ntop(AF_INET6, &ip->in6, ip_buf, INET6_ADDRSTRLEN);
-    }
-    ASSERT(retval != NULL);
-
-    char port_buf[7];
-    sprintf(port_buf, ":%d", port);
-    strcat(ip_buf, port_buf);
-
-    return ip_buf;
-}
-
 struct mark_op {
     bool should_set;
     uint32_t mark;
@@ -89,7 +68,7 @@ static void send_verdict(const struct nf_queue *queue, const struct nf_packet *p
         syslog(LOG_ERR, "failed to put nfqueue header");
         goto end;
     }
-    nfq_nlmsg_verdict_put(nlh, pkt->packet_id, NF_ACCEPT);
+    nfq_nlmsg_verdict_put(nlh, (int)pkt->packet_id, NF_ACCEPT);
 
     if (mark.should_set) {
         struct nlattr *nest = mnl_attr_nest_start_check(nlh, SEND_BUF_LEN, NFQA_CT);
@@ -123,9 +102,12 @@ static bool conntrack_info_available = true;
 static bool cache_initialized = false;
 
 static void add_to_cache(const struct nf_packet *pkt) {
-    char *ip_str = ip_to_str(&pkt->orig.dst, pkt->orig.dst_port, pkt->orig.ip_version);
-    cache_add(ip_str);
-    free(ip_str);
+    struct addr_port target = {
+        .addr = pkt->orig.dst,
+        .port = pkt->orig.dst_port,
+    };
+
+    cache_add(target);
 }
 
 static struct mark_op get_next_mark(const struct nf_packet *pkt, const bool has_ua) {
@@ -167,10 +149,12 @@ static struct mark_op get_next_mark(const struct nf_packet *pkt, const bool has_
 
 bool should_ignore(const struct nf_packet *pkt) {
     bool retval = false;
+    struct addr_port target = {
+        .addr = pkt->orig.dst,
+        .port = pkt->orig.dst_port,
+    };
 
-    char *ip_str = ip_to_str(&pkt->orig.dst, pkt->orig.dst_port, pkt->orig.ip_version);
-    retval = cache_contains(ip_str);
-    free(ip_str);
+    retval = cache_contains(target);
 
     return retval;
 }

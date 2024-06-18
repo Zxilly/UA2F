@@ -8,7 +8,7 @@
 
 pthread_rwlock_t cacheLock;
 
-static struct cache *not_http_dst_cache = NULL;
+struct cache *not_http_dst_cache;
 static int check_interval;
 
 _Noreturn static void check_cache() {
@@ -27,7 +27,6 @@ _Noreturn static void check_cache() {
 
         pthread_rwlock_unlock(&cacheLock);
 
-        // wait for 1 minute
         sleep(check_interval);
     }
 }
@@ -50,11 +49,11 @@ void init_not_http_cache(const int interval) {
     syslog(LOG_INFO, "Cleanup thread created");
 }
 
-bool cache_contains(const char *addr_port) {
+bool cache_contains(struct addr_port target) {
     pthread_rwlock_rdlock(&cacheLock);
 
     struct cache *s;
-    HASH_FIND_STR(not_http_dst_cache, addr_port, s);
+    HASH_FIND(hh, not_http_dst_cache, &target, sizeof(struct addr_port), s);
 
     pthread_rwlock_unlock(&cacheLock);
 
@@ -76,19 +75,18 @@ bool cache_contains(const char *addr_port) {
     return false;
 }
 
-void cache_add(const char *addr_port) {
+void cache_add(struct addr_port addr_port) {
     pthread_rwlock_wrlock(&cacheLock);
 
     struct cache *s;
-    HASH_FIND_STR(not_http_dst_cache, addr_port, s);
-    if (s != NULL) {
-        s->last_time = time(NULL);
-    } else {
+
+    HASH_FIND(hh, not_http_dst_cache, &addr_port, sizeof(struct addr_port), s);
+    if (s == NULL) {
         s = malloc(sizeof(struct cache));
-        strcpy(s->addr_port, addr_port);
-        s->last_time = time(NULL);
-        HASH_ADD_STR(not_http_dst_cache, addr_port, s);
+        memcpy(&s->target.addr, &addr_port, sizeof(struct addr_port));
+        HASH_ADD(hh, not_http_dst_cache, target.addr, sizeof(struct addr_port), s);
     }
+    s->last_time = time(NULL);
 
     pthread_rwlock_unlock(&cacheLock);
 }
