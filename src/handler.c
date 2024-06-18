@@ -1,18 +1,18 @@
-#include <arpa/inet.h>
 #include "handler.h"
 #include "cache.h"
-#include "util.h"
-#include "statistics.h"
 #include "custom.h"
+#include "statistics.h"
+#include "util.h"
+#include <arpa/inet.h>
 
 #ifdef UA2F_ENABLE_UCI
 #include "config.h"
 #endif
 
-#include <libnetfilter_queue/pktbuff.h>
-#include <libnetfilter_queue/libnetfilter_queue_tcp.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv6.h>
+#include <libnetfilter_queue/libnetfilter_queue_tcp.h>
+#include <libnetfilter_queue/pktbuff.h>
 
 #define MAX_USER_AGENT_LENGTH (0xffff + (MNL_SOCKET_BUFFER_SIZE / 2))
 static char *replacement_user_agent_string = NULL;
@@ -82,11 +82,8 @@ struct mark_op {
     uint32_t mark;
 };
 
-static void send_verdict(
-        const struct nf_queue *queue,
-        const struct nf_packet *pkt,
-        const struct mark_op mark,
-        struct pkt_buff *mangled_pkt_buff) {
+static void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, const struct mark_op mark,
+                         struct pkt_buff *mangled_pkt_buff) {
     struct nlmsghdr *nlh = nfqueue_put_header(pkt->queue_num, NFQNL_MSG_VERDICT);
     if (nlh == NULL) {
         syslog(LOG_ERR, "failed to put nfqueue header");
@@ -116,7 +113,7 @@ static void send_verdict(
         syslog(LOG_ERR, "failed to send verdict: %s", strerror(errno));
     }
 
-    end:
+end:
     if (nlh != NULL) {
         free(nlh);
     }
@@ -133,39 +130,39 @@ static void add_to_cache(const struct nf_packet *pkt) {
 
 static struct mark_op get_next_mark(const struct nf_packet *pkt, const bool has_ua) {
     if (!conntrack_info_available) {
-        return (struct mark_op) {false, 0};
+        return (struct mark_op){false, 0};
     }
 
     // I didn't think this will happen, but just in case
     // firewall should already have a rule to return all marked with CONNMARK_NOT_HTTP packets
     if (pkt->conn_mark == CONNMARK_NOT_HTTP) {
         syslog(LOG_WARNING, "Packet has already been marked as not http. Maybe firewall rules are wrong?");
-        return (struct mark_op) {false, 0};
+        return (struct mark_op){false, 0};
     }
 
     if (pkt->conn_mark == CONNMARK_HTTP) {
-        return (struct mark_op) {false, 0};
+        return (struct mark_op){false, 0};
     }
 
     if (has_ua) {
-        return (struct mark_op) {true, CONNMARK_HTTP};
+        return (struct mark_op){true, CONNMARK_HTTP};
     }
 
     if (!pkt->has_connmark || pkt->conn_mark == 0) {
-        return (struct mark_op) {true, CONNMARK_ESTIMATE_LOWER};
+        return (struct mark_op){true, CONNMARK_ESTIMATE_LOWER};
     }
 
     if (pkt->conn_mark == CONNMARK_ESTIMATE_VERDICT) {
         add_to_cache(pkt);
-        return (struct mark_op) {true, CONNMARK_NOT_HTTP};
+        return (struct mark_op){true, CONNMARK_NOT_HTTP};
     }
 
     if (pkt->conn_mark >= CONNMARK_ESTIMATE_LOWER && pkt->conn_mark <= CONNMARK_ESTIMATE_UPPER) {
-        return (struct mark_op) {true, pkt->conn_mark + 1};
+        return (struct mark_op){true, pkt->conn_mark + 1};
     }
 
     syslog(LOG_WARNING, "Unexpected connmark value: %d, Maybe other program has changed connmark?", pkt->conn_mark);
-    return (struct mark_op) {true, pkt->conn_mark + 1};
+    return (struct mark_op){true, pkt->conn_mark + 1};
 }
 
 bool should_ignore(const struct nf_packet *pkt) {
@@ -186,7 +183,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
             syslog(LOG_WARNING, "Note that this may lead to performance degradation. Especially on low-end routers.");
         } else {
             if (!cache_initialized) {
-                init_not_http_cache();
+                init_not_http_cache(60);
                 cache_initialized = true;
             }
         }
@@ -194,7 +191,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
 
     struct pkt_buff *pkt_buff = NULL;
     if (conntrack_info_available && should_ignore(pkt)) {
-        send_verdict(queue, pkt, (struct mark_op) {true, CONNMARK_NOT_HTTP}, NULL);
+        send_verdict(queue, pkt, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
         goto end;
     }
 
@@ -238,7 +235,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     const __auto_type tcp_hdr = nfq_tcp_get_hdr(pkt_buff);
     if (tcp_hdr == NULL) {
         // This packet is not tcp, pass it
-        send_verdict(queue, pkt, (struct mark_op) {false, 0}, NULL);
+        send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
         syslog(LOG_WARNING, "Received non-tcp packet. You may set wrong firewall rules.");
         goto end;
     }
@@ -259,13 +256,13 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
         goto end;
     }
 
-// FIXME: can lead to false positive,
-//        should also get CTA_COUNTERS_ORIG to check if this packet is a initial tcp packet
+    // FIXME: can lead to false positive,
+    //        should also get CTA_COUNTERS_ORIG to check if this packet is a initial tcp packet
 
-//    if (!is_http_protocol(tcp_payload, tcp_payload_len)) {
-//        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
-//        goto end;
-//    }
+    //    if (!is_http_protocol(tcp_payload, tcp_payload_len)) {
+    //        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
+    //        goto end;
+    //    }
     count_http_packet();
 
     const void *search_start = tcp_payload;
@@ -288,7 +285,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
         void *ua_start = ua_pos + USER_AGENT_MATCH_LENGTH;
 
         // for non-standard user-agent like User-Agent:XXX with no space after colon
-        if (*(char *) ua_start == ' ') {
+        if (*(char *)ua_start == ' ') {
             ua_start++;
         }
 
@@ -318,7 +315,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
 
     send_verdict(queue, pkt, get_next_mark(pkt, has_ua), pkt_buff);
 
-    end:
+end:
     free(pkt->payload);
     if (pkt_buff != NULL) {
         pktb_free(pkt_buff);

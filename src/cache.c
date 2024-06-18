@@ -2,13 +2,14 @@
 #include "third/uthash.h"
 
 #include <pthread.h>
-#include <sys/syslog.h>
 #include <stdbool.h>
+#include <sys/syslog.h>
 #include <unistd.h>
 
 pthread_rwlock_t cacheLock;
 
-struct cache *not_http_dst_cache = NULL;
+static struct cache *not_http_dst_cache = NULL;
+static int check_interval;
 
 _Noreturn static void check_cache() {
     while (true) {
@@ -18,7 +19,7 @@ _Noreturn static void check_cache() {
         struct cache *cur, *tmp;
 
         HASH_ITER(hh, not_http_dst_cache, cur, tmp) {
-            if (difftime(now, cur->last_time) > CACHE_TIMEOUT) {
+            if (difftime(now, cur->last_time) > check_interval * 2) {
                 HASH_DEL(not_http_dst_cache, cur);
                 free(cur);
             }
@@ -27,11 +28,13 @@ _Noreturn static void check_cache() {
         pthread_rwlock_unlock(&cacheLock);
 
         // wait for 1 minute
-        sleep(CACHE_CHECK_INTERVAL);
+        sleep(check_interval);
     }
 }
 
-void init_not_http_cache() {
+void init_not_http_cache(const int interval) {
+    check_interval = interval;
+
     if (pthread_rwlock_init(&cacheLock, NULL) != 0) {
         syslog(LOG_ERR, "Failed to init cache lock");
         exit(EXIT_FAILURE);
@@ -47,7 +50,7 @@ void init_not_http_cache() {
     syslog(LOG_INFO, "Cleanup thread created");
 }
 
-bool cache_contains(const char* addr_port) {
+bool cache_contains(const char *addr_port) {
     pthread_rwlock_rdlock(&cacheLock);
 
     struct cache *s;
@@ -58,7 +61,7 @@ bool cache_contains(const char* addr_port) {
     if (s != NULL) {
         bool ret;
         pthread_rwlock_wrlock(&cacheLock);
-        if (difftime(time(NULL), s->last_time) > CACHE_TIMEOUT) {
+        if (difftime(time(NULL), s->last_time) > check_interval * 2) {
             HASH_DEL(not_http_dst_cache, s);
             free(s);
             ret = false;
