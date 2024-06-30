@@ -55,8 +55,19 @@ int main(const int argc, char *argv[]) {
     while (!should_exit) {
         if (nfqueue_receive(queue, buf, 0) == IO_READY) {
             struct nf_packet packet[1];
-            while (nfqueue_next(buf, packet) == IO_READY) {
-                handle_packet(queue, packet);
+            int status;
+            while (status = nfqueue_next(buf, packet)) {
+                if (status == IO_READY) {
+                    handle_packet(queue, packet);
+                } else if (status == IO_ERROR && buf->nlh->nlmsg_type == NLMSG_ERROR) {
+                    __auto_type err = (struct nlmsgerr *) NLMSG_DATA(buf->nlh);
+                    if (-err->error == ENOTSUP) {
+                        fprintf(stderr,"NETLINK error: %s\n",strerror(-err->error));
+                        free(buf->data);
+                        nfqueue_close(queue);
+                        return EXIT_FAILURE;
+                    }
+                }
             }
         }
     }
