@@ -66,8 +66,10 @@ int main(const int argc, char *argv[]) {
                 switch (nfqueue_next(buf, packet)) {
                 case IO_ERROR:
                     should_exit = true;
+                    break;
                 case IO_READY:
                     handle_packet(queue, packet);
+                    break;
                 case IO_NOTREADY:
                     // we've read every packet in the buffer
                     break;
@@ -75,12 +77,15 @@ int main(const int argc, char *argv[]) {
                     // we should never reach this point
                     syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
                     should_exit = true;
+                    break;
                 }
             }
+            break;
         default:
             // we should never reach this point
-            syslog("LOG_ERR", "Unknown return value [%s:%d]", __FILE__, __LINE__);
+            syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
             should_exit = true;
+            break;
         }
     }
 
