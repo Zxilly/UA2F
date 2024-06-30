@@ -54,19 +54,17 @@ int main(const int argc, char *argv[]) {
 
     while (!should_exit) {
         if (nfqueue_receive(queue, buf, 0) == IO_READY) {
-            struct nf_packet packet[1];
-            int status;
-            while (status = nfqueue_next(buf, packet)) {
-                if (status == IO_READY) {
+            while (!should_exit) {
+                struct nf_packet packet[1];
+                switch (nfqueue_next(buf, packet)) {
+                case IO_ERROR:
+                    should_exit = true;
+                case IO_READY:
                     handle_packet(queue, packet);
-                } else if (status == IO_ERROR && buf->nlh->nlmsg_type == NLMSG_ERROR) {
-                    __auto_type err = (struct nlmsgerr *) NLMSG_DATA(buf->nlh);
-                    if (-err->error == ENOTSUP) {
-                        fprintf(stderr,"NETLINK error: %s\n",strerror(-err->error));
-                        free(buf->data);
-                        nfqueue_close(queue);
-                        return EXIT_FAILURE;
-                    }
+                case IO_NOTREADY:
+                    continue;
+                default:
+                    syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
                 }
             }
         }
@@ -74,6 +72,8 @@ int main(const int argc, char *argv[]) {
 
     free(buf->data);
     nfqueue_close(queue);
+
+    return EXIT_SUCCESS;
 }
 
 #pragma clang diagnostic pop
