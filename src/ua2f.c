@@ -50,12 +50,32 @@ int read_buffer(struct nf_queue *queue, struct nf_buffer *buf) {
     }
 }
 
+bool retry_disable_conntrack(struct nf_queue *queue) {
+    nfqueue_close(queue);
+
+    syslog(LOG_INFO, "Retrying to disable conntrack");
+    const __auto_type ret = nfqueue_open(queue, QUEUE_NUM, 0, true);
+    if (!ret) {
+        syslog(LOG_ERR, "Failed to open nfqueue with conntrack disabled");
+        return false;
+    }
+    return true;
+}
+
 void main_loop(struct nf_queue *queue) {
     struct nf_buffer buf[1] = {0};
+    bool retried = false;
 
     while (!should_exit) {
         if (read_buffer(queue, buf) == IO_ERROR) {
-            break;
+            if (!retried) {
+                retried = true;
+                if (!retry_disable_conntrack(queue)) {
+                    break;
+                }
+            } else {
+                break;
+            }
         }
     }
 
@@ -73,6 +93,8 @@ int main(const int argc, char *argv[]) {
 
     try_print_info(argc, argv);
 
+    require_root();
+
     init_statistics();
     init_handler();
 
@@ -84,7 +106,7 @@ int main(const int argc, char *argv[]) {
 
     struct nf_queue queue[1] = {0};
 
-    const __auto_type ret = nfqueue_open(queue, QUEUE_NUM, 0);
+    const __auto_type ret = nfqueue_open(queue, QUEUE_NUM, 0, false);
     if (!ret) {
         syslog(LOG_ERR, "Failed to open nfqueue");
         return EXIT_FAILURE;
