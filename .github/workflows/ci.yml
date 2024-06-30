@@ -74,7 +74,29 @@ jobs:
           cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF
           cmake --build build
           ./build/ua2f_test
-            
+
+  test-integration:
+    name: Run integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-fast install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+
+      - name: Install requests
+        run: |
+          pip install requests
+
+      - name: Run unit tests
+        run: |
+          cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF
+          cmake --build build
+          sudo python scripts/test.py ./build/ua2f
+          
 
   build:
     name: Build ${{ matrix.arch }}
