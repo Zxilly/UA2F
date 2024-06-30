@@ -61,23 +61,26 @@ int main(const int argc, char *argv[]) {
         case IO_NOTREADY:
             continue;
         case IO_READY:
-            while (!should_exit) {
+            {
                 struct nf_packet packet[1];
-                switch (nfqueue_next(buf, packet)) {
-                case IO_ERROR:
-                    should_exit = true;
-                    break;
-                case IO_READY:
-                    handle_packet(queue, packet);
-                    break;
-                case IO_NOTREADY:
-                    // we've read every packet in the buffer
-                    break;
-                default:
-                    // we should never reach this point
-                    syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
-                    should_exit = true;
-                    break;
+                int pkg_status;
+                while (pkg_status = nfqueue_next(buf, packet)) {
+                    switch (pkg_status) {
+                    case IO_ERROR:
+                        should_exit = true;
+                        break;
+                    case IO_READY:
+                        handle_packet(queue, packet);
+                        break;
+                    case IO_NOTREADY:
+                        // we've read every packet in the buffer
+                        break;
+                    default:
+                        // we should never reach this point
+                        syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
+                        should_exit = true;
+                        break;
+                    }
                 }
             }
             break;
