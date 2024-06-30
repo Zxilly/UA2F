@@ -61,7 +61,7 @@ int main(const int argc, char *argv[]) {
         case IO_NOTREADY:
             continue;
         case IO_READY:
-            while (!should_exit) {
+            while (1) {
                 struct nf_packet packet[1];
                 switch (nfqueue_next(buf, packet)) {
                 case IO_ERROR:
@@ -69,7 +69,7 @@ int main(const int argc, char *argv[]) {
                     break;
                 case IO_READY:
                     handle_packet(queue, packet);
-                    break;
+                    continue;
                 case IO_NOTREADY:
                     // we've read every packet in the buffer
                     break;
@@ -80,7 +80,7 @@ int main(const int argc, char *argv[]) {
                     break;
                 }
             }
-            break;
+            continue;
         default:
             // we should never reach this point
             syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
