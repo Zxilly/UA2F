@@ -65,6 +65,7 @@ int main(const int argc, char *argv[]) {
                     continue;
                 default:
                     syslog(LOG_ERR, "Unknown return value [%s:%d]", __FILE__, __LINE__);
+                    should_exit = true;
                 }
             }
         }
