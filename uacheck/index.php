@@ -50,7 +50,7 @@ $userAgent = $_SERVER['HTTP_USER_AGENT'];
     <p></p>
 </div>
 <div class="user-agent" id="ua2f-status">
-    <h2 class="title">UA2F 状态:</h2>
+    <h2 class="title"><a href="https://github.com/Zxilly/UA2F" target="_blank">UA2F</a> 状态:</h2>
     <p></p>
 </div>
 <script>
