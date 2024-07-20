@@ -8,24 +8,72 @@ $userAgent = $_SERVER['HTTP_USER_AGENT'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User-Agent Display</title>
     <style>
+        /* Light mode styles (if different from your default styles) */
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: #f0f0f0;
+                color: #333;
+            }
+
+            .block {
+                background-color: #fff;
+                border-color: #ddd;
+            }
+
+            .title {
+                color: #333;
+            }
+
+            button {
+                background-color: #f8f9fa;
+                border-color: #ccc;
+                color: #333;
+            }
+        }
+
+        /* Dark mode styles */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #333;
+                color: #f0f0f0;
+            }
+
+            .block {
+                background-color: #444;
+                border-color: #666;
+            }
+
+            .title {
+                color: #fff;
+            }
+
+            button {
+                background-color: #555;
+                border-color: #777;
+                color: #fff;
+            }
+
+            a {
+                color: #0096ff;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
             padding: 20px;
-            background-color: #f0f0f0;
         }
 
         .block {
-            background-color: #fff;
             border: 1px solid #ddd;
             padding: 20px;
             margin-bottom: 20px;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .title {
-            color: #333;
         }
 
         @media (min-width: 1200px) {
@@ -40,9 +88,7 @@ $userAgent = $_SERVER['HTTP_USER_AGENT'];
         }
 
         button {
-            background-color: #f8f9fa;
             border: 1px solid #ccc;
-            color: #333;
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
