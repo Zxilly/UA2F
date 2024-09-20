@@ -93,8 +93,9 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF
+          cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_ASAN=ON
           cmake --build build
+          ./build/ua2f --version
           sudo python scripts/test.py ./build/ua2f
           
 
