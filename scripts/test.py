@@ -35,7 +35,7 @@ def start_server():
 
 
 def start_ua2f(u: str):
-    p = subprocess.Popen([u])
+    p = subprocess.Popen([u], stdout=subprocess.STDOUT, stderr=subprocess.STDOUT)
     atexit.register(lambda: p.kill())
 
 
