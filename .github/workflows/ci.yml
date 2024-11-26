@@ -87,9 +87,14 @@ jobs:
           sudo apt-get update
           sudo apt-fast install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Install requirements
         run: |
-          pip install --user -r scripts/requirements.txt
+          pip install -r scripts/requirements.txt
 
       - name: Run unit tests
         run: |
