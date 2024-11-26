@@ -87,9 +87,9 @@ jobs:
           sudo apt-get update
           sudo apt-fast install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
-      - name: Install requests
+      - name: Install requirements
         run: |
-          pip install requests
+          pip install --user -r scripts/requirements.txt
 
       - name: Run unit tests
         run: |
@@ -105,6 +105,7 @@ jobs:
     needs:
       - test
       - test-standalone
+      - test-integration
     strategy:
       fail-fast: false
       matrix:
