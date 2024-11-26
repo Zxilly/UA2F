@@ -13,7 +13,7 @@ import requests
 from fake_useragent import UserAgent
 from tqdm import tqdm
 
-from .journal import SystemdLogReader
+from journal import SystemdLogReader
 
 ua = UserAgent()
 
