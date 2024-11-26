@@ -102,7 +102,12 @@ jobs:
           cmake --build build
           ./build/ua2f --version
           sudo python scripts/test.py ./build/ua2f
-          
+
+      - name: Upload log
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-log
+          path: logs.txt
 
   build:
     name: Build ${{ matrix.arch }}
