@@ -22,10 +22,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         # assert user_agent only contains F
         if not all([c == 'F' for c in user_agent]):
-            self.send_response(200)
-        else:
             self.send_response(400)
             logging.error(f"Invalid User-Agent: {user_agent}")
+        else:
+            self.send_response(200)
         self.end_headers()
         ua_len = len(user_agent)
         self.wfile.write(str(ua_len).encode())
