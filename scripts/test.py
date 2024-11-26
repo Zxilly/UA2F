@@ -7,7 +7,6 @@ import subprocess
 import sys
 import threading
 import time
-from typing import override
 
 import requests
 from fake_useragent import UserAgent
@@ -19,11 +18,9 @@ PORT = 37491
 
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
-    @override
     def log_message(self, format, *args):
         pass
 
-    @override
     def do_GET(self):
         user_agent = self.headers.get('User-Agent')
 
