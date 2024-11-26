@@ -107,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-log
-          path: logs.txt
+          path: /var/log/syslog
 
   build:
     name: Build ${{ matrix.arch }}

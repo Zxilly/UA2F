@@ -13,8 +13,6 @@ import requests
 from fake_useragent import UserAgent
 from tqdm import tqdm
 
-from journal import SystemdLogReader
-
 ua = UserAgent()
 
 PORT = 37491
@@ -90,11 +88,6 @@ if __name__ == "__main__":
         })
         assert response.ok
         assert response.text == str(len(nxt))
-
-    logger = SystemdLogReader()
-    logs = logger.read_logs(100)
-    with open("logs.txt", "w") as f:
-        f.write(json.dumps(logs, indent=4))
 
     # clean
     cleanup_iptables()
