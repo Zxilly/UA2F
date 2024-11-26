@@ -1,5 +1,6 @@
 import atexit
 import http.server
+import logging
 import os
 import socketserver
 import subprocess
@@ -24,6 +25,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
         else:
             self.send_response(400)
+            logging.error(f"Invalid User-Agent: {user_agent}")
         self.end_headers()
         ua_len = len(user_agent)
         self.wfile.write(str(ua_len).encode())
@@ -72,7 +74,7 @@ if __name__ == "__main__":
 
     print(f"Starting UA2F: {ua2f}")
 
-    time.sleep(2)
+    time.sleep(3)
 
     for i in range(10000):
         nxt = ua.random
