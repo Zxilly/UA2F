@@ -78,6 +78,9 @@ jobs:
   test-integration:
     name: Run integration tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cache: [true, false]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -98,7 +101,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_ASAN=ON
+          cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_ASAN=ON ${{ matrix.cache == 'false' && '-DUA2F_NO_CACHE=ON' || '-DUA2F_NO_CACHE=OFF' }}
           cmake --build build
           ./build/ua2f --version
           sudo python scripts/test.py ./build/ua2f

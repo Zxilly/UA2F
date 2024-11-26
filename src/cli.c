@@ -48,7 +48,15 @@ void try_print_info(const int argc, char *argv[]) {
         }
 #else
         printf("UCI support disabled\n");
+        printf("Conntrack cache: auto\n");
 #endif
+
+#ifdef UA2F_NO_CACHE
+        printf("Conntrack cache: disabled\n");
+#else
+        printf("Conntrack cache: auto\n");
+#endif
+
         exit(EXIT_SUCCESS);
     }
 
