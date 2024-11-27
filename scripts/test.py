@@ -14,42 +14,31 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import requests
 from fake_useragent import UserAgent
 from tqdm import tqdm
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
+from uvicorn import Config, Server
 
 ua = UserAgent()
 
 PORT = 37491
 
 
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        user_agent = self.headers.get('User-Agent')
+app = FastAPI()
 
-        if not all([c == 'F' for c in user_agent]):
-            self.send_response(400)
-            logging.error(f"Invalid User-Agent: {user_agent}")
-        else:
-            self.send_response(200)
-        self.end_headers()
-        ua_len = len(user_agent)
-        self.wfile.write(str(ua_len).encode())
+@app.get("/")
+async def root(request: Request):
+    user_agent = request.headers.get("user-agent")
 
-def run_server():
-    ipv4_server_address = ('0.0.0.0', PORT)
-    ipv4_httpd = HTTPServer(ipv4_server_address, Handler)
+    if not all(c == 'F' for c in user_agent):
+        return Response(status_code=400)
 
-    ipv6_server_address = ('::', PORT)
-    ipv6_httpd = HTTPServer(ipv6_server_address, Handler)
+    return Response(content=str(len(user_agent)).encode())
 
-    print(f'Starting servers on port {PORT}...')
-
-    ipv4_thread = threading.Thread(target=ipv4_httpd.serve_forever)
-    ipv4_thread.daemon = True
-    ipv4_thread.start()
-
-    ipv6_thread = threading.Thread(target=ipv6_httpd.serve_forever)
-    ipv6_thread.daemon = True
-    ipv6_thread.start()
-
+def start_server():
+    config = Config(app=app, host="::1", port=PORT)
+    server = Server(config)
+    server.run()
 
 def start_ua2f(u: str):
     p = subprocess.Popen([u])
@@ -77,7 +66,9 @@ if __name__ == "__main__":
 
     setup_iptables()
 
-    run_server()
+    server = threading.Thread(target=start_server)
+    server.daemon = True
+    server.start()
 
     ua2f_thread = threading.Thread(target=start_ua2f, args=(ua2f,))
     ua2f_thread.daemon = True
