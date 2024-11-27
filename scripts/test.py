@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     time.sleep(3)
 
-    for i in tqdm(range(2000)):
+    for i in tqdm(range(1024)):
         nxt = ua.random
         response = requests.get(f"http://127.0.0.1:{PORT}", headers={
             "User-Agent": nxt
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         assert response.ok
         assert response.text == str(len(nxt))
 
-    for i in tqdm(range(2000)):
+    for i in tqdm(range(4096)):
         nxt = ua.random
         response = requests.get(f"http://[::1]:{PORT}", headers={
             "User-Agent": nxt
