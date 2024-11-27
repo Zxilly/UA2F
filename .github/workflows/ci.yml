@@ -99,6 +99,16 @@ jobs:
         run: |
           sudo pip install -r scripts/requirements.txt
 
+      - name: Configure ipv6
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.use_tempaddr=0
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=0
+          
+          for interface in $(ip -br link show | awk '{print $1}'); do
+            sudo sysctl -w net.ipv6.conf.${interface}.disable_ipv6=0
+          done
+
       - name: Enable ipv6
         uses: fscarmen/warp-on-actions@v1.3
         with:
