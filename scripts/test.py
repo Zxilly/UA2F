@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import requests
 from fake_useragent import UserAgent
@@ -19,14 +20,10 @@ ua = UserAgent()
 PORT = 37491
 
 
-class MyHandler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
+class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         user_agent = self.headers.get('User-Agent')
 
-        # assert user_agent only contains F
         if not all([c == 'F' for c in user_agent]):
             self.send_response(400)
             logging.error(f"Invalid User-Agent: {user_agent}")
@@ -36,15 +33,22 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         ua_len = len(user_agent)
         self.wfile.write(str(ua_len).encode())
 
+def run_server():
+    ipv4_server_address = ('0.0.0.0', PORT)
+    ipv4_httpd = HTTPServer(ipv4_server_address, Handler)
 
-def start_server():
-    with socketserver.TCPServer(('', PORT), MyHandler, bind_and_activate=False) as httpd:
-        httpd.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-        httpd.server_bind()
-        httpd.server_activate()
-        print(f"Serving on port {PORT}")
-        httpd.serve_forever()
-        atexit.register(httpd.shutdown)
+    ipv6_server_address = ('::', PORT)
+    ipv6_httpd = HTTPServer(ipv6_server_address, Handler)
+
+    print(f'Starting servers on port {PORT}...')
+
+    ipv4_thread = threading.Thread(target=ipv4_httpd.serve_forever)
+    ipv4_thread.daemon = True
+    ipv4_thread.start()
+
+    ipv6_thread = threading.Thread(target=ipv6_httpd.serve_forever)
+    ipv6_thread.daemon = True
+    ipv6_thread.start()
 
 
 def start_ua2f(u: str):
@@ -73,11 +77,7 @@ if __name__ == "__main__":
 
     setup_iptables()
 
-    server_thread = threading.Thread(target=start_server)
-    server_thread.daemon = True
-    server_thread.start()
-
-    print(f"Starting server on port {PORT}")
+    run_server()
 
     ua2f_thread = threading.Thread(target=start_ua2f, args=(ua2f,))
     ua2f_thread.daemon = True
