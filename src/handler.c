@@ -84,7 +84,7 @@ static void send_verdict(const struct nf_queue *queue, const struct nf_packet *p
         syslog(LOG_ERR, "failed to put nfqueue header");
         goto end;
     }
-    nfq_nlmsg_verdict_put(nlh, int(pkt->packet_id), NF_ACCEPT);
+    nfq_nlmsg_verdict_put(nlh, pkt->packet_id, NF_ACCEPT);
 
     if (mark.should_set) {
         struct nlattr *nest = mnl_attr_nest_start_check(nlh, SEND_BUF_LEN, NFQA_CT);
@@ -252,7 +252,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     struct pkt_buff *pkt_buff = pktb_alloc(AF_INET, pkt->payload, pkt->payload_len, 0);
     assert(pkt_buff != NULL);
 
-    __auto_type type;
+    int type;
     if (use_conntrack) {
         type = pkt->orig.ip_version;
         set_transport_header(pkt_buff, type);
