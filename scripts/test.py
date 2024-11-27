@@ -36,9 +36,12 @@ async def root(request: Request):
     return Response(content=str(len(user_agent)).encode())
 
 def start_server():
-    config = Config(app=app, host="0.0.0.0", port=PORT)
-    server = Server(config)
-    server.run()
+    config4 = Config(app=app, host="127.0.0.1", port=PORT, access_log=False)
+    config6 = Config(app=app, host="::1", port=PORT, access_log=False)
+    server4 = Server(config4)
+    server6 = Server(config6)
+    threading.Thread(target=server4.run).start()
+    threading.Thread(target=server6.run).start()
 
 def start_ua2f(u: str):
     p = subprocess.Popen([u])
@@ -66,9 +69,7 @@ if __name__ == "__main__":
 
     setup_iptables()
 
-    server = threading.Thread(target=start_server)
-    server.daemon = True
-    server.start()
+    start_server()
 
     ua2f_thread = threading.Thread(target=start_ua2f, args=(ua2f,))
     ua2f_thread.daemon = True
