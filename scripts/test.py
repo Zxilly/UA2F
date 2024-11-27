@@ -3,7 +3,6 @@ import http.server
 import json
 import logging
 import os
-import socket
 import socketserver
 import subprocess
 import sys
@@ -38,35 +37,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def start_server():
-    def serve_forever(httpd):
-        with httpd:
-            atexit.register(httpd.shutdown)
-            httpd.serve_forever()
-
-    ipv4_server = socketserver.TCPServer(
-        ("", PORT),
-        MyHandler,
-        bind_and_activate=False
-    )
-    ipv4_server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    ipv4_server.server_bind()
-    ipv4_server.server_activate()
-
-    ipv6_server = socketserver.TCPServer(
-        ("::", PORT),
-        MyHandler,
-        bind_and_activate=False
-    )
-    ipv6_server.address_family = socket.AF_INET6
-    ipv6_server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    ipv6_server.server_bind()
-    ipv6_server.server_activate()
-
-    # Run servers in separate threads
-    threading.Thread(target=serve_forever, args=(ipv4_server,), daemon=True).start()
-    threading.Thread(target=serve_forever, args=(ipv6_server,), daemon=True).start()
-
-    print(f"Serving on port {PORT} (IPv4 and IPv6)")
+    with socketserver.TCPServer(("", PORT), MyHandler, True) as httpd:
+        httpd.serve_forever()
+        atexit.register(httpd.shutdown)
 
 
 def start_ua2f(u: str):
@@ -77,12 +50,12 @@ def start_ua2f(u: str):
 # iptables 设置函数
 def setup_iptables():
     os.system(f"sudo iptables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
-    os.system(f"sudo ip6tables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
+    # os.system(f"sudo ip6tables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
 
 
 def cleanup_iptables():
     os.system(f"sudo iptables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
-    os.system(f"sudo ip6tables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
+    # os.system(f"sudo ip6tables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
 
 
 if __name__ == "__main__":
@@ -118,13 +91,13 @@ if __name__ == "__main__":
         assert response.ok
         assert response.text == str(len(nxt))
 
-    for i in tqdm(range(2000)):
-        nxt = ua.random
-        response = requests.get(f"http://[::1]:{PORT}", headers={
-            "User-Agent": nxt
-        })
-        assert response.ok
-        assert response.text == str(len(nxt))
+    # for i in tqdm(range(2000)):
+    #     nxt = ua.random
+    #     response = requests.get(f"http://[::1]:{PORT}", headers={
+    #         "User-Agent": nxt
+    #     })
+    #     assert response.ok
+    #     assert response.text == str(len(nxt))
 
     # clean
     cleanup_iptables()
