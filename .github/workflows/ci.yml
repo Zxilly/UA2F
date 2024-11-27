@@ -144,45 +144,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: aarch64_cortex-a53
-            target: mvebu-cortexa53
-
-          - arch: aarch64_cortex-a72
-            target: mvebu-cortexa72
-
-          - arch: aarch64_generic
-            target: rockchip-armv8
-
-          - arch: arm_cortex-a7_neon-vfpv4
-            target: ipq40xx-generic
-
-          - arch: arm_cortex-a9_vfpv3-d16
-            target: mvebu-cortexa9
-
-          - arch: arm_cortex-a15_neon-vfpv4
-            target: armvirt-32
-
-          - arch: i386_pentium4
-            target: x86-generic
-
-          - arch: i386_pentium-mmx
-            target: x86-geode
-
-          - arch: mips_24kc
-            target: ath79-generic
-
-          - arch: mipsel_24kc
-            target: mt7621
-
-          - arch: powerpc_464fp
-            target: apm821xx-nand
-
-          - arch: powerpc_8548
-            target: mpc85xx-p1010
-
-          - arch: x86_64
-            target: x86-64
+        arch:
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_generic
+          - arm_cortex-a7_neon-vfpv4
+          - arm_cortex-a9_vfpv3-d16
+          - arm_cortex-a15_neon-vfpv4
+          - i386_pentium4
+          - i386_pentium-mmx
+          - mips_24kc
+          - mipsel_24kc
+          - powerpc_464fp
+          - powerpc_8548
+          - x86_64
 
     steps:
       - uses: actions/checkout@v4
@@ -192,7 +167,7 @@ jobs:
       - name: Build
         uses: openwrt/gh-action-sdk@v7
         env:
-          ARCH: ${{ matrix.arch }}
+          ARCH: ${{ matrix.arch }}-23.05.5
           FEEDNAME: packages_ci
           PACKAGES: openwrt
 
@@ -203,7 +178,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: "!startsWith(github.ref, 'refs/tags/v')"
         with:
-          name: ${{ matrix.arch}}-${{ github.sha}}-packages
+          name: ${{ matrix.arch }}-${{ github.sha }}-packages
           path: "*.ipk"
 
       - name: Upload packages
@@ -218,7 +193,7 @@ jobs:
       - name: Store logs
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.arch}}-${{ github.sha }}-logs
+          name: ${{ matrix.arch }}-${{ github.sha }}-logs
           path: logs/
 
       - name: Remove logs
