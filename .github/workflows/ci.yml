@@ -99,6 +99,12 @@ jobs:
         run: |
           sudo pip install -r scripts/requirements.txt
 
+      - name: Enable ipv6
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+
       - name: Run unit tests
         run: |
           cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_ASAN=ON ${{ matrix.cache == 'false' && '-DUA2F_NO_CACHE=ON' || '-DUA2F_NO_CACHE=OFF' }}
