@@ -36,7 +36,7 @@ async def root(request: Request):
     return Response(content=str(len(user_agent)).encode())
 
 def start_server():
-    config = Config(app=app, host="::1", port=PORT)
+    config = Config(app=app, host="0.0.0.0", port=PORT)
     server = Server(config)
     server.run()
 
