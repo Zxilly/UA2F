@@ -60,6 +60,10 @@ CMAKE_OPTIONS += \
 	-DUA2F_USER_AGENT_STRING=$(CONFIG_UA2F_USER_AGENT_STRING) \
 	-DCMAKE_BUILD_TYPE=$(if $(CONFIG_UA2F_DEBUG_BUILD),Debug,Release)
 
+ifeq ($(CONFIG_UA2F_DEBUG_BUILD),y)
+  PKG_BUILD_FLAGS += no-strip
+endif
+
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being checked by Dr.Com.
 endef
