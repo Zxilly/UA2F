@@ -126,7 +126,7 @@ jobs:
           cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_ASAN=ON ${{ matrix.cache }}
           cmake --build build
           sudo ./build/ua2f --version
-          sudo python scripts/test.py ./build/ua2f
+          sudo -E $(which python3) scripts/test.py ./build/ua2f
 
       - name: Upload log
         uses: actions/upload-artifact@v4
