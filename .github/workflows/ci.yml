@@ -119,7 +119,7 @@ jobs:
           sudo sysctl net.ipv6.conf.default.disable_ipv6
           sudo sysctl net.ipv6.conf.lo.disable_ipv6
           
-          ping6 -c 4 ::1 || echo "::1 is not reachable" && exit 1
+          ping6 -c 4 ::1 || { echo "::1 is not reachable"; exit 1; }
 
       - name: Run unit tests
         run: |
