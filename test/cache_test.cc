@@ -11,13 +11,13 @@ protected:
     void SetUp() override {
         test_addr.addr.ip4 = 12345;
         test_addr.port = 80;
-        init_not_http_cache(2);
+        init_not_http_cache(1);
     }
 
     void TearDown() override {
         pthread_rwlock_wrlock(&cacheLock);
         // Clear the cache after each test
-        struct cache *cur, *tmp;
+        cache *cur, *tmp;
         HASH_ITER(hh, not_http_dst_cache, cur, tmp) {
             HASH_DEL(not_http_dst_cache, cur);
             free(cur);
