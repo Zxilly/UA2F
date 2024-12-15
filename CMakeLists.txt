@@ -129,13 +129,23 @@ else ()
     message(STATUS "Cache is auto.")
 endif ()
 
+include(FetchContent)
+
+FetchContent_Declare(llhttp
+        URL "https://github.com/nodejs/llhttp/archive/refs/tags/release/v9.2.1.tar.gz")
+
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+set(BUILD_STATIC_LIBS ON CACHE INTERNAL "")
+FetchContent_MakeAvailable(llhttp)
+
+target_link_libraries(${EXAMPLE_PROJECT_NAME} ${PROJECT_LIBRARIES} llhttp_static ${PROJECT_NAME})
+
 install(TARGETS ua2f RUNTIME DESTINATION bin)
 
 if (UA2F_BUILD_TESTS)
     set(CMAKE_CXX_STANDARD 14)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-    include(FetchContent)
     FetchContent_Declare(
             googletest
             URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
