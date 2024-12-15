@@ -25,8 +25,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get update
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Build and install libubox
         working-directory: /tmp
@@ -37,7 +37,7 @@ jobs:
           cd build
           cmake .. -DBUILD_LUA=OFF -DBUILD_EXAMPLES=OFF
           make
-          make install
+          sudo make install
 
       - name: Build and install libuci
         working-directory: /tmp
@@ -48,7 +48,7 @@ jobs:
           cd build
           cmake .. -DBUILD_LUA=OFF
           make
-          make install
+          sudo make install
 
       - name: Run unit tests
         run: |
@@ -66,8 +66,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get update
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Run unit tests
         run: |
@@ -87,8 +87,8 @@ jobs:
           fetch-depth: 0
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get update
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -107,17 +107,17 @@ jobs:
 
       - name: Configure ipv6
         run: |
-          echo "net.ipv6.conf.all.disable_ipv6=0" | tee -a /etc/sysctl.conf
-          echo "net.ipv6.conf.default.disable_ipv6=0" | tee -a /etc/sysctl.conf
-          echo "net.ipv6.conf.lo.disable_ipv6=0" | tee -a /etc/sysctl.conf
-          sysctl -p
+          echo "net.ipv6.conf.all.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.default.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.lo.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
+          sudo sysctl -p
 
       - name: Debug IPv6
         run: |
           ip -6 addr
-          sysctl net.ipv6.conf.all.disable_ipv6
-          sysctl net.ipv6.conf.default.disable_ipv6
-          sysctl net.ipv6.conf.lo.disable_ipv6
+          sudo sysctl net.ipv6.conf.all.disable_ipv6
+          sudo sysctl net.ipv6.conf.default.disable_ipv6
+          sudo sysctl net.ipv6.conf.lo.disable_ipv6
           
           ping6 -c 4 ::1 || echo "::1 is not reachable" && exit 1
 

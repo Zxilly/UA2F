@@ -35,8 +35,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        apt-get update
-        apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+        sudo apt-get update
+        sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
     - name: Build and install libubox
       working-directory: /tmp
@@ -47,7 +47,7 @@ jobs:
         cd build
         cmake .. -DBUILD_LUA=OFF -DBUILD_EXAMPLES=OFF
         make
-        make install
+        sudo make install
 
     - name: Build and install libuci
       working-directory: /tmp
@@ -58,7 +58,7 @@ jobs:
         cd build
         cmake .. -DBUILD_LUA=OFF
         make
-        make install
+        sudo make install
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v3
