@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-fast install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Build and install libubox
         working-directory: /tmp
@@ -67,7 +67,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-fast install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Run unit tests
         run: |
@@ -88,7 +88,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-fast install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Setup Python
         uses: actions/setup-python@v5
