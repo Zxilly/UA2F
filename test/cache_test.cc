@@ -39,7 +39,7 @@ TEST_F(CacheTest, AddAndRemoveFromCache) {
     cache_add(test_addr);
     EXPECT_TRUE(cache_contains(test_addr));
     sleep(5);
-    EXPECT_TRUE(cache_contains(test_addr));
+    EXPECT_FALSE(cache_contains(test_addr));
 }
 
 TEST_F(CacheTest, CacheDoesNotContainNonexistentEntry) {
