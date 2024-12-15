@@ -113,8 +113,6 @@ add_executable(ua2f
         src/config.c
         src/third/nfqueue-mnl.c)
 
-target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
-
 if (UA2F_ENABLE_UCI)
     add_compile_definitions(UA2F_ENABLE_UCI=1)
     target_link_libraries(ua2f uci)
@@ -138,7 +136,7 @@ set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(BUILD_STATIC_LIBS ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(llhttp)
 
-target_link_libraries(${EXAMPLE_PROJECT_NAME} ${PROJECT_LIBRARIES} llhttp_static ${PROJECT_NAME})
+target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink llhttp_static)
 
 install(TARGETS ua2f RUNTIME DESTINATION bin)
 
