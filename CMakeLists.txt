@@ -128,6 +128,9 @@ else ()
 endif ()
 
 include(FetchContent)
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
 
 FetchContent_Declare(llhttp
         URL "https://github.com/nodejs/llhttp/archive/refs/tags/release/v9.2.1.tar.gz")
