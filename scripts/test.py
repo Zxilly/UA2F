@@ -1,22 +1,13 @@
-import atexit
-import http.server
-import json
-import logging
 import os
-import socket
-import socketserver
-import subprocess
 import sys
 import threading
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import requests
 from fake_useragent import UserAgent
-from tqdm import tqdm
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
-from fastapi.staticfiles import StaticFiles
+from tqdm import tqdm
 from uvicorn import Config, Server
 
 ua = UserAgent()
@@ -30,10 +21,11 @@ app = FastAPI()
 async def root(request: Request):
     user_agent = request.headers.get("user-agent")
 
+    code = 200
     if not all(c == 'F' for c in user_agent):
-        return Response(status_code=400)
+        code = 400
 
-    return Response(content=str(len(user_agent)).encode())
+    return Response(status_code=code, content=str(user_agent).encode())
 
 def start_server():
     config4 = Config(app=app, host="127.0.0.1", port=PORT, access_log=False)
@@ -48,19 +40,23 @@ def start_server():
     t6.start()
 
 def start_ua2f(u: str):
-    p = subprocess.Popen([u])
-    atexit.register(lambda: p.kill())
+    r = os.system(u)
+    if r != 0:
+        print(f"UA2F failed with exit code {r}")
+        exit(-1)
 
 
 def setup_iptables():
-    os.system(f"sudo iptables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
-    os.system(f"sudo ip6tables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
-
+    os.system(f"iptables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
+    os.system(f"ip6tables -A OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
 
 def cleanup_iptables():
-    os.system(f"sudo iptables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
-    os.system(f"sudo ip6tables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
+    os.system(f"iptables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
+    os.system(f"ip6tables -D OUTPUT -p tcp --dport {PORT} -j NFQUEUE --queue-num 10010")
 
+def assert_equal(actual, expected):
+    if actual != expected:
+        raise AssertionError(f"Assertion failed: Expected {expected!r}, but got {actual!r}")
 
 if __name__ == "__main__":
     if os.name != 'posix':
@@ -89,7 +85,7 @@ if __name__ == "__main__":
             "User-Agent": nxt
         })
         assert response.ok
-        assert response.text == str(len(nxt))
+        assert len(response.text) == len(nxt)
 
     for i in tqdm(range(4096)):
         nxt = ua.random
@@ -97,7 +93,7 @@ if __name__ == "__main__":
             "User-Agent": nxt
         })
         assert response.ok
-        assert response.text == str(len(nxt))
+        assert len(response.text) == len(nxt)
 
     # clean
     cleanup_iptables()

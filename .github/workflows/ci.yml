@@ -99,12 +99,6 @@ jobs:
         run: |
           pip install -r scripts/requirements.txt --break-system-packages
 
-      - name: Enable ipv6
-        uses: fscarmen/warp-on-actions@v1.3
-        with:
-          stack: dual
-          mode: client
-
       - name: Configure ipv6
         run: |
           echo "net.ipv6.conf.all.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
@@ -121,18 +115,20 @@ jobs:
           
           ping6 -c 4 ::1 || { echo "::1 is not reachable"; exit 1; }
 
-      - name: Run unit tests
+      - name: Run Integration test
         run: |
           cmake -S . -B build -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_ASAN=ON ${{ matrix.cache }}
           cmake --build build
           sudo ./build/ua2f --version
+          ldd ./build/ua2f
           sudo -E $(which python3) scripts/test.py ./build/ua2f
 
       - name: Upload log
-        uses: actions/upload-artifact@v4
-        with:
-          name: syslog-cache-${{ matrix.cache }}
-          path: /var/log/syslog
+        if: always()
+        run: |
+          echo -e "\`\`\`log\n" >> $GITHUB_STEP_SUMMARY
+          cat /var/log/syslog >> $GITHUB_STEP_SUMMARY
+          echo -e "\n\`\`\`" >> $GITHUB_STEP_SUMMARY
 
   build:
     name: Build ${{ matrix.arch }}
