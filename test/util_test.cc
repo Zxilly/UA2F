@@ -37,7 +37,6 @@ TEST(MemNCaseMemTest, SLengthOne) {
     EXPECT_EQ(result, (void *) (l + 1));
 }
 
-// 测试正常情况
 TEST(MemNCaseMemTest, NormalCase) {
     const char *l = "Hello, World!";
     size_t l_len = 13;
