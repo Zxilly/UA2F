@@ -161,7 +161,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build
-        uses: ZxillyFork/gh-action-sdk@main
+        uses: openwrt/gh-action-sdk@v7
         env:
           ARCH: ${{ matrix.arch }}-23.05.5
           FEEDNAME: packages_ci
