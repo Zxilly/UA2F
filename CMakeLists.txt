@@ -127,9 +127,9 @@ else ()
     message(STATUS "Cache is auto.")
 endif ()
 
-add_subdirectory(src/third/llhttp-release-v9.2.1)
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(BUILD_STATIC_LIBS ON CACHE INTERNAL "")
+add_subdirectory(src/third/llhttp-release-v9.2.1)
 
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink llhttp_static)
 
