@@ -177,32 +177,6 @@ enum {
     IP_UNK = 0,
 };
 
-static bool ipv4_set_transport_header(struct pkt_buff *pkt_buff) {
-    struct iphdr *ip_hdr = nfq_ip_get_hdr(pkt_buff);
-    if (ip_hdr == NULL) {
-        return false;
-    }
-
-    if (nfq_ip_set_transport_header(pkt_buff, ip_hdr) < 0) {
-        syslog(LOG_ERR, "Failed to set ipv4 transport header");
-        return false;
-    }
-    return true;
-}
-
-static bool ipv6_set_transport_header(struct pkt_buff *pkt_buff) {
-    struct ip6_hdr *ip_hdr = nfq_ip6_get_hdr(pkt_buff);
-    if (ip_hdr == NULL) {
-        return false;
-    }
-
-    if (nfq_ip6_set_transport_header(pkt_buff, ip_hdr, IPPROTO_TCP) < 0) {
-        syslog(LOG_ERR, "Failed to set ipv6 transport header");
-        return false;
-    }
-    return true;
-}
-
 int get_pkt_ip_version(const struct nf_packet *pkt) {
     if (pkt->has_conntrack) {
         return pkt->orig.ip_version;
@@ -242,19 +216,43 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
         // will this happen?
         send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
         syslog(LOG_WARNING, "Received unknown ip packet %x. You may set wrong firewall rules.", pkt->hw_protocol);
+        goto end;
     }
 
     if (type == IPV4) {
-        assert(ipv4_set_transport_header(pkt_buff));
+        const __auto_type ip_hdr = nfq_ip_get_hdr(pkt_buff);
+        if (ip_hdr == NULL) {
+            send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
+            syslog(LOG_WARNING, "Failed to get ipv4 header. You may set wrong firewall rules.");
+            goto end;
+        }
+
+        if (nfq_ip_set_transport_header(pkt_buff, ip_hdr) < 0) {
+            send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
+            syslog(LOG_WARNING, "Failed to set ipv4 transport header. You may set wrong firewall rules.");
+            goto end;
+        }
+
         count_ipv4_packet();
     } else if (type == IPV6) {
-        assert(ipv6_set_transport_header(pkt_buff));
+        const __auto_type ip_hdr = nfq_ip6_get_hdr(pkt_buff);
+        if (ip_hdr == NULL) {
+            send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
+            syslog(LOG_WARNING, "Failed to get ipv6 header. You may set wrong firewall rules.");
+            goto end;
+        }
+
+        if (nfq_ip6_set_transport_header(pkt_buff, ip_hdr, IPPROTO_TCP) < 0) {
+            send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
+            syslog(LOG_WARNING, "Failed to set ipv6 transport header. You may set wrong firewall rules.");
+            goto end;
+        }
+
         count_ipv6_packet();
     }
 
     const __auto_type tcp_hdr = nfq_tcp_get_hdr(pkt_buff);
     if (tcp_hdr == NULL) {
-        // This packet is not tcp, pass it
         send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
         syslog(LOG_WARNING, "Received non-tcp packet. You may set wrong firewall rules.");
         goto end;

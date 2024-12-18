@@ -27,7 +27,6 @@ void signal_handler(const int signum) {
 
 int parse_packet(const struct nf_queue *queue, struct nf_buffer *buf) {
     struct nf_packet packet[1] = {0};
-
     while (!should_exit) {
         const __auto_type status = nfqueue_next(buf, packet);
         if (status == IO_READY) {
@@ -36,10 +35,8 @@ int parse_packet(const struct nf_queue *queue, struct nf_buffer *buf) {
             return status;
         }
     }
-
     return IO_ERROR;
 }
-
 int read_buffer(struct nf_queue *queue, struct nf_buffer *buf) {
     const __auto_type buf_status = nfqueue_receive(queue, buf, 0);
     if (buf_status == IO_READY) {

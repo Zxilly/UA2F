@@ -1,9 +1,8 @@
 #ifndef UA2F_CACHE_H
 #define UA2F_CACHE_H
 
-#include <stdbool.h>
-#include <time.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 #include "third/nfqueue-mnl.h"
 #include "third/uthash.h"
@@ -19,7 +18,7 @@ struct cache {
     UT_hash_handle hh;
 };
 
-extern struct cache *not_http_dst_cache;
+extern struct cache *dst_cache;
 extern pthread_rwlock_t cacheLock;
 
 void init_not_http_cache(int interval);
