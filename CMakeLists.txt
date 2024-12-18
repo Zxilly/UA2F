@@ -127,17 +127,9 @@ else ()
     message(STATUS "Cache is auto.")
 endif ()
 
-include(FetchContent)
-if(POLICY CMP0135)
-    cmake_policy(SET CMP0135 NEW)
-endif()
-
-FetchContent_Declare(llhttp
-        URL "https://github.com/nodejs/llhttp/archive/refs/tags/release/v9.2.1.tar.gz")
-
+add_subdirectory(src/third/llhttp-release-v9.2.1)
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(BUILD_STATIC_LIBS ON CACHE INTERNAL "")
-FetchContent_MakeAvailable(llhttp)
 
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink llhttp_static)
 
@@ -146,6 +138,11 @@ install(TARGETS ua2f RUNTIME DESTINATION bin)
 if (UA2F_BUILD_TESTS)
     set(CMAKE_CXX_STANDARD 14)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+    include(FetchContent)
+    if(POLICY CMP0135)
+        cmake_policy(SET CMP0135 NEW)
+    endif()
 
     FetchContent_Declare(
             googletest
