@@ -166,6 +166,7 @@ jobs:
           ARCH: ${{ matrix.arch }}-23.05.5
           FEEDNAME: packages_ci
           PACKAGES: openwrt
+          V: sc
 
       - name: Move created packages to project dir
         run: cp bin/packages/${{ matrix.arch }}/packages_ci/*.ipk . || true
