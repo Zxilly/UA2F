@@ -162,7 +162,6 @@ if (UA2F_BUILD_TESTS)
             test/cache_test.cc
             src/util.c
             src/cache.c
-            src/cli.c
     )
     target_link_libraries(
             ua2f_test
