@@ -77,8 +77,8 @@ uci commit ua2f
 ## TODO
 
 - [ ] pthread 支持，由不同线程完成入队出队
-- [ ] 重写正则匹配为 parser
-- [ ] 以连接为单位维护 parser 状态
+- [x] 重写字符串匹配为 parser
+- [ ] 添加 UA 正则匹配
 
 ## License
 
