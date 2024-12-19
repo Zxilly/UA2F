@@ -15,6 +15,8 @@
 #include <syslog.h>
 #include <stdbool.h>
 
+#include "cli.h"
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
