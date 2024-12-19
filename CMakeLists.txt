@@ -109,6 +109,7 @@ add_executable(ua2f
         src/util.c
         src/cache.c
         src/handler.c
+        src/cli.c
         src/config.c
         src/third/nfqueue-mnl.c)
 
@@ -150,7 +151,6 @@ if (UA2F_BUILD_TESTS)
             test/cache_test.cc
             src/util.c
             src/cache.c
-            src/cli.c
     )
     target_link_libraries(
             ua2f_test
