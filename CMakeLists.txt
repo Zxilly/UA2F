@@ -91,9 +91,6 @@ else ()
     message(STATUS "AddressSanitizer is disabled.")
 endif ()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-gc-sections")
-
 if (UA2F_CUSTOM_USER_AGENT)
     if (NOT UA2F_USER_AGENT_STRING)
         message(FATAL_ERROR "UA2F_USER_AGENT_STRING is not set")
@@ -112,7 +109,6 @@ add_executable(ua2f
         src/util.c
         src/cache.c
         src/handler.c
-        src/cli.c
         src/config.c
         src/third/nfqueue-mnl.c)
 
