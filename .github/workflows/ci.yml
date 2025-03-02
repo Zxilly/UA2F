@@ -158,6 +158,9 @@ jobs:
           - powerpc_464fp
           - powerpc_8548
           - x86_64
+        version:
+          - 23.05.5
+          - 24.10.0
 
     steps:
       - uses: actions/checkout@v4
@@ -167,18 +170,23 @@ jobs:
       - name: Build
         uses: openwrt/gh-action-sdk@v7
         env:
-          ARCH: ${{ matrix.arch }}-23.05.5
+          ARCH: ${{ matrix.arch }}-${{ matrix.version }}
           FEEDNAME: packages_ci
           PACKAGES: openwrt
 
       - name: Move created packages to project dir
-        run: cp bin/packages/${{ matrix.arch }}/packages_ci/*.ipk . || true
+        run: |
+          mkdir -p tmp
+          cp bin/packages/${{ matrix.arch }}/packages_ci/*.ipk tmp/ || true
+          for f in tmp/*.ipk; do mv "$f" "${f/.ipk/-${{ matrix.version }}.ipk}" 2>/dev/null || true; done
+          mv tmp/*.ipk . 2>/dev/null || true
+          rm -rf tmp
 
       - name: Store packages
         uses: actions/upload-artifact@v4
         if: "!startsWith(github.ref, 'refs/tags/v')"
         with:
-          name: ${{ matrix.arch }}-${{ github.sha }}-packages
+          name: ${{ matrix.arch }}-${{ github.sha }}-${{ matrix.version }}-packages
           path: "*.ipk"
 
       - name: Upload packages
