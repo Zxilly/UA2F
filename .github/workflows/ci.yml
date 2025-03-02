@@ -135,7 +135,7 @@ jobs:
           path: /var/log/syslog
 
   build:
-    name: Build ${{ matrix.arch }}
+    name: Build ${{ matrix.arch }} on ${{ matrix.version }}
     runs-on: ubuntu-latest
     needs:
       - test
