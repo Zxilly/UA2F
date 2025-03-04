@@ -184,14 +184,14 @@ jobs:
 
       - name: Store packages
         uses: actions/upload-artifact@v4
-        if: !startsWith(github.ref, "refs/tags/v")
+        if: '! startsWith(github.ref, "refs/tags/v")'
         with:
           name: ${{ matrix.arch }}-${{ github.sha }}-${{ matrix.version }}-packages
           path: "*.ipk"
 
       - name: Upload packages
         uses: svenstaro/upload-release-action@v2
-        if: startsWith(github.ref, "refs/tags/v")
+        if: 'startsWith(github.ref, "refs/tags/v")'
         with:
           repo_token: ${{ github.token }}
           file: "*.ipk"
