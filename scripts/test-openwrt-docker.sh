@@ -23,7 +23,7 @@ while [ $# -gt 0 ]; do
       ;;
     *)
       echo "未知参数: $1"
-      echo "用法: $0 [--skip-network-config] [--skip-functional-test] [--debug] [--queue-num NUM] [--custom-ua UA]"
+      echo "用法: $0 [--skip-network-config] [--skip-functional-test] [--debug]"
       exit 1
       ;;
   esac
