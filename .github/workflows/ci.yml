@@ -209,7 +209,6 @@ jobs:
 
   test-openwrt-docker:
     name: Test IPK in OpenWrt Docker
-    if: false # Disable this job for now
     runs-on: ubuntu-latest
     needs: build
     strategy:
