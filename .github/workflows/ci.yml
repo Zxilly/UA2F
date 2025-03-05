@@ -228,16 +228,19 @@ jobs:
           name: x86_64-${{ github.sha }}-${{ matrix.version }}-packages
           path: ./ipk
 
-      - name: Grant permissions
-        run: |
-          chmod +x scripts/test-openwrt-docker.sh
-
       - name: Run test in OpenWrt Docker
         run: |
           docker pull openwrt/rootfs:x86_64-${{ matrix.version }}
           
+          chmod +x scripts/test-openwrt-docker.sh
+          
+          mkdir -p ./test-scripts
+          cp scripts/test-openwrt-docker.sh ./test-scripts/
+          chmod +x ./test-scripts/test-openwrt-docker.sh
+          
           docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW \
-            -v $(pwd)/ipk:/ipk -v $(pwd)/scripts/test-openwrt-docker.sh:/test-openwrt-docker.sh \
+            -v "$(pwd)/ipk:/ipk" \
+            -v "$(pwd)/test-scripts/test-openwrt-docker.sh:/test-openwrt-docker.sh:ro" \
             openwrt/rootfs:x86_64-${{ matrix.version }} /test-openwrt-docker.sh --debug
           
           echo "OpenWrt Docker测试完成"
