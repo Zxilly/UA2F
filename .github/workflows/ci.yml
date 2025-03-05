@@ -232,15 +232,17 @@ jobs:
         run: |
           docker pull openwrt/rootfs:x86_64-${{ matrix.version }}
           
+          # 确保脚本有执行权限
           chmod +x scripts/test-openwrt-docker.sh
           
+          # 创建临时目录并复制脚本
           mkdir -p ./test-scripts
           cp scripts/test-openwrt-docker.sh ./test-scripts/
           chmod +x ./test-scripts/test-openwrt-docker.sh
           
           docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW \
-            -v "$(pwd)/ipk:/ipk" \
-            -v "$(pwd)/test-scripts/test-openwrt-docker.sh:/test-openwrt-docker.sh:ro" \
-            openwrt/rootfs:x86_64-${{ matrix.version }} /test-openwrt-docker.sh --debug
+            -v "$(pwd)/ipk:/ipk:ro" \
+            -v "$(pwd)/test-scripts:/scripts:ro" \
+            openwrt/rootfs:x86_64-${{ matrix.version }} sh -c "chmod +x /scripts/test-openwrt-docker.sh && /scripts/test-openwrt-docker.sh --debug"
           
           echo "OpenWrt Docker测试完成"
