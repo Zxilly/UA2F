@@ -1,5 +1,5 @@
+#include "assert.h"
 #include "handler.h"
-#include <arpa/inet.h>
 #include "cache.h"
 #include "custom.h"
 #include "statistics.h"
@@ -9,7 +9,7 @@
 #include "config.h"
 #endif
 
-#include <assert.h>
+#include <arpa/inet.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv6.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
@@ -39,6 +39,7 @@ static bool cache_initialized = false;
 
 void init_handler() {
     replacement_user_agent_string = malloc(MAX_USER_AGENT_LENGTH);
+    assert(replacement_user_agent_string != NULL && "Failed to allocate user agent string");
 
     bool ua_set = false;
 
@@ -80,6 +81,10 @@ struct mark_op {
 
 void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, const struct mark_op mark,
                   struct pkt_buff *mangled_pkt_buff) {
+    assert(queue != NULL && "Queue cannot be NULL");
+    assert(pkt != NULL && "Packet cannot be NULL");
+    assert(queue->nl_socket != NULL && "Netlink socket cannot be NULL");
+
     struct nlmsghdr *nlh = nfqueue_put_header(pkt->queue_num, NFQNL_MSG_VERDICT);
     if (nlh == NULL) {
         syslog(LOG_ERR, "failed to put nfqueue header");
@@ -101,6 +106,8 @@ void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, con
     }
 
     if (mangled_pkt_buff != NULL) {
+        assert(pktb_data(mangled_pkt_buff) != NULL && "Mangled packet data cannot be NULL");
+        assert(pktb_len(mangled_pkt_buff) > 0 && "Mangled packet length must be positive");
         nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(mangled_pkt_buff), pktb_len(mangled_pkt_buff));
     }
 
@@ -222,6 +229,11 @@ int get_pkt_ip_version(const struct nf_packet *pkt) {
 }
 
 void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
+    assert(queue != NULL && "Queue cannot be NULL");
+    assert(pkt != NULL && "Packet cannot be NULL");
+    assert(pkt->payload != NULL && "Packet payload cannot be NULL");
+    assert(pkt->payload_len > 0 && "Packet payload length must be positive");
+
     bool ct_ok = use_conntrack && pkt->has_conntrack;
 
     if (ct_ok) {
@@ -230,6 +242,8 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
             cache_initialized = true;
         }
     }
+
+    assert((!ct_ok || cache_initialized) && "Cache must be initialized when using conntrack");
 
     if (ct_ok && should_ignore(pkt)) {
         send_verdict(queue, pkt, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
@@ -242,13 +256,11 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
         goto end;
     }
 
+    assert(pktb_data(pkt_buff) != NULL && "Packet buffer data cannot be NULL");
+    assert(pktb_len(pkt_buff) > 0 && "Packet buffer length must be positive");
+
     const int type = get_pkt_ip_version(pkt);
-    if (type == IP_UNK) {
-        // will this happen?
-        syslog(LOG_WARNING, "Received unknown ip packet type %x. You may set wrong firewall rules.", pkt->hw_protocol);
-        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
-        goto end;
-    }
+    assert((type == IPV4 || type == IPV6 || type == IP_UNK) && "Invalid IP version");
 
     if (type == IPV4) {
         if (!ipv4_set_transport_header(pkt_buff)) {
