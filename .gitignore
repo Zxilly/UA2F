@@ -79,3 +79,4 @@ dkms.conf
 /build/
 /third_party/
 /venv/
+.vscode/

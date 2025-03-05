@@ -180,10 +180,11 @@ enum {
 static bool ipv4_set_transport_header(struct pkt_buff *pkt_buff) {
     struct iphdr *ip_hdr = nfq_ip_get_hdr(pkt_buff);
     if (ip_hdr == NULL) {
+        syslog(LOG_ERR, "Failed to get ipv4 ip header");
         return false;
     }
 
-    if (nfq_ip_set_transport_header(pkt_buff, ip_hdr) < 0) {
+    if (nfq_ip_set_transport_header(pkt_buff, ip_hdr) == -1) {
         syslog(LOG_ERR, "Failed to set ipv4 transport header");
         return false;
     }
@@ -193,10 +194,11 @@ static bool ipv4_set_transport_header(struct pkt_buff *pkt_buff) {
 static bool ipv6_set_transport_header(struct pkt_buff *pkt_buff) {
     struct ip6_hdr *ip_hdr = nfq_ip6_get_hdr(pkt_buff);
     if (ip_hdr == NULL) {
+        syslog(LOG_ERR, "Failed to get ipv6 ip header");
         return false;
     }
 
-    if (nfq_ip6_set_transport_header(pkt_buff, ip_hdr, IPPROTO_TCP) < 0) {
+    if (nfq_ip6_set_transport_header(pkt_buff, ip_hdr, IPPROTO_TCP) == 0) {
         syslog(LOG_ERR, "Failed to set ipv6 transport header");
         return false;
     }
@@ -262,11 +264,12 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     if (tcp_hdr == NULL) {
         if (pktb_transport_header(pkt_buff) == NULL) {
             syslog(LOG_ERR, "Transport header was not set.");
+        } else {
+            syslog(LOG_WARNING, "Received non-tcp packet. You may set wrong firewall rules.");
         }
 
         // This packet is not tcp, pass it
         send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
-        syslog(LOG_WARNING, "Received non-tcp packet. You may set wrong firewall rules.");
         goto end;
     }
 
