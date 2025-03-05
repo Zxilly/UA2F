@@ -65,7 +65,7 @@ ifeq ($(CONFIG_UA2F_DEBUG_BUILD),y)
 endif
 
 define Package/ua2f/description
-  Change User-agent to Fwords to prevent being checked by Dr.Com.
+  Change User-agent to Fwords to prevent being detected.
 endef
 
 define Package/ua2f/install
