@@ -242,7 +242,7 @@ jobs:
           
           docker run --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW \
             -v "$(pwd)/ipk:/ipk:ro" \
-            -v "$(pwd)/test-scripts:/scripts:ro" \
+            -v "$(pwd)/test-scripts:/scripts" \
             openwrt/rootfs:x86_64-${{ matrix.version }} sh -c "chmod +x /scripts/test-openwrt-docker.sh && /scripts/test-openwrt-docker.sh --debug"
           
           echo "OpenWrt Docker测试完成"
