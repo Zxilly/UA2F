@@ -7,7 +7,7 @@
 #ifdef UA2F_ENABLE_UCI
 #include "config.h"
 #endif
-#include "third/nfqueue-mnl.h"
+#include "third/nfqueue-mnl/nfqueue-mnl.h"
 
 #include <signal.h>
 #include <stdlib.h>

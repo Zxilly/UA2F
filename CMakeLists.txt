@@ -104,15 +104,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/custom.h.in ${CMAKE_CURRENT_BINAR
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-if (UA2F_ENABLE_BACKTRACE)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBBACKTRACE REQUIRED libbacktrace)
-    add_compile_definitions(UA2F_ENABLE_BACKTRACE=1)
-    message(STATUS "libbacktrace support is enabled.")
-else()
-    message(STATUS "libbacktrace support is disabled.")
-endif()
-
 add_executable(ua2f
         src/ua2f.c
         src/statistics.c
@@ -121,13 +112,34 @@ add_executable(ua2f
         src/handler.c
         src/cli.c
         src/config.c
-        src/third/nfqueue-mnl.c)
+        src/third/nfqueue-mnl/nfqueue-mnl.c)
 
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
 
 if (UA2F_ENABLE_BACKTRACE)
-    target_link_libraries(ua2f ${LIBBACKTRACE_LIBRARIES})
-    target_include_directories(ua2f PRIVATE ${LIBBACKTRACE_INCLUDE_DIRS})
+    set(LIBBACKTRACE_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/libbacktrace)
+    
+    add_custom_target(libbacktrace
+        COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/src/third/libbacktrace && 
+                autoreconf -i && 
+                ./configure --prefix=${LIBBACKTRACE_BUILD_DIR} && 
+                make && 
+                make install
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/third/libbacktrace
+    )
+    
+    target_include_directories(ua2f PRIVATE ${LIBBACKTRACE_BUILD_DIR}/include)
+    
+    target_link_directories(ua2f PRIVATE ${LIBBACKTRACE_BUILD_DIR}/lib)
+    
+    target_link_libraries(ua2f backtrace)
+    
+    add_dependencies(ua2f libbacktrace)
+    
+    add_compile_definitions(UA2F_ENABLE_BACKTRACE=1)
+    message(STATUS "libbacktrace support is enabled.")
+else()
+    message(STATUS "libbacktrace support is disabled.")
 endif()
 
 if (UA2F_ENABLE_UCI)

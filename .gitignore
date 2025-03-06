@@ -81,3 +81,15 @@ dkms.conf
 /third_party/
 /venv/
 .vscode/
+
+# libbacktrace automake cache
+src/third/libbacktrace/autom4te.cache/
+src/third/libbacktrace/config.log
+src/third/libbacktrace/config.status
+src/third/libbacktrace/configure
+src/third/libbacktrace/Makefile
+src/third/libbacktrace/*.o
+src/third/libbacktrace/*.lo
+src/third/libbacktrace/*.la
+src/third/libbacktrace/.libs/
+src/third/libbacktrace/.deps/
