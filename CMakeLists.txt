@@ -122,7 +122,7 @@ if (UA2F_ENABLE_BACKTRACE)
     add_custom_target(libbacktrace
         COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/src/third/libbacktrace && 
                 autoreconf -i && 
-                ./configure --prefix=${LIBBACKTRACE_BUILD_DIR} --host=${CMAKE_CROSSCOMPILING_EMULATOR} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} AR=${CMAKE_AR} RANLIB=${CMAKE_RANLIB} STRIP=${CMAKE_STRIP} && 
+                ./configure --prefix=${LIBBACKTRACE_BUILD_DIR} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} AR=${CMAKE_AR} RANLIB=${CMAKE_RANLIB} STRIP=${CMAKE_STRIP} CFLAGS="${CMAKE_C_FLAGS}" CXXFLAGS="${CMAKE_CXX_FLAGS}" LDFLAGS="${CMAKE_EXE_LINKER_FLAGS}" CPPFLAGS="${CMAKE_C_FLAGS}" && 
                 make && 
                 make install
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/third/libbacktrace
