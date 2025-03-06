@@ -261,6 +261,12 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
 
     const int type = get_pkt_ip_version(pkt);
     assert((type == IPV4 || type == IPV6 || type == IP_UNK) && "Invalid IP version");
+    if (type == IP_UNK) {
+        // will this happen?
+        syslog(LOG_WARNING, "Received unknown ip packet type %x. You may set wrong firewall rules.", pkt->hw_protocol);
+        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
+        goto end;
+    }
 
     if (type == IPV4) {
         if (!ipv4_set_transport_header(pkt_buff)) {
@@ -295,13 +301,14 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     const __auto_type tcp_hdr = nfq_tcp_get_hdr(pkt_buff);
     if (tcp_hdr == NULL) {
         // This packet is not tcp, pass it
-        syslog(LOG_WARNING, "Received non-tcp packet. You may set wrong firewall rules.");
+        syslog(LOG_WARNING, "No tcp header found");
         send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
         goto end;
     }
 
     const __auto_type tcp_payload = nfq_tcp_get_payload(tcp_hdr, pkt_buff);
     if (tcp_payload == NULL) {
+        syslog(LOG_WARNING, "No tcp payload found");
         send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
         goto end;
     }
@@ -385,7 +392,9 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     send_verdict(queue, pkt, get_next_mark(pkt, has_ua), pkt_buff);
 
 end:
-    free(pkt->payload);
+    if (pkt->payload != NULL) {
+        free(pkt->payload);
+    }
     if (pkt_buff != NULL) {
         pktb_free(pkt_buff);
     }
