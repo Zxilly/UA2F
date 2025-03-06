@@ -151,12 +151,8 @@ jobs:
           - arm_cortex-a7_neon-vfpv4
           - arm_cortex-a9_vfpv3-d16
           - arm_cortex-a15_neon-vfpv4
-          - i386_pentium4
-          - i386_pentium-mmx
           - mips_24kc
           - mipsel_24kc
-          - powerpc_464fp
-          - powerpc_8548
           - x86_64
         version:
           - 23.05.5
