@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=UA2F
-PKG_VERSION:=4.9.7
+PKG_VERSION:=4.10.1
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-3.0-only
@@ -58,11 +58,9 @@ CMAKE_OPTIONS += \
 	-DUA2F_VERSION_STR="$(PKG_VERSION)" \
 	-DUA2F_CUSTOM_USER_AGENT=$(if $(CONFIG_UA2F_CUSTOM_USER_AGENT),ON,OFF) \
 	-DUA2F_USER_AGENT_STRING=$(CONFIG_UA2F_USER_AGENT_STRING) \
-	-DCMAKE_BUILD_TYPE=$(if $(CONFIG_UA2F_DEBUG_BUILD),Debug,Release)
+	-DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-ifeq ($(CONFIG_UA2F_DEBUG_BUILD),y)
-  STRIP:=true
-endif
+STRIP:=true
 
 define Package/ua2f/description
   Change User-agent to Fwords to prevent being detected.

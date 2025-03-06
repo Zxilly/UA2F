@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 17)
 OPTION(UA2F_BUILD_TESTS "Build tests" OFF)
 OPTION(UA2F_ENABLE_UCI "Enable UCI support" ON)
 OPTION(UA2F_NO_CACHE "Disable cache" OFF)
+OPTION(UA2F_ENABLE_BACKTRACE "Enable libbacktrace support" ON)
 
 find_package(Git)
 if (GIT_FOUND)
@@ -103,6 +104,15 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/custom.h.in ${CMAKE_CURRENT_BINAR
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+if (UA2F_ENABLE_BACKTRACE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBBACKTRACE REQUIRED libbacktrace)
+    add_compile_definitions(UA2F_ENABLE_BACKTRACE=1)
+    message(STATUS "libbacktrace support is enabled.")
+else()
+    message(STATUS "libbacktrace support is disabled.")
+endif()
+
 add_executable(ua2f
         src/ua2f.c
         src/statistics.c
@@ -114,6 +124,11 @@ add_executable(ua2f
         src/third/nfqueue-mnl.c)
 
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
+
+if (UA2F_ENABLE_BACKTRACE)
+    target_link_libraries(ua2f ${LIBBACKTRACE_LIBRARIES})
+    target_include_directories(ua2f PRIVATE ${LIBBACKTRACE_INCLUDE_DIRS})
+endif()
 
 if (UA2F_ENABLE_UCI)
     add_compile_definitions(UA2F_ENABLE_UCI=1)
