@@ -169,6 +169,7 @@ jobs:
           ARCH: ${{ matrix.arch }}-${{ matrix.version }}
           FEEDNAME: packages_ci
           PACKAGES: openwrt
+          V: sc
 
       - name: Move created packages to project dir
         run: |
