@@ -93,3 +93,4 @@ src/third/libbacktrace/*.lo
 src/third/libbacktrace/*.la
 src/third/libbacktrace/.libs/
 src/third/libbacktrace/.deps/
+src/third/libbacktrace/libtool
