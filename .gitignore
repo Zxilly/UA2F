@@ -94,3 +94,8 @@ src/third/libbacktrace/*.la
 src/third/libbacktrace/.libs/
 src/third/libbacktrace/.deps/
 src/third/libbacktrace/libtool
+src/third/libbacktrace/backtrace-supported.h
+src/third/libbacktrace/config.h
+src/third/libbacktrace/install-debuginfo-for-buildid.sh
+src/third/libbacktrace/stamp-h1
+src/third/libbacktrace/configure~
