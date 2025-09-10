@@ -120,7 +120,7 @@ jobs:
 
       - name: Generate comprehensive coverage report
         run: |
-          cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_COVERAGE=ON
+          cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_COVERAGE=ON -DUA2F_ENABLE_UCI=OFF
           cmake --build build-coverage
           cd build-coverage
           
