@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev libjson-c-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev libjson-c-dev lcov
 
       - name: Build and install libubox
         working-directory: /tmp
@@ -56,6 +56,95 @@ jobs:
           cmake --build build
           ./build/ua2f_test
 
+  test-coverage:
+    name: Run coverage tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev libjson-c-dev lcov
+
+      - name: Build and install libubox
+        working-directory: /tmp
+        run: |
+          git clone https://github.com/openwrt/libubox.git
+          cd libubox
+          mkdir build
+          cd build
+          cmake .. -DBUILD_LUA=OFF -DBUILD_EXAMPLES=OFF
+          make
+          sudo make install
+
+      - name: Build and install libuci
+        working-directory: /tmp
+        run: |
+          git clone https://github.com/openwrt/uci.git
+          cd uci
+          mkdir build
+          cd build
+          cmake .. -DBUILD_LUA=OFF
+          make
+          sudo make install
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install Python requirements
+        run: |
+          pip install -r scripts/requirements.txt --break-system-packages
+
+      - name: Enable ipv6
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+          stack: dual
+          mode: client
+
+      - name: Configure ipv6
+        run: |
+          echo "net.ipv6.conf.all.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.default.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.lo.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
+          sudo sysctl -p
+
+      - name: Debug IPv6
+        run: |
+          ip -6 addr
+          ping6 -c 4 ::1 || { echo "::1 is not reachable"; exit 1; }
+
+      - name: Generate comprehensive coverage report
+        run: |
+          cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_COVERAGE=ON
+          cmake --build build-coverage
+          cd build-coverage
+          
+          make coverage-combined
+          
+          sudo ./ua2f --version
+          sudo -E $(which python3) ../scripts/test.py ./ua2f
+          
+          make coverage-merge
+
+      - name: Upload comprehensive coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: build-coverage/coverage_combined_filtered.info
+          flags: comprehensive
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build-coverage/coverage_combined_html/
+
   test-standalone:
     name: Run unit tests without uci support
     runs-on: ubuntu-latest
@@ -67,7 +156,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov
 
       - name: Run unit tests
         run: |
@@ -88,7 +177,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -139,6 +228,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - test
+      - test-coverage
       - test-standalone
       - test-integration
     strategy:

@@ -78,6 +78,13 @@ dkms.conf
 
 /build/
 /mybuild/
+/build-*/
+
+# Coverage files
+*.gcno
+*.gcda
+*.info
+coverage_html/
 /third_party/
 /venv/
 .vscode/
