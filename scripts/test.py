@@ -48,7 +48,16 @@ def start_server():
     t6.start()
 
 def start_ua2f(u: str):
-    p = subprocess.Popen([u])
+    env = os.environ.copy()
+
+    ua2f_abs_path = os.path.abspath(u)
+    build_dir = os.path.dirname(ua2f_abs_path)
+    
+    env['GCOV_PREFIX'] = build_dir
+    env['GCOV_PREFIX_STRIP'] = '0'  # Don't strip any path components
+    
+    print(f"Starting UA2F with GCOV_PREFIX={build_dir}")
+    p = subprocess.Popen([u], env=env)
     
     def graceful_shutdown():
         # Send SIGTERM for graceful shutdown to flush coverage data

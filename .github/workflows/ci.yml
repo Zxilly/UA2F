@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev libjson-c-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov libjson-c-dev lcov
 
       - name: Build and install libubox
         working-directory: /tmp
@@ -61,12 +61,12 @@ jobs:
           cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON
           cmake --build build-coverage
           cd build-coverage
-          make coverage
+          make coverage-lcov
 
       - name: Upload unit test coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          directory: build-coverage
+          files: build-coverage/coverage.info
           flags: unittests
           fail_ci_if_error: true
           verbose: true
@@ -83,7 +83,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov
 
       - name: Run unit tests
         run: |
@@ -96,12 +96,12 @@ jobs:
           cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF
           cmake --build build-coverage
           cd build-coverage
-          make coverage
+          make coverage-lcov
 
       - name: Upload unit test coverage to Codecov (standalone)
         uses: codecov/codecov-action@v5
         with:
-          directory: build-coverage
+          files: build-coverage/coverage.info
           flags: unittests-standalone
           fail_ci_if_error: true
           verbose: true
@@ -120,7 +120,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -168,31 +168,35 @@ jobs:
           cd build-coverage
           
           # Reset coverage counters
-          make coverage-integration
+          make coverage-integration-reset
           
           # Run integration tests with coverage-enabled binary
           sudo ./ua2f --version
           sudo -E $(which python3) ../scripts/test.py ./ua2f
           
+          # Process coverage data with lcov
+          make coverage-integration-process
+          
           # Fix ownership of all coverage files recursively
           sudo chown -R $(whoami):$(whoami) .
           
           # Ensure coverage files are readable
-          find . -name "*.gcno" -o -name "*.gcda" | xargs chmod 644
+          find . -name "*.gcno" -o -name "*.gcda" -o -name "*.info" | xargs chmod 644
           
           # Debug: List coverage files and their permissions
           echo "Coverage files generated:"
-          find . -name "*.gcno" -o -name "*.gcda" | head -10 | xargs ls -la
+          find . -name "*.gcno" -o -name "*.gcda" -o -name "*.info" | head -10 | xargs ls -la
           
           # Count coverage files
           gcno_count=$(find . -name "*.gcno" | wc -l)
           gcda_count=$(find . -name "*.gcda" | wc -l)
-          echo "Found $gcno_count .gcno files and $gcda_count .gcda files"
+          info_count=$(find . -name "*.info" | wc -l)
+          echo "Found $gcno_count .gcno files, $gcda_count .gcda files, and $info_count .info files"
 
       - name: Upload integration test coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          directory: build-coverage
+          files: build-coverage/coverage-integration.info
           flags: integration
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
