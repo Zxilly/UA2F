@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev libjson-c-dev lcov
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev libjson-c-dev
 
       - name: Build and install libubox
         working-directory: /tmp
@@ -66,7 +66,7 @@ jobs:
       - name: Upload unit test coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: build-coverage/coverage_filtered.info
+          directory: build-coverage
           flags: unittests
           fail_ci_if_error: true
           verbose: true
@@ -83,7 +83,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Run unit tests
         run: |
@@ -101,7 +101,7 @@ jobs:
       - name: Upload unit test coverage to Codecov (standalone)
         uses: codecov/codecov-action@v5
         with:
-          files: build-coverage/coverage_filtered.info
+          directory: build-coverage
           flags: unittests-standalone
           fail_ci_if_error: true
           verbose: true
@@ -120,7 +120,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -174,16 +174,20 @@ jobs:
           sudo ./ua2f --version
           sudo -E $(which python3) ../scripts/test.py ./ua2f
           
-          # Fix ownership of coverage files
+          # Fix ownership of all coverage files recursively
           sudo chown -R $(whoami):$(whoami) .
           
-          # Collect coverage data
-          make coverage-collect
+          # Ensure coverage files are readable
+          find . -name "*.gcno" -o -name "*.gcda" | xargs chmod 644
+          
+          # Debug: List coverage files and their permissions
+          echo "Coverage files generated:"
+          find . -name "*.gcno" -o -name "*.gcda" | head -10 | xargs ls -la
 
       - name: Upload integration test coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: build-coverage/coverage_filtered.info
+          directory: build-coverage
           flags: integration
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
