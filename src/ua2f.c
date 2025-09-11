@@ -11,7 +11,6 @@
 
 #include <signal.h>
 #include <stdlib.h>
-#include <string.h>
 #include <syslog.h>
 #include <stdbool.h>
 
@@ -19,6 +18,11 @@
 #pragma ide diagnostic ignored "EndlessLoop"
 
 volatile int should_exit = false;
+
+void signal_handler(int sig) {
+    syslog(LOG_INFO, "Received signal %d, preparing to exit...", sig);
+    should_exit = true;
+}
 
 int parse_packet(const struct nf_queue *queue, struct nf_buffer *buf) {
     struct nf_packet packet[1] = {0};
@@ -79,6 +83,10 @@ void main_loop(struct nf_queue *queue) {
 int main(const int argc, char *argv[]) {
     openlog("UA2F", LOG_PID, LOG_SYSLOG);
 
+    // Register signal handlers for graceful shutdown
+    signal(SIGTERM, signal_handler);
+    signal(SIGINT, signal_handler);
+
 #ifdef UA2F_ENABLE_UCI
     load_config();
 #else
@@ -107,6 +115,8 @@ int main(const int argc, char *argv[]) {
     main_loop(queue);
 
     nfqueue_close(queue);
+
+    syslog(LOG_INFO, "UA2F exiting gracefully");
 
     return EXIT_SUCCESS;
 }

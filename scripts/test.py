@@ -49,7 +49,17 @@ def start_server():
 
 def start_ua2f(u: str):
     p = subprocess.Popen([u])
-    atexit.register(lambda: p.kill())
+    
+    def graceful_shutdown():
+        # Send SIGTERM for graceful shutdown to flush coverage data
+        try:
+            p.terminate()
+            p.wait(timeout=5)  # Wait up to 5 seconds for graceful shutdown
+        except subprocess.TimeoutExpired:
+            p.kill()  # Force kill if it doesn't respond
+    
+    atexit.register(graceful_shutdown)
+    return p
 
 
 def setup_iptables():
@@ -75,9 +85,7 @@ if __name__ == "__main__":
 
     start_server()
 
-    ua2f_thread = threading.Thread(target=start_ua2f, args=(ua2f,))
-    ua2f_thread.daemon = True
-    ua2f_thread.start()
+    ua2f_process = start_ua2f(ua2f)
 
     print(f"Starting UA2F: {ua2f}")
 
@@ -98,6 +106,17 @@ if __name__ == "__main__":
         })
         assert response.ok
         assert response.text == str(len(nxt))
+
+    print("Tests completed, shutting down UA2F gracefully...")
+    
+    # Graceful shutdown to flush coverage data
+    try:
+        ua2f_process.terminate()
+        ua2f_process.wait(timeout=5)
+        print("UA2F terminated gracefully")
+    except subprocess.TimeoutExpired:
+        print("UA2F didn't respond to SIGTERM, force killing...")
+        ua2f_process.kill()
 
     # clean
     cleanup_iptables()

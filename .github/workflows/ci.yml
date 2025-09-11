@@ -183,6 +183,11 @@ jobs:
           # Debug: List coverage files and their permissions
           echo "Coverage files generated:"
           find . -name "*.gcno" -o -name "*.gcda" | head -10 | xargs ls -la
+          
+          # Count coverage files
+          gcno_count=$(find . -name "*.gcno" | wc -l)
+          gcda_count=$(find . -name "*.gcda" | wc -l)
+          echo "Found $gcno_count .gcno files and $gcda_count .gcda files"
 
       - name: Upload integration test coverage to Codecov
         uses: codecov/codecov-action@v5
