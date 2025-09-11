@@ -239,27 +239,6 @@ if (UA2F_BUILD_TESTS)
                 COMMENT "Generating code coverage report"
                 DEPENDS ua2f_test
             )
-            
-            add_custom_target(coverage-integration
-                COMMAND ${LCOV_PATH} --directory . --zerocounters
-                COMMENT "Reset coverage counters for integration tests"
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            )
-            
-            add_custom_target(coverage-collect
-                COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage.info --ignore-errors mismatch
-                COMMAND ${LCOV_PATH} --remove coverage.info '/usr/*' '${CMAKE_CURRENT_BINARY_DIR}/_deps/*' '*/test/*' --output-file coverage_filtered.info --ignore-errors mismatch,unused
-                COMMAND ${GENHTML_PATH} coverage_filtered.info --output-directory coverage_html --ignore-errors mismatch
-                COMMENT "Collect integration test coverage data"
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            )
-            
-            add_custom_target(coverage-clean
-                COMMAND ${LCOV_PATH} --directory . --zerocounters
-                COMMAND find . -name "*.gcda" -delete
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-                COMMENT "Cleaning coverage data"
-            )
         else()
             message(WARNING "lcov and genhtml are required for coverage reports")
         endif()
@@ -270,3 +249,32 @@ if (UA2F_BUILD_TESTS)
 else ()
     message(STATUS "Tests are disabled.")
 endif ()
+
+# Coverage targets for integration testing (independent of unit tests)
+if (UA2F_ENABLE_COVERAGE)
+    find_program(LCOV_PATH lcov)
+    find_program(GENHTML_PATH genhtml)
+    
+    if(LCOV_PATH AND GENHTML_PATH)
+        add_custom_target(coverage-integration
+            COMMAND ${LCOV_PATH} --directory . --zerocounters
+            COMMENT "Reset coverage counters for integration tests"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        )
+        
+        add_custom_target(coverage-collect
+            COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage.info --ignore-errors mismatch
+            COMMAND ${LCOV_PATH} --remove coverage.info '/usr/*' '${CMAKE_CURRENT_BINARY_DIR}/_deps/*' '*/test/*' --output-file coverage_filtered.info --ignore-errors mismatch,unused
+            COMMAND ${GENHTML_PATH} coverage_filtered.info --output-directory coverage_html --ignore-errors mismatch
+            COMMENT "Collect integration test coverage data"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        )
+        
+        add_custom_target(coverage-clean
+            COMMAND ${LCOV_PATH} --directory . --zerocounters
+            COMMAND find . -name "*.gcda" -delete
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Cleaning coverage data"
+        )
+    endif()
+endif()
