@@ -91,6 +91,22 @@ jobs:
           cmake --build build
           ./build/ua2f_test
 
+      - name: Generate unit test coverage (standalone)
+        run: |
+          cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF
+          cmake --build build-coverage
+          cd build-coverage
+          make coverage
+
+      - name: Upload unit test coverage to Codecov (standalone)
+        uses: codecov/codecov-action@v5
+        with:
+          files: build-coverage/coverage_filtered.info
+          flags: unittests-standalone
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   test-integration:
     name: Run integration tests
     runs-on: ubuntu-latest
@@ -147,24 +163,27 @@ jobs:
       - name: Generate integration test coverage
         run: |
           # Build with coverage enabled for integration testing
-          cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF ${{ matrix.cache }}
+          cmake -S . -B build-coverage -DUA2F_BUILD_TESTS=OFF -DUA2F_ENABLE_UCI=OFF ${{ matrix.cache }}
           cmake --build build-coverage
           cd build-coverage
           
-          # Run unit tests and prepare for integration coverage
-          make coverage-combined
+          # Reset coverage counters
+          make coverage-integration
           
           # Run integration tests with coverage-enabled binary
           sudo ./ua2f --version
           sudo -E $(which python3) ../scripts/test.py ./ua2f
           
-          # Merge coverage data
-          make coverage-merge
+          # Fix ownership of coverage files
+          sudo chown -R $(whoami):$(whoami) .
+          
+          # Collect coverage data
+          make coverage-collect
 
       - name: Upload integration test coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: build-coverage/coverage_combined_filtered.info
+          files: build-coverage/coverage_filtered.info
           flags: integration
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
