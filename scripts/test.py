@@ -53,19 +53,21 @@ def start_ua2f(u: str):
     ua2f_abs_path = os.path.abspath(u)
     build_dir = os.path.dirname(ua2f_abs_path)
     
-    env['GCOV_PREFIX'] = build_dir
-    env['GCOV_PREFIX_STRIP'] = '0'  # Don't strip any path components
+    print(f"Starting UA2F from build directory: {build_dir}")
+    original_cwd = os.getcwd()
+    os.chdir(build_dir)
     
-    print(f"Starting UA2F with GCOV_PREFIX={build_dir}")
-    p = subprocess.Popen([u], env=env)
+    binary_name = os.path.basename(ua2f_abs_path)
+    p = subprocess.Popen([f'./{binary_name}'], env=env, cwd=build_dir)
+    
+    os.chdir(original_cwd)
     
     def graceful_shutdown():
-        # Send SIGTERM for graceful shutdown to flush coverage data
         try:
             p.terminate()
-            p.wait(timeout=5)  # Wait up to 5 seconds for graceful shutdown
+            p.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            p.kill()  # Force kill if it doesn't respond
+            p.kill()
     
     atexit.register(graceful_shutdown)
     return p
@@ -118,7 +120,6 @@ if __name__ == "__main__":
 
     print("Tests completed, shutting down UA2F gracefully...")
     
-    # Graceful shutdown to flush coverage data
     try:
         ua2f_process.terminate()
         ua2f_process.wait(timeout=5)
