@@ -40,7 +40,8 @@ int parse_packet(const struct nf_queue *queue, struct nf_buffer *buf) {
 }
 
 int read_buffer(struct nf_queue *queue, struct nf_buffer *buf) {
-    const __auto_type buf_status = nfqueue_receive(queue, buf, 0);
+    // Use timeout to allow periodic checking of should_exit flag during signal handling
+    const __auto_type buf_status = nfqueue_receive(queue, buf, 1000);
     if (buf_status == IO_READY) {
         return parse_packet(queue, buf);
     }
