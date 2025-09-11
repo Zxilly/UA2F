@@ -162,10 +162,9 @@ jobs:
           make coverage-merge
 
       - name: Upload integration test coverage to Codecov
-        if: matrix.cache == '-DUA2F_NO_CACHE=OFF' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          file: build-coverage/coverage_combined_filtered.info
+          files: build-coverage/coverage_combined_filtered.info
           flags: integration
           fail_ci_if_error: false
           verbose: true
