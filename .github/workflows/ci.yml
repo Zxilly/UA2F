@@ -68,7 +68,7 @@ jobs:
         with:
           files: build-coverage/coverage_filtered.info
           flags: unittests
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -166,7 +166,8 @@ jobs:
         with:
           files: build-coverage/coverage_combined_filtered.info
           flags: integration
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
       - name: Upload log
