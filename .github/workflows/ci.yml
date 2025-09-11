@@ -134,7 +134,7 @@ jobs:
       - name: Upload comprehensive coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: build-coverage/coverage_combined_filtered.info
+          files: build-coverage/coverage_combined_filtered.info
           fail_ci_if_error: true
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
