@@ -132,7 +132,7 @@ jobs:
           pip install -r scripts/requirements.txt --break-system-packages
 
       - name: Enable ipv6
-        uses: fscarmen/warp-on-actions@v1.3
+        uses: fscarmen/warp-on-actions@v1.4
         with:
           stack: dual
           mode: client
