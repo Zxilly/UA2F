@@ -76,6 +76,31 @@ jobs:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test-musl:
+    name: Run unit tests (musl/Alpine)
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          apk add --no-cache cmake make g++ git linux-headers python3 \
+            libmnl-dev libnetfilter_queue-dev libnfnetlink-dev \
+            libnetfilter_conntrack-dev libpcap-dev
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate pcap test data
+        run: python3 test/gen_pcap.py
+
+      - name: Build and run unit tests
+        run: |
+          cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_BACKTRACE=OFF
+          cmake --build build
+          ./build/ua2f_test
+          ./build/ua2f_handler_test
+
   test-standalone:
     name: Run unit tests without uci support
     runs-on: ubuntu-latest
@@ -87,15 +112,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov libpcap-dev musl-tools
-
-      - name: musl compatibility compile check
-        run: |
-          echo "Checking production source compiles with musl headers..."
-          musl-gcc -fsyntax-only -std=gnu17 \
-            -Isrc -Isrc/third/llhttp \
-            test/musl_compat_check.c
-          echo "musl compatibility check passed."
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov libpcap-dev
 
       - name: Generate pcap test data
         run: python3 test/gen_pcap.py
@@ -230,6 +247,7 @@ jobs:
     needs:
       - test
       - test-standalone
+      - test-musl
       - test-integration
     strategy:
       fail-fast: false

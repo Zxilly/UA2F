@@ -11,6 +11,10 @@ coverage:
         threshold: 30%
         informational: true
 
+ignore:
+  - "src/third/**"
+  - "test/**"
+
 flags:
   unittests:
     paths:
