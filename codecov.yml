@@ -12,8 +12,8 @@ coverage:
         informational: true
 
 ignore:
-  - "src/third/**"
-  - "test/**"
+  - "src/third/"
+  - "test/"
 
 flags:
   unittests:
