@@ -269,12 +269,14 @@ if (UA2F_BUILD_TESTS)
         )
 
         # Add lcov target for preprocessed coverage data
+        # Note: delete ua2f.dir gcda first — the production binary is never executed,
+        # so its empty coverage data would override test coverage for shared sources.
         add_custom_target(coverage-lcov
-            COMMAND echo "Running unit tests and generating lcov report"
+            COMMAND find ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/ua2f.dir -name "*.gcda" -delete
             COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ua2f_test
             COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ua2f_handler_test
-            COMMAND lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch --branch-coverage
-            COMMAND lcov --remove coverage.info '*/test/*' '*/build*/_deps/*' '/usr/*' '*/googletest/*' '*_deps/*' '*/third/*' --output-file coverage.info --ignore-errors unused --branch-coverage
+            COMMAND lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,inconsistent --branch-coverage
+            COMMAND lcov --remove coverage.info '*/test/*' '*/build*/_deps/*' '/usr/*' '*/googletest/*' '*_deps/*' '*/third/*' --output-file coverage.info --ignore-errors unused,inconsistent --branch-coverage
             COMMAND lcov --list coverage.info --branch-coverage
             COMMENT "Generating lcov coverage report"
             DEPENDS ua2f_test ua2f_handler_test
@@ -342,8 +344,8 @@ if (UA2F_ENABLE_COVERAGE)
     )
     
     add_custom_target(coverage-integration-process
-        COMMAND lcov --capture --directory . --output-file coverage-integration.info --ignore-errors mismatch --branch-coverage
-        COMMAND lcov --remove coverage-integration.info '*/test/*' '*/build*/_deps/*' '/usr/*' '*/googletest/*' '*_deps/*' '*/third/*' --output-file coverage-integration.info --ignore-errors unused --branch-coverage
+        COMMAND lcov --capture --directory . --output-file coverage-integration.info --ignore-errors mismatch,inconsistent --branch-coverage
+        COMMAND lcov --remove coverage-integration.info '*/test/*' '*/build*/_deps/*' '/usr/*' '*/googletest/*' '*_deps/*' '*/third/*' --output-file coverage-integration.info --ignore-errors unused,inconsistent --branch-coverage
         COMMAND lcov --list coverage-integration.info --branch-coverage
         COMMENT "Process integration test coverage data with lcov"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

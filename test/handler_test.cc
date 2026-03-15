@@ -313,3 +313,101 @@ TEST_F(HandlerTest, HttpPostWithUserAgent) {
     std::string payload_str(payload.begin(), payload.end());
     EXPECT_EQ(payload_str.find("curl/7.68.0"), std::string::npos);
 }
+
+// 14. Unknown hw_protocol → NF_ACCEPT, no mark
+TEST_F(HandlerTest, UnknownHwProtocol) {
+    const char *data = "some payload data";
+    auto raw = build_ipv4_tcp_packet(
+        htonl(0x0a000001), htonl(0x0a000002),
+        12345, 80,
+        data, strlen(data));
+    auto pkt = make_nf_packet(raw, 1, IPV4);
+    // Set hw_protocol to something unknown (not ETH_P_IP or ETH_P_IPV6)
+    pkt.hw_protocol = 0x9999;
+
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    EXPECT_FALSE(mock_ctx.verdicts[0].mark.should_set);
+}
+
+// 15. Conntrack parse error → cache + CONNMARK_NOT_HTTP
+TEST_F(HandlerTest, ConntrackParseError) {
+    use_conntrack = true;
+
+    // First packet: valid HTTP to create a session
+    const char *req = "GET / HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Test\r\n\r\n";
+    auto pkt1 = make_http_packet_ct(req, 1, 500);
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt1);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+
+    // Second packet: garbage on same conntrack session → parse error
+    const char *garbage = "INVALID GARBAGE DATA\r\n\r\n";
+    auto raw2 = build_ipv4_tcp_packet(
+        htonl(0x0a000001), htonl(0x0a000002),
+        12345, 80,
+        garbage, strlen(garbage));
+    auto pkt2 = make_nf_packet_with_conntrack(raw2, 2, IPV4, 500,
+                                               htonl(0x0a000001), htonl(0x0a000002), 12345, 80);
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt2);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 2u);
+    EXPECT_EQ(mock_ctx.verdicts[1].verdict, NF_ACCEPT);
+    EXPECT_TRUE(mock_ctx.verdicts[1].mark.should_set);
+    EXPECT_EQ(mock_ctx.verdicts[1].mark.mark, (uint32_t)CONNMARK_NOT_HTTP);
+
+    use_conntrack = false;
+}
+
+// 16. Conntrack non-HTTP first packet → cache + CONNMARK_NOT_HTTP
+TEST_F(HandlerTest, ConntrackNonHttpFirstPacket) {
+    use_conntrack = true;
+
+    // Non-HTTP binary data on a new connection with conntrack
+    const char *binary = "\x00\x01\x02\x03\x04\x05\x06\x07";
+    auto raw = build_ipv4_tcp_packet(
+        htonl(0x0a000001), htonl(0x0a000005),
+        50000, 9999,
+        binary, 8);
+    auto pkt = make_nf_packet_with_conntrack(raw, 1, IPV4, 600,
+                                              htonl(0x0a000001), htonl(0x0a000005), 50000, 9999);
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    EXPECT_TRUE(mock_ctx.verdicts[0].mark.should_set);
+    EXPECT_EQ(mock_ctx.verdicts[0].mark.mark, (uint32_t)CONNMARK_NOT_HTTP);
+
+    use_conntrack = false;
+}
+
+// 17. Existing session second packet → no CONNMARK_HTTP (not new)
+TEST_F(HandlerTest, ConntrackExistingSessionNoMark) {
+    use_conntrack = true;
+
+    // Use unique IPs/ports to avoid collisions with other tests
+    uint32_t src = htonl(0x0a0a0001);
+    uint32_t dst = htonl(0x0a0a0002);
+
+    // First packet creates session → CONNMARK_HTTP
+    const char *req1 = "GET /1 HTTP/1.1\r\nHost: x.com\r\nUser-Agent: A\r\n\r\n";
+    auto raw1 = build_ipv4_tcp_packet(src, dst, 60001, 80, req1, strlen(req1));
+    auto pkt1 = make_nf_packet_with_conntrack(raw1, 1, IPV4, 700, src, dst, 60001, 80);
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt1);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_TRUE(mock_ctx.verdicts[0].mark.should_set);
+    EXPECT_EQ(mock_ctx.verdicts[0].mark.mark, (uint32_t)CONNMARK_HTTP);
+
+    // Second packet on same conntrack session → no mark (not new)
+    const char *req2 = "GET /2 HTTP/1.1\r\nHost: x.com\r\nUser-Agent: B\r\n\r\n";
+    auto raw2 = build_ipv4_tcp_packet(src, dst, 60001, 80, req2, strlen(req2));
+    auto pkt2 = make_nf_packet_with_conntrack(raw2, 2, IPV4, 700, src, dst, 60001, 80);
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt2);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 2u);
+    EXPECT_FALSE(mock_ctx.verdicts[1].mark.should_set);
+
+    use_conntrack = false;
+}

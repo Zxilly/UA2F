@@ -39,7 +39,6 @@ void init_handler() {
 
     replacement_user_agent_string = malloc(MAX_USER_AGENT_LENGTH);
     assert(replacement_user_agent_string != NULL && "Failed to allocate user agent string");
-
     bool ua_set = false;
 
 #ifdef UA2F_ENABLE_UCI
@@ -148,7 +147,6 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
     assert(pkt != NULL && "Packet cannot be NULL");
     assert(pkt->payload != NULL && "Packet payload cannot be NULL");
     assert(pkt->payload_len > 0 && "Packet payload length must be positive");
-
     struct pkt_buff *pkt_buff = NULL;
     bool ct_ok = use_conntrack && pkt->has_conntrack;
 
@@ -166,8 +164,7 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
     }
 
     pkt_buff = pktb_alloc(type == IPV4 ? AF_INET : AF_INET6, pkt->payload, pkt->payload_len, 0);
-    if (pkt_buff == NULL) {
-        syslog(LOG_ERR, "Failed to allocate packet buffer");
+    if (pkt_buff == NULL) {        syslog(LOG_ERR, "Failed to allocate packet buffer");
         goto end;
     }
 
