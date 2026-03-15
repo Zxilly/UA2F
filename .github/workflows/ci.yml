@@ -19,7 +19,7 @@ jobs:
     name: Run unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -68,7 +68,7 @@ jobs:
           make coverage-lcov
 
       - name: Upload unit test coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           files: build-coverage/coverage.info
           flags: unittests
@@ -87,7 +87,7 @@ jobs:
             libmnl-dev libnetfilter_queue-dev libnfnetlink-dev \
             libnetfilter_conntrack-dev libpcap-dev
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -105,7 +105,7 @@ jobs:
     name: Run unit tests without uci support
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -132,7 +132,7 @@ jobs:
           make coverage-lcov
 
       - name: Upload unit test coverage to Codecov (standalone)
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           files: build-coverage/coverage.info
           flags: unittests-standalone
@@ -147,7 +147,7 @@ jobs:
       matrix:
         cache: [ "-DUA2F_NO_CACHE=ON", "-DUA2F_NO_CACHE=OFF" ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - name: Install dependencies
@@ -156,7 +156,7 @@ jobs:
           sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.13'
 
@@ -165,7 +165,7 @@ jobs:
           pip install -r scripts/requirements.txt --break-system-packages
 
       - name: Enable ipv6
-        uses: fscarmen/warp-on-actions@v1.3
+        uses: fscarmen/warp-on-actions@37ce1997e075435a827991dabcce1d080c1fe512 # v1.4
         with:
           stack: dual
           mode: client
@@ -227,7 +227,7 @@ jobs:
           echo "Found $gcno_count .gcno files, $gcda_count .gcda files, and $info_count .info files"
 
       - name: Upload integration test coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           files: build-coverage/coverage-integration.info
           flags: integration
@@ -236,7 +236,7 @@ jobs:
           verbose: true
 
       - name: Upload log
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: syslog-cache-${{ matrix.cache }}
           path: /var/log/syslog
@@ -267,12 +267,12 @@ jobs:
           - 24.10.0
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Build
-        uses: openwrt/gh-action-sdk@v9
+        uses: openwrt/gh-action-sdk@82c46b45db95e9e065293cc03724cca499dd2ddb # v10
         env:
           ARCH: ${{ matrix.arch }}-${{ matrix.version }}
           FEEDNAME: packages_ci
@@ -288,14 +288,14 @@ jobs:
           rm -rf tmp
           
       - name: Store packages
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: "!startsWith(github.ref, 'refs/tags/v')"
         with:
           name: ${{ matrix.arch }}-${{ github.sha }}-${{ matrix.version }}-packages
           path: "*.ipk"
 
       - name: Upload packages
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@b98a3b12e86552593f3e4e577ca8a62aa2f3f22b # 2.11.4
         if: "startsWith(github.ref, 'refs/tags/v')"
         with:
           repo_token: ${{ github.token }}
@@ -304,7 +304,7 @@ jobs:
           file_glob: true
 
       - name: Store logs
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ matrix.arch }}-${{ github.sha }}-${{ matrix.version }}-logs
           path: logs/
