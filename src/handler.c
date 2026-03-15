@@ -258,8 +258,8 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
                 memcpy(&tuple.dst.in6, &ip_hdr->ip6_dst, sizeof(struct in6_addr));
             }
         }
-        tuple.src_port = ntohs(tcp_hdr->source);
-        tuple.dst_port = ntohs(tcp_hdr->dest);
+        tuple.src_port = ntohs(tcp_hdr->th_sport);
+        tuple.dst_port = ntohs(tcp_hdr->th_dport);
         skey = session_key_from_tuple(&tuple);
     }
 

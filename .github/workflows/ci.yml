@@ -87,7 +87,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov libpcap-dev
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov libpcap-dev musl-tools
+
+      - name: musl compatibility compile check
+        run: |
+          echo "Checking production source compiles with musl headers..."
+          musl-gcc -fsyntax-only -std=gnu17 \
+            -Isrc -Isrc/third/llhttp \
+            test/musl_compat_check.c
+          echo "musl compatibility check passed."
 
       - name: Generate pcap test data
         run: python3 test/gen_pcap.py

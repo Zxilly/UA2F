@@ -37,9 +37,9 @@ std::vector<uint8_t> build_ipv4_tcp_packet(
     ip->check = htons(~sum & 0xffff);
 
     auto *tcp = reinterpret_cast<struct tcphdr *>(pkt.data() + ip_hdr_len);
-    tcp->source = htons(src_port);
-    tcp->dest = htons(dst_port);
-    tcp->doff = tcp_hdr_len / 4;
+    tcp->th_sport = htons(src_port);
+    tcp->th_dport = htons(dst_port);
+    tcp->th_off = tcp_hdr_len / 4;
     tcp->ack = 1;
     tcp->window = htons(65535);
 
@@ -70,9 +70,9 @@ std::vector<uint8_t> build_ipv6_tcp_packet(
     memcpy(&ip6->ip6_dst, &dst_ip, sizeof(struct in6_addr));
 
     auto *tcp = reinterpret_cast<struct tcphdr *>(pkt.data() + ip6_hdr_len);
-    tcp->source = htons(src_port);
-    tcp->dest = htons(dst_port);
-    tcp->doff = tcp_hdr_len / 4;
+    tcp->th_sport = htons(src_port);
+    tcp->th_dport = htons(dst_port);
+    tcp->th_off = tcp_hdr_len / 4;
     tcp->ack = 1;
     tcp->window = htons(65535);
 
@@ -134,7 +134,7 @@ std::vector<uint8_t> extract_tcp_payload(const std::vector<uint8_t> &ip_bytes, i
 
     if (ip_bytes.size() < ip_hdr_len + sizeof(struct tcphdr)) return {};
     auto *tcp = reinterpret_cast<const struct tcphdr *>(ip_bytes.data() + ip_hdr_len);
-    size_t tcp_hdr_len = tcp->doff * 4;
+    size_t tcp_hdr_len = tcp->th_off * 4;
     size_t payload_offset = ip_hdr_len + tcp_hdr_len;
 
     if (ip_bytes.size() <= payload_offset) return {};
