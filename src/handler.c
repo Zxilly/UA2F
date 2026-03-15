@@ -24,8 +24,9 @@
 #define MAX_USER_AGENT_LENGTH (0xffff + (MNL_SOCKET_BUFFER_SIZE / 2))
 static char *replacement_user_agent_string = NULL;
 
-#define CONNMARK_NOT_HTTP 43
-#define CONNMARK_HTTP 44
+static const struct mark_op MARK_NONE = {false, 0};
+static const struct mark_op MARK_NOT_HTTP = {true, CONNMARK_NOT_HTTP};
+static const struct mark_op MARK_HTTP = {true, CONNMARK_HTTP};
 
 #ifndef UA2F_NO_CACHE
 bool use_conntrack = true;
@@ -70,54 +71,6 @@ void init_handler() {
     }
 
     syslog(LOG_INFO, "Handler initialized.");
-}
-
-struct mark_op {
-    bool should_set;
-    uint32_t mark;
-};
-
-void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, int verdict,
-                  const struct mark_op mark, struct pkt_buff *mangled_pkt_buff) {
-    assert(queue != NULL && "Queue cannot be NULL");
-    assert(pkt != NULL && "Packet cannot be NULL");
-    assert(queue->nl_socket != NULL && "Netlink socket cannot be NULL");
-
-    struct nlmsghdr *nlh = nfqueue_put_header(pkt->queue_num, NFQNL_MSG_VERDICT);
-    if (nlh == NULL) {
-        syslog(LOG_ERR, "failed to put nfqueue header");
-        goto end;
-    }
-    nfq_nlmsg_verdict_put(nlh, (int)pkt->packet_id, verdict);
-
-    if (mark.should_set) {
-        struct nlattr *nest = mnl_attr_nest_start_check(nlh, SEND_BUF_LEN, NFQA_CT);
-        if (nest == NULL) {
-            syslog(LOG_ERR, "failed to put nfqueue attr");
-            goto end;
-        }
-        if (!mnl_attr_put_u32_check(nlh, SEND_BUF_LEN, CTA_MARK, htonl(mark.mark))) {
-            syslog(LOG_ERR, "failed to put nfqueue attr");
-            goto end;
-        }
-        mnl_attr_nest_end(nlh, nest);
-    }
-
-    if (mangled_pkt_buff != NULL) {
-        assert(pktb_data(mangled_pkt_buff) != NULL && "Mangled packet data cannot be NULL");
-        assert(pktb_len(mangled_pkt_buff) > 0 && "Mangled packet length must be positive");
-        nfq_nlmsg_verdict_put_pkt(nlh, pktb_data(mangled_pkt_buff), pktb_len(mangled_pkt_buff));
-    }
-
-    const __auto_type ret = mnl_socket_sendto(queue->nl_socket, nlh, nlh->nlmsg_len);
-    if (ret == -1) {
-        syslog(LOG_ERR, "failed to send verdict: %s", strerror(errno));
-    }
-
-end:
-    if (nlh != NULL) {
-        free(nlh);
-    }
 }
 
 void add_to_cache(const struct nf_packet *pkt) {
@@ -189,8 +142,9 @@ int get_pkt_ip_version(const struct nf_packet *pkt) {
     }
 }
 
-void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
-    assert(queue != NULL && "Queue cannot be NULL");
+void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_packet *pkt) {
+    assert(io != NULL && "Packet I/O cannot be NULL");
+    assert(io->send_verdict != NULL && "send_verdict callback cannot be NULL");
     assert(pkt != NULL && "Packet cannot be NULL");
     assert(pkt->payload != NULL && "Packet payload cannot be NULL");
     assert(pkt->payload_len > 0 && "Packet payload length must be positive");
@@ -200,14 +154,14 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
 
     // Level 1: cache check
     if (ct_ok && should_ignore(pkt)) {
-        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
+        io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NOT_HTTP, NULL);
         goto end;
     }
 
     const int type = get_pkt_ip_version(pkt);
     if (type == IP_UNK) {
         syslog(LOG_WARNING, "Received unknown ip packet type %x. You may set wrong firewall rules.", pkt->hw_protocol);
-        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+        io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NONE, NULL);
         goto end;
     }
 
@@ -263,20 +217,20 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     if (tcp_hdr == NULL) {
         // This packet is not tcp, pass it
         syslog(LOG_WARNING, "No tcp header found");
-        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+        io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NONE, NULL);
         goto end;
     }
 
     const __auto_type tcp_payload = nfq_tcp_get_payload(tcp_hdr, pkt_buff);
     if (tcp_payload == NULL) {
         // Empty ACK or no payload — just accept, don't mark
-        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+        io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NONE, NULL);
         goto end;
     }
 
     const __auto_type tcp_payload_len = nfq_tcp_get_payload_len(tcp_hdr, pkt_buff);
     if (tcp_payload_len == 0) {
-        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+        io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NONE, NULL);
         goto end;
     }
 
@@ -324,9 +278,9 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
             // Not HTTP
             if (ct_ok) {
                 add_to_cache(pkt);
-                send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
+                io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NOT_HTTP, NULL);
             } else {
-                send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+                io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NONE, NULL);
             }
             goto end;
         }
@@ -336,7 +290,7 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
         if (session == NULL) {
             session_wrunlock();
             syslog(LOG_WARNING, "Session limit reached, dropping packet");
-            send_verdict(queue, pkt, NF_DROP, (struct mark_op){false, 0}, NULL);
+            io->send_verdict(io_ctx, pkt, NF_DROP, MARK_NONE, NULL);
             goto end;
         }
         http_parser_init_session(session);
@@ -360,9 +314,9 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
 
         if (ct_ok) {
             add_to_cache(pkt);
-            send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
+            io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NOT_HTTP, NULL);
         } else {
-            send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+            io->send_verdict(io_ctx, pkt, NF_ACCEPT, MARK_NONE, NULL);
         }
         goto end;
     }
@@ -391,13 +345,8 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
         count_user_agent_packet();
     }
 
-    {
-        struct mark_op mark = {false, 0};
-        if (ct_ok && new_session) {
-            mark = (struct mark_op){true, CONNMARK_HTTP};
-        }
-        send_verdict(queue, pkt, NF_ACCEPT, mark, pkt_buff);
-    }
+    io->send_verdict(io_ctx, pkt, NF_ACCEPT,
+                     (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, pkt_buff);
 
 end:
     free(pkt->payload);
@@ -409,5 +358,3 @@ end:
 }
 
 #undef MAX_USER_AGENT_LENGTH
-#undef CONNMARK_NOT_HTTP
-#undef CONNMARK_HTTP

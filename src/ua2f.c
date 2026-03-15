@@ -35,7 +35,7 @@ int parse_packet(const struct nf_queue *queue, struct nf_buffer *buf) {
     while (!should_exit) {
         const __auto_type status = nfqueue_next(buf, packet);
         if (status == IO_READY) {
-            handle_packet(queue, packet);
+            handle_packet(&nfqueue_packet_io, (void *)queue, packet);
         } else {
             return status;
         }

@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov libjson-c-dev lcov
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov libjson-c-dev lcov libpcap-dev
 
       - name: Build and install libubox
         working-directory: /tmp
@@ -50,11 +50,15 @@ jobs:
           make
           sudo make install
 
+      - name: Generate pcap test data
+        run: python3 test/gen_pcap.py
+
       - name: Run unit tests
         run: |
           cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF
           cmake --build build
           ./build/ua2f_test
+          ./build/ua2f_handler_test
 
       - name: Generate unit test coverage
         run: |
@@ -83,13 +87,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov
+          sudo apt-get install -y cmake libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev lcov lcov libpcap-dev
+
+      - name: Generate pcap test data
+        run: python3 test/gen_pcap.py
 
       - name: Run unit tests
         run: |
           cmake -S . -B build -DUA2F_BUILD_TESTS=ON -DUA2F_ENABLE_UCI=OFF
           cmake --build build
           ./build/ua2f_test
+          ./build/ua2f_handler_test
 
       - name: Generate unit test coverage (standalone)
         run: |

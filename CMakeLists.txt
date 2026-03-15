@@ -139,6 +139,7 @@ add_executable(ua2f
         src/util.c
         src/cache.c
         src/handler.c
+        src/handler_io.c
         src/cli.c
         src/config.c
         src/http_session.c
@@ -261,26 +262,73 @@ if (UA2F_BUILD_TESTS)
         add_custom_target(coverage
             COMMAND echo "Running unit tests to generate coverage data"
             COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ua2f_test
+            COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ua2f_handler_test
             COMMENT "Generating code coverage data"
-            DEPENDS ua2f_test
+            DEPENDS ua2f_test ua2f_handler_test
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
-        
+
         # Add lcov target for preprocessed coverage data
         add_custom_target(coverage-lcov
             COMMAND echo "Running unit tests and generating lcov report"
             COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ua2f_test
+            COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ua2f_handler_test
             COMMAND lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch --branch-coverage
             COMMAND lcov --remove coverage.info '*/test/*' '*/build*/_deps/*' '/usr/*' '*/googletest/*' '*_deps/*' --output-file coverage.info --ignore-errors unused --branch-coverage
             COMMAND lcov --list coverage.info --branch-coverage
             COMMENT "Generating lcov coverage report"
-            DEPENDS ua2f_test
+            DEPENDS ua2f_test ua2f_handler_test
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
     endif()
 
+    # Handler tests - tests handler.c with mock I/O (no libmnl dependency)
+    add_executable(
+            ua2f_handler_test
+            test/handler_test.cc
+            test/handler_pcap_test.cc
+            test/packet_builder.cc
+            test/pcap_helpers.cc
+            src/handler.c
+            src/util.c
+            src/cache.c
+            src/http_session.c
+            src/http_parser_ua.c
+            src/statistics.c
+            src/cli.c
+            src/third/llhttp/llhttp.c
+            src/third/llhttp/api.c
+            src/third/llhttp/http.c
+    )
+    target_link_libraries(
+            ua2f_handler_test
+            GTest::gtest_main
+            pthread
+            netfilter_queue
+            nfnetlink
+    )
+    target_compile_options(ua2f_handler_test PRIVATE
+            $<$<COMPILE_LANGUAGE:C>:-iquote${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<$<COMPILE_LANGUAGE:CXX>:-iquote${CMAKE_CURRENT_SOURCE_DIR}/src>
+    )
+    target_include_directories(ua2f_handler_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/third/llhttp)
+    target_compile_definitions(ua2f_handler_test PRIVATE
+            PCAP_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/data"
+    )
+
+    # Conditionally link libpcap for pcap-based tests
+    find_library(PCAP_LIB pcap)
+    if(PCAP_LIB)
+        target_link_libraries(ua2f_handler_test ${PCAP_LIB})
+        target_compile_definitions(ua2f_handler_test PRIVATE UA2F_HAS_PCAP=1)
+        message(STATUS "libpcap found, pcap-based handler tests enabled.")
+    else()
+        message(STATUS "libpcap not found, pcap-based handler tests disabled.")
+    endif()
+
     include(GoogleTest)
     gtest_discover_tests(ua2f_test)
+    gtest_discover_tests(ua2f_handler_test)
 else ()
     message(STATUS "Tests are disabled.")
 endif ()
