@@ -55,31 +55,47 @@ void init_not_http_cache(const int interval) {
 }
 
 bool cache_contains(struct addr_port target) {
-    pthread_rwlock_wrlock(&cacheLock);
+    pthread_rwlock_rdlock(&cacheLock);
 
     struct cache *s;
     HASH_FIND(hh, not_http_dst_cache, &target, sizeof(struct addr_port), s);
-    if (s != NULL) {
-        s->last_time = time(NULL);
-    }
+    const bool found = (s != NULL);
 
     pthread_rwlock_unlock(&cacheLock);
 
-    return s != NULL;
+    if (found) {
+        pthread_rwlock_wrlock(&cacheLock);
+        HASH_FIND(hh, not_http_dst_cache, &target, sizeof(struct addr_port), s);
+        if (s != NULL) {
+            s->last_time = time(NULL);
+        }
+        pthread_rwlock_unlock(&cacheLock);
+    }
+
+    return found;
 }
 
 void cache_add(struct addr_port addr_port) {
+    struct cache *node = malloc(sizeof(struct cache));
+    if (node == NULL) {
+        return;
+    }
+    const time_t now = time(NULL);
+
     pthread_rwlock_wrlock(&cacheLock);
 
     struct cache *s;
-
     HASH_FIND(hh, not_http_dst_cache, &addr_port, sizeof(struct addr_port), s);
     if (s == NULL) {
-        s = malloc(sizeof(struct cache));
-        memcpy(&s->target.addr, &addr_port, sizeof(struct addr_port));
-        HASH_ADD(hh, not_http_dst_cache, target.addr, sizeof(struct addr_port), s);
+        memcpy(&node->target.addr, &addr_port, sizeof(struct addr_port));
+        node->last_time = now;
+        HASH_ADD(hh, not_http_dst_cache, target.addr, sizeof(struct addr_port), node);
+        node = NULL;
+    } else {
+        s->last_time = now;
     }
-    s->last_time = time(NULL);
 
     pthread_rwlock_unlock(&cacheLock);
+
+    free(node);
 }

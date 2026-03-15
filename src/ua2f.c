@@ -4,6 +4,11 @@
 #include "statistics.h"
 #include "util.h"
 #include "backtrace.h"
+#include "http_session.h"
+#include "session_cleaner.h"
+#ifdef UA2F_HAS_CONNTRACK_LISTENER
+#include "conntrack_listener.h"
+#endif
 #ifdef UA2F_ENABLE_UCI
 #include "config.h"
 #endif
@@ -101,6 +106,14 @@ int main(const int argc, char *argv[]) {
     init_statistics();
     init_handler();
 
+#ifdef UA2F_ENABLE_UCI
+    init_http_sessions(config.max_http_sessions);
+    init_session_cleaner(config.session_ttl, 60);
+#else
+    init_http_sessions(UA2F_DEFAULT_MAX_HTTP_SESSIONS);
+    init_session_cleaner(300, 60);
+#endif
+
     UA2F_INIT_BACKTRACE();
 
     struct nf_queue queue[1] = {0};
@@ -112,6 +125,10 @@ int main(const int argc, char *argv[]) {
     }
     assert(queue->queue_num == QUEUE_NUM);
     assert(queue->nl_socket != NULL);
+
+#ifdef UA2F_HAS_CONNTRACK_LISTENER
+    init_conntrack_listener();
+#endif
 
     main_loop(queue);
 

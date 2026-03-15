@@ -19,6 +19,9 @@ OPTION(UA2F_ENABLE_UCI "Enable UCI support" ON)
 OPTION(UA2F_NO_CACHE "Disable cache" OFF)
 OPTION(UA2F_ENABLE_BACKTRACE "Enable libbacktrace support" ON)
 
+set(UA2F_MAX_HTTP_SESSIONS 0 CACHE STRING "Default max HTTP sessions (0 = unlimited)")
+add_compile_definitions(UA2F_DEFAULT_MAX_HTTP_SESSIONS=${UA2F_MAX_HTTP_SESSIONS})
+
 find_package(Git)
 if (GIT_FOUND)
     execute_process(
@@ -138,9 +141,27 @@ add_executable(ua2f
         src/handler.c
         src/cli.c
         src/config.c
-        src/third/nfqueue-mnl/nfqueue-mnl.c)
+        src/http_session.c
+        src/http_parser_ua.c
+        src/session_cleaner.c
+        src/third/nfqueue-mnl/nfqueue-mnl.c
+        src/third/llhttp/llhttp.c
+        src/third/llhttp/api.c
+        src/third/llhttp/http.c)
+
+target_include_directories(ua2f PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/third/llhttp)
 
 target_link_libraries(ua2f mnl netfilter_queue pthread nfnetlink)
+
+find_library(NFCONNTRACK netfilter_conntrack)
+if(NFCONNTRACK)
+    target_sources(ua2f PRIVATE src/conntrack_listener.c)
+    target_link_libraries(ua2f netfilter_conntrack)
+    target_compile_definitions(ua2f PRIVATE UA2F_HAS_CONNTRACK_LISTENER=1)
+    message(STATUS "Conntrack listener enabled.")
+else()
+    message(STATUS "libnetfilter_conntrack not found, conntrack listener disabled.")
+endif()
 
 if (UA2F_ENABLE_BACKTRACE)
     set(LIBBACKTRACE_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/libbacktrace)
@@ -215,16 +236,25 @@ if (UA2F_BUILD_TESTS)
             test/cache_test.cc
             test/statistics_test.cc
             test/cli_test.cc
+            test/http_session_test.cc
+            test/http_parser_ua_test.cc
             src/util.c
             src/cache.c
+            src/http_session.c
+            src/http_parser_ua.c
             src/statistics.c
             src/cli.c
+            src/third/llhttp/llhttp.c
+            src/third/llhttp/api.c
+            src/third/llhttp/http.c
     )
     target_link_libraries(
             ua2f_test
             GTest::gtest_main
+            pthread
     )
     target_include_directories(ua2f_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(ua2f_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/third/llhttp)
 
     # Add coverage target
     if (UA2F_ENABLE_COVERAGE)

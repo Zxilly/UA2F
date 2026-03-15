@@ -88,6 +88,8 @@ coverage_html/
 /third_party/
 /venv/
 .vscode/
+.cache/
+CLAUDE.md
 
 # libbacktrace automake cache
 src/third/libbacktrace/autom4te.cache/

@@ -4,12 +4,17 @@
 #include "custom.h"
 #include "statistics.h"
 #include "util.h"
+#include "http_session.h"
+#include "http_parser_ua.h"
 
 #ifdef UA2F_ENABLE_UCI
 #include "config.h"
 #endif
 
 #include <arpa/inet.h>
+#include <linux/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv6.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
@@ -18,13 +23,6 @@
 
 #define MAX_USER_AGENT_LENGTH (0xffff + (MNL_SOCKET_BUFFER_SIZE / 2))
 static char *replacement_user_agent_string = NULL;
-
-#define USER_AGENT_MATCH "\r\nUser-Agent:"
-#define USER_AGENT_MATCH_LENGTH 13
-
-#define CONNMARK_ESTIMATE_LOWER 16
-#define CONNMARK_ESTIMATE_UPPER 32
-#define CONNMARK_ESTIMATE_VERDICT 33
 
 #define CONNMARK_NOT_HTTP 43
 #define CONNMARK_HTTP 44
@@ -35,9 +33,9 @@ bool use_conntrack = true;
 bool use_conntrack = false;
 #endif
 
-static bool cache_initialized = false;
-
 void init_handler() {
+    init_not_http_cache(60);
+
     replacement_user_agent_string = malloc(MAX_USER_AGENT_LENGTH);
     assert(replacement_user_agent_string != NULL && "Failed to allocate user agent string");
 
@@ -79,8 +77,8 @@ struct mark_op {
     uint32_t mark;
 };
 
-void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, const struct mark_op mark,
-                  struct pkt_buff *mangled_pkt_buff) {
+void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, int verdict,
+                  const struct mark_op mark, struct pkt_buff *mangled_pkt_buff) {
     assert(queue != NULL && "Queue cannot be NULL");
     assert(pkt != NULL && "Packet cannot be NULL");
     assert(queue->nl_socket != NULL && "Netlink socket cannot be NULL");
@@ -90,7 +88,7 @@ void send_verdict(const struct nf_queue *queue, const struct nf_packet *pkt, con
         syslog(LOG_ERR, "failed to put nfqueue header");
         goto end;
     }
-    nfq_nlmsg_verdict_put(nlh, (int)pkt->packet_id, NF_ACCEPT);
+    nfq_nlmsg_verdict_put(nlh, (int)pkt->packet_id, verdict);
 
     if (mark.should_set) {
         struct nlattr *nest = mnl_attr_nest_start_check(nlh, SEND_BUF_LEN, NFQA_CT);
@@ -129,43 +127,6 @@ void add_to_cache(const struct nf_packet *pkt) {
     };
 
     cache_add(target);
-}
-
-struct mark_op get_next_mark(const struct nf_packet *pkt, const bool has_ua) {
-    if (!use_conntrack || !pkt->has_conntrack) {
-        return (struct mark_op){false, 0};
-    }
-
-    // I didn't think this will happen, but just in case
-    // firewall should already have a rule to return all marked with CONNMARK_NOT_HTTP packets
-    if (pkt->conn_mark == CONNMARK_NOT_HTTP) {
-        syslog(LOG_WARNING, "Packet has already been marked as not http. Maybe firewall rules are wrong?");
-        return (struct mark_op){false, 0};
-    }
-
-    if (pkt->conn_mark == CONNMARK_HTTP) {
-        return (struct mark_op){false, 0};
-    }
-
-    if (has_ua) {
-        return (struct mark_op){true, CONNMARK_HTTP};
-    }
-
-    if (!pkt->has_connmark || pkt->conn_mark == 0) {
-        return (struct mark_op){true, CONNMARK_ESTIMATE_LOWER};
-    }
-
-    if (pkt->conn_mark == CONNMARK_ESTIMATE_VERDICT) {
-        add_to_cache(pkt);
-        return (struct mark_op){true, CONNMARK_NOT_HTTP};
-    }
-
-    if (pkt->conn_mark >= CONNMARK_ESTIMATE_LOWER && pkt->conn_mark <= CONNMARK_ESTIMATE_UPPER) {
-        return (struct mark_op){true, pkt->conn_mark + 1};
-    }
-
-    syslog(LOG_WARNING, "Unexpected connmark value: %d, Maybe other program has changed connmark?", pkt->conn_mark);
-    return (struct mark_op){true, pkt->conn_mark + 1};
 }
 
 bool should_ignore(const struct nf_packet *pkt) {
@@ -234,37 +195,25 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     assert(pkt->payload != NULL && "Packet payload cannot be NULL");
     assert(pkt->payload_len > 0 && "Packet payload length must be positive");
 
+    struct pkt_buff *pkt_buff = NULL;
     bool ct_ok = use_conntrack && pkt->has_conntrack;
 
-    if (ct_ok) {
-        if (!cache_initialized) {
-            init_not_http_cache(60);
-            cache_initialized = true;
-        }
-    }
-
-    assert((!ct_ok || cache_initialized) && "Cache must be initialized when using conntrack");
-
+    // Level 1: cache check
     if (ct_ok && should_ignore(pkt)) {
-        send_verdict(queue, pkt, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
+        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
         goto end;
     }
-
-    struct pkt_buff *pkt_buff = pktb_alloc(AF_INET, pkt->payload, pkt->payload_len, 0);
-    if (pkt_buff == NULL) {
-        syslog(LOG_ERR, "Failed to allocate packet buffer");
-        goto end;
-    }
-
-    assert(pktb_data(pkt_buff) != NULL && "Packet buffer data cannot be NULL");
-    assert(pktb_len(pkt_buff) > 0 && "Packet buffer length must be positive");
 
     const int type = get_pkt_ip_version(pkt);
-    assert((type == IPV4 || type == IPV6 || type == IP_UNK) && "Invalid IP version");
     if (type == IP_UNK) {
-        // will this happen?
         syslog(LOG_WARNING, "Received unknown ip packet type %x. You may set wrong firewall rules.", pkt->hw_protocol);
-        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
+        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+        goto end;
+    }
+
+    pkt_buff = pktb_alloc(type == IPV4 ? AF_INET : AF_INET6, pkt->payload, pkt->payload_len, 0);
+    if (pkt_buff == NULL) {
+        syslog(LOG_ERR, "Failed to allocate packet buffer");
         goto end;
     }
 
@@ -314,72 +263,116 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
     if (tcp_hdr == NULL) {
         // This packet is not tcp, pass it
         syslog(LOG_WARNING, "No tcp header found");
-        send_verdict(queue, pkt, (struct mark_op){false, 0}, NULL);
+        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
         goto end;
     }
 
     const __auto_type tcp_payload = nfq_tcp_get_payload(tcp_hdr, pkt_buff);
     if (tcp_payload == NULL) {
-        syslog(LOG_WARNING, "No tcp payload found");
-        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
+        // Empty ACK or no payload — just accept, don't mark
+        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
         goto end;
     }
 
     const __auto_type tcp_payload_len = nfq_tcp_get_payload_len(tcp_hdr, pkt_buff);
-    if (tcp_payload_len < USER_AGENT_MATCH_LENGTH) {
-        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
+    if (tcp_payload_len == 0) {
+        send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
         goto end;
     }
 
     count_tcp_packet();
 
-    // cannot find User-Agent: in this packet
-    if (tcp_payload_len - 2 < USER_AGENT_MATCH_LENGTH) {
-        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
+    // Level 2: session lookup
+    struct session_key skey;
+    if (ct_ok) {
+        skey = session_key_from_connid(pkt->conn_id);
+    } else {
+        // Build five-tuple from IP/TCP headers
+        struct ip_tuple tuple;
+        memset(&tuple, 0, sizeof(tuple));
+        tuple.ip_version = type;
+        if (type == IPV4) {
+            const __auto_type ip_hdr = nfq_ip_get_hdr(pkt_buff);
+            if (ip_hdr != NULL) {
+                tuple.src.ip4 = ip_hdr->saddr;
+                tuple.dst.ip4 = ip_hdr->daddr;
+            }
+        } else {
+            const __auto_type ip_hdr = nfq_ip6_get_hdr(pkt_buff);
+            if (ip_hdr != NULL) {
+                memcpy(&tuple.src.in6, &ip_hdr->ip6_src, sizeof(struct in6_addr));
+                memcpy(&tuple.dst.in6, &ip_hdr->ip6_dst, sizeof(struct in6_addr));
+            }
+        }
+        tuple.src_port = ntohs(tcp_hdr->source);
+        tuple.dst_port = ntohs(tcp_hdr->dest);
+        skey = session_key_from_tuple(&tuple);
+    }
+
+    bool new_session = false;
+    struct http_session *session = NULL;
+
+    // Check if this looks like HTTP before creating session
+    // (avoids session allocation for non-HTTP traffic)
+    session_wrlock();
+    session = session_find(&skey);
+
+    if (session == NULL) {
+        // No existing session — check if this looks like HTTP via fast path
+        if (!is_http_protocol((const char *)tcp_payload, tcp_payload_len)) {
+            session_wrunlock();
+            // Not HTTP
+            if (ct_ok) {
+                add_to_cache(pkt);
+                send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
+            } else {
+                send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+            }
+            goto end;
+        }
+
+        // Looks like HTTP — create session
+        session = session_create(&skey);
+        if (session == NULL) {
+            session_wrunlock();
+            syslog(LOG_WARNING, "Session limit reached, dropping packet");
+            send_verdict(queue, pkt, NF_DROP, (struct mark_op){false, 0}, NULL);
+            goto end;
+        }
+        http_parser_init_session(session);
+        new_session = true;
+    }
+
+    // Level 3: feed to llhttp (session is valid, we hold the lock)
+    session_reset_per_packet(session, tcp_payload);
+    const int parse_ret = http_parser_feed(session, (const char *)tcp_payload, tcp_payload_len);
+
+    // Copy results out before releasing lock
+    const int ua_count = session->ua_entry_count;
+    struct ua_mangle_entry ua_entries_copy[UA_MAX_ENTRIES];
+    if (ua_count > 0) {
+        memcpy(ua_entries_copy, session->ua_entries, ua_count * sizeof(struct ua_mangle_entry));
+    }
+
+    if (parse_ret != 0) {
+        session_delete(session);
+        session_wrunlock();
+
+        if (ct_ok) {
+            add_to_cache(pkt);
+            send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){true, CONNMARK_NOT_HTTP}, NULL);
+        } else {
+            send_verdict(queue, pkt, NF_ACCEPT, (struct mark_op){false, 0}, NULL);
+        }
         goto end;
     }
 
-    // FIXME: can lead to false positive,
-    //        should also get CTA_COUNTERS_ORIG to check if this packet is a initial tcp packet
+    session_wrunlock();
 
-    //    if (!is_http_protocol(tcp_payload, tcp_payload_len)) {
-    //        send_verdict(queue, pkt, get_next_mark(pkt, false), NULL);
-    //        goto end;
-    //    }
-    count_http_packet();
-
-    const void *search_start = tcp_payload;
-    unsigned int search_length = tcp_payload_len;
-    bool has_ua = false;
-
-    while (true) {
-        // minimal length of User-Agent: is 12
-        if (search_length - 2 < USER_AGENT_MATCH_LENGTH) {
-            break;
-        }
-
-        char *ua_pos = memncasemem(search_start, search_length, USER_AGENT_MATCH, USER_AGENT_MATCH_LENGTH);
-        if (ua_pos == NULL) {
-            break;
-        }
-
-        has_ua = true;
-
-        void *ua_start = ua_pos + USER_AGENT_MATCH_LENGTH;
-
-        // for non-standard user-agent like User-Agent:XXX with no space after colon
-        if (*(char *)ua_start == ' ') {
-            ua_start++;
-        }
-
-        const void *ua_end = memchr(ua_start, '\r', tcp_payload_len - (ua_start - tcp_payload));
-        if (ua_end == NULL) {
-            syslog(LOG_INFO, "User-Agent header is not terminated with \\r, not mangled.");
-            send_verdict(queue, pkt, get_next_mark(pkt, true), NULL);
-            goto end;
-        }
-        const unsigned int ua_len = ua_end - ua_start;
-        const unsigned long ua_offset = ua_start - tcp_payload;
+    // Mangle UA entries (using copied data, session lock released)
+    for (int i = 0; i < ua_count; i++) {
+        const unsigned int ua_offset = ua_entries_copy[i].offset;
+        const unsigned int ua_len = ua_entries_copy[i].len;
 
         if (type == IPV4) {
             if (!nfq_tcp_mangle_ipv4(pkt_buff, ua_offset, ua_len, replacement_user_agent_string, ua_len)) {
@@ -392,16 +385,19 @@ void handle_packet(const struct nf_queue *queue, const struct nf_packet *pkt) {
                 goto end;
             }
         }
-
-        search_length = tcp_payload_len - (ua_end - tcp_payload);
-        search_start = ua_end;
     }
 
-    if (has_ua) {
+    if (ua_count > 0) {
         count_user_agent_packet();
     }
 
-    send_verdict(queue, pkt, get_next_mark(pkt, has_ua), pkt_buff);
+    {
+        struct mark_op mark = {false, 0};
+        if (ct_ok && new_session) {
+            mark = (struct mark_op){true, CONNMARK_HTTP};
+        }
+        send_verdict(queue, pkt, NF_ACCEPT, mark, pkt_buff);
+    }
 
 end:
     free(pkt->payload);
@@ -413,11 +409,5 @@ end:
 }
 
 #undef MAX_USER_AGENT_LENGTH
-#undef USER_AGENT_MATCH_LENGTH
-
-#undef CONNMARK_ESTIMATE_LOWER
-#undef CONNMARK_ESTIMATE_UPPER
-#undef CONNMARK_ESTIMATE_VERDICT
-
 #undef CONNMARK_NOT_HTTP
 #undef CONNMARK_HTTP
