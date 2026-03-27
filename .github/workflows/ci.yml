@@ -18,6 +18,8 @@ jobs:
   test:
     name: Run unit tests
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -74,7 +76,7 @@ jobs:
           flags: unittests
           fail_ci_if_error: true
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
 
   test-musl:
     name: Run unit tests (musl/Alpine)
@@ -104,6 +106,8 @@ jobs:
   test-standalone:
     name: Run unit tests without uci support
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -138,11 +142,13 @@ jobs:
           flags: unittests-standalone
           fail_ci_if_error: true
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
 
   test-integration:
     name: Run integration tests
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     strategy:
       matrix:
         cache: [ "-DUA2F_NO_CACHE=ON", "-DUA2F_NO_CACHE=OFF" ]
@@ -232,7 +238,7 @@ jobs:
           files: build-coverage/coverage-integration.info
           flags: integration
           fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           verbose: true
 
       - name: Upload log
