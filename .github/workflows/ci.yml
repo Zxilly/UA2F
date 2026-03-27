@@ -170,12 +170,6 @@ jobs:
         run: |
           pip install -r scripts/requirements.txt --break-system-packages
 
-      - name: Enable ipv6
-        uses: fscarmen/warp-on-actions@37ce1997e075435a827991dabcce1d080c1fe512 # v1.4
-        with:
-          stack: dual
-          mode: client
-
       - name: Configure ipv6
         run: |
           echo "net.ipv6.conf.all.disable_ipv6=0" | sudo tee -a /etc/sysctl.conf
