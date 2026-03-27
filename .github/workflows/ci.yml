@@ -70,7 +70,7 @@ jobs:
           make coverage-lcov
 
       - name: Upload unit test coverage to Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           files: build-coverage/coverage.info
           flags: unittests
@@ -136,7 +136,7 @@ jobs:
           make coverage-lcov
 
       - name: Upload unit test coverage to Codecov (standalone)
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           files: build-coverage/coverage.info
           flags: unittests-standalone
@@ -227,7 +227,7 @@ jobs:
           echo "Found $gcno_count .gcno files, $gcda_count .gcda files, and $info_count .info files"
 
       - name: Upload integration test coverage to Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           files: build-coverage/coverage-integration.info
           flags: integration
