@@ -295,7 +295,7 @@ jobs:
           path: "*.ipk"
 
       - name: Upload packages
-        uses: svenstaro/upload-release-action@b98a3b12e86552593f3e4e577ca8a62aa2f3f22b # 2.11.4
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         if: "startsWith(github.ref, 'refs/tags/v')"
         with:
           repo_token: ${{ github.token }}
