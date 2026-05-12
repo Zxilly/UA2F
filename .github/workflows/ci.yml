@@ -272,7 +272,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build
-        uses: openwrt/gh-action-sdk@82c46b45db95e9e065293cc03724cca499dd2ddb # v10
+        uses: openwrt/gh-action-sdk@7fc2640243284ecc44f4a9c3f749a61746ee02cb # v11
         env:
           ARCH: ${{ matrix.arch }}-${{ matrix.version }}
           FEEDNAME: packages_ci
