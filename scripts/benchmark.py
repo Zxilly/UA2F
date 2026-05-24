@@ -373,6 +373,7 @@ class Case:
 class ProcessHandle:
     proc: subprocess.Popen[Any]
     log_path: Path
+    profile_path: Path | None = None
 
 
 def run_cmd(args: list[str], *, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess[str]:
@@ -517,7 +518,7 @@ def wait_for_port(host: str, port: int, timeout: float) -> None:
     raise BenchmarkError(f"Timed out waiting for {host}:{port}: {last_error}")
 
 
-def start_process(case: Case, proxy_port: int, output_dir: Path) -> ProcessHandle:
+def start_process(case: Case, proxy_port: int, output_dir: Path, profiler: str) -> ProcessHandle:
     assert case.binary is not None
     log_path = output_dir / f"{case.tool.lower()}-{case.mode.lower()}.log"
     log_file = log_path.open("wb")
@@ -546,9 +547,23 @@ def start_process(case: Case, proxy_port: int, output_dir: Path) -> ProcessHandl
     else:
         raise BenchmarkError(f"Unsupported tool: {case.tool}")
 
+    profile_path = None
+    if profiler == "callgrind":
+        profile_path = output_dir / f"callgrind.{case.tool.lower()}-{case.mode.lower()}.out"
+        cmd = [
+            "valgrind",
+            "--tool=callgrind",
+            f"--callgrind-out-file={profile_path}",
+            "--collect-jumps=no",
+            "--simulate-cache=no",
+            "--dump-instr=no",
+            "--",
+            *cmd,
+        ]
+
     proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=log_file, stderr=subprocess.STDOUT, start_new_session=True)
     log_file.close()
-    handle = ProcessHandle(proc=proc, log_path=log_path)
+    handle = ProcessHandle(proc=proc, log_path=log_path, profile_path=profile_path)
 
     if case.mode in {"REDIRECT", "TPROXY", "HTTP", "SOCKS5"}:
         wait_for_port("127.0.0.1", proxy_port, 5.0)
@@ -746,7 +761,7 @@ def run_case(
         if case.tool != "baseline":
             if case.binary is None:
                 raise BenchmarkError(f"{case.tool} binary was not found")
-            handle = start_process(case, args.proxy_port, output_dir)
+            handle = start_process(case, args.proxy_port, output_dir, args.profiler)
             proc_cpu_before = read_proc_cpu(handle.proc.pid)
             if case.mode in TRANSPARENT_MODES:
                 queue = UA2F_QUEUE if case.tool == "ua2f" else UA3F_QUEUE
@@ -789,6 +804,7 @@ def run_case(
                 else None
             ),
             "log_path": str(handle.log_path) if handle else None,
+            "profile_path": str(handle.profile_path) if handle and handle.profile_path else None,
         })
     except Exception as exc:  # Keep the report useful when one mode fails.
         result.update({
@@ -813,6 +829,7 @@ def run_case(
             "ua_ok": False,
             "ua_detail": str(exc),
             "log_path": str(handle.log_path) if handle else None,
+            "profile_path": str(handle.profile_path) if handle and handle.profile_path else None,
         })
         if args.fail_fast:
             raise
@@ -846,6 +863,7 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
         f"- Requests per case: `{args.requests}`",
         f"- Concurrency: `{args.concurrency}`",
         f"- Response body bytes: `{args.body_bytes}`",
+        f"- Profiler: `{args.profiler}`",
         "",
         "Transparent modes use a veth client namespace and host PREROUTING rules. "
         f"UA2F NFQUEUE uses queue `{UA2F_QUEUE}`; UA3F NFQUEUE uses queue `{UA3F_QUEUE}`.",
@@ -889,7 +907,15 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
                 lines.append(f"- Error samples: `{samples[:5]}`")
             if item.get("log_path"):
                 lines.append(f"- Log: `{item['log_path']}`")
+            if item.get("profile_path"):
+                lines.append(f"- Profile: `{item['profile_path']}`")
             lines.append("")
+
+    profiled = [item for item in results if item.get("profile_path")]
+    if profiled:
+        lines.extend(["", "## Profiles", ""])
+        for item in profiled:
+            lines.append(f"- `{item.get('tool')} {item.get('mode')}`: `{item['profile_path']}`")
 
     lines.extend([
         "",
@@ -950,6 +976,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="scripts/benchmark-results", help="Report/log output directory")
     parser.add_argument("--report", default="", help="Markdown report path; default is timestamped under output-dir")
     parser.add_argument("--json-output", default="", help="JSON result path; default is timestamped under output-dir")
+    parser.add_argument("--profiler", choices=("none", "callgrind"), default="none", help="Run target process under profiler")
     parser.add_argument("--fail-fast", action="store_true", help="Stop on first failed case")
     parser.add_argument("--dry-run", action="store_true", help="Print benchmark plan without touching netns/firewall")
     parsed = parser.parse_args()
@@ -1000,6 +1027,8 @@ def main() -> int:
 
     require_root()
     require_commands(["ip", "iptables", sys.executable])
+    if args.profiler == "callgrind":
+        require_commands(["valgrind"])
     if any(case.tool == "ua2f" and case.binary is None for case in cases):
         raise SystemExit("UA2F binary not found. Pass --ua2f /path/to/ua2f or build it first.")
     if any(case.tool == "ua3f" and case.binary is None for case in cases):
