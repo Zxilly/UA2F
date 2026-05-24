@@ -166,12 +166,14 @@ REDIRECT/TPROXY 需要自行配置对应的 netfilter 规则。TPROXY 还需要 
 
 | 响应 | 请求数 | 模式 | 工具 | Req/s | Mbps | Avg/P95 ms | CPU % | RSS MB | HWM MB |
 | --- | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 KiB | 50000 | DIRECT | 原始流量 | 101023.33 | 1059.17 | 1.21 / 3.54 | - | - | - |
 | 1 KiB | 50000 | REDIRECT | UA2F | 68544.50 | 718.65 | 1.78 / 4.23 | 207.00 | 2.47 | 2.93 |
 | 1 KiB | 50000 | REDIRECT | [UA3F](https://github.com/SunBK201/UA3F) | 59661.38 | 625.52 | 2.07 / 4.92 | 427.18 | 43.43 | 47.40 |
 |  |  |  | UA2F / UA3F | 1.15x | 1.15x | 0.86x / 0.86x | 0.48x | 0.06x | 0.06x |
 | 1 KiB | 50000 | TPROXY | UA2F | 64939.07 | 680.85 | 1.89 / 4.79 | 206.51 | 2.53 | 2.96 |
 | 1 KiB | 50000 | TPROXY | [UA3F](https://github.com/SunBK201/UA3F) | 64341.75 | 674.59 | 1.92 / 4.68 | 428.52 | 45.84 | 45.88 |
 |  |  |  | UA2F / UA3F | 1.01x | 1.01x | 0.98x / 1.02x | 0.48x | 0.06x | 0.06x |
+| 64 KiB | 100000 | DIRECT | 原始流量 | 92629.47 | 48777.77 | 1.33 / 4.02 | - | - | - |
 | 64 KiB | 100000 | REDIRECT | UA2F | 61288.57 | 32273.96 | 2.05 / 5.04 | 256.19 | 2.47 | 3.05 |
 | 64 KiB | 100000 | REDIRECT | [UA3F](https://github.com/SunBK201/UA3F) | 56559.67 | 29783.77 | 2.21 / 5.27 | 449.08 | 43.93 | 47.22 |
 |  |  |  | UA2F / UA3F | 1.08x | 1.08x | 0.93x / 0.96x | 0.57x | 0.06x | 0.06x |
@@ -189,7 +191,6 @@ sudo python3 scripts/benchmark.py \
   --ua3f ./ref/UA3F/ua3f \
   --ua2f-modes REDIRECT,TPROXY \
   --ua3f-modes REDIRECT,TPROXY \
-  --no-baseline \
   --requests 100000 \
   --warmup 10000 \
   --concurrency 128 \
