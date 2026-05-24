@@ -4,6 +4,9 @@
 #include "http_parser_ua.h"
 #include "http_session.h"
 #include "statistics.h"
+#ifdef UA2F_ENABLE_UCI
+#include "config.h"
+#endif
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -20,6 +23,7 @@
 #include <stdatomic.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -49,9 +53,19 @@
 #endif
 
 #define PROXY_BUFFER_SIZE 16384
+#define PROXY_SPLICE_SIZE (1U << 20)
 #define PROXY_MAX_CONNECTIONS 512
 #define PROXY_MAX_EVENTS 128
-#define PROXY_MAX_WORKERS 4
+#define PROXY_DEFAULT_WORKERS 4
+#define PROXY_MAX_WORKERS 16
+
+#ifndef SPLICE_F_NONBLOCK
+#define SPLICE_F_NONBLOCK 0x02
+#endif
+
+#ifndef F_SETPIPE_SZ
+#define F_SETPIPE_SZ 1031
+#endif
 
 struct proxy_context;
 struct proxy_connection;
@@ -105,6 +119,10 @@ struct proxy_connection {
     bool client_write_shutdown;
     bool rewrite_disabled;
     bool closing;
+    bool splice_enabled;
+
+    int splice_pipe[2];
+    size_t splice_pending;
 
     struct http_session session;
     struct proxy_buffer client_to_target;
@@ -151,6 +169,58 @@ static int set_nonblocking(int fd) {
         return -1;
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+static int set_cloexec(int fd) {
+    const int flags = fcntl(fd, F_GETFD, 0);
+    if (flags < 0) {
+        return -1;
+    }
+    return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+}
+
+static ssize_t proxy_splice(int in_fd, int out_fd, size_t len) {
+#ifdef SYS_splice
+    return (ssize_t)syscall(SYS_splice, in_fd, NULL, out_fd, NULL, len, SPLICE_F_NONBLOCK);
+#else
+    (void)in_fd;
+    (void)out_fd;
+    (void)len;
+    errno = ENOSYS;
+    return -1;
+#endif
+}
+
+static int create_splice_pipe(int pipe_fds[2]) {
+    pipe_fds[0] = -1;
+    pipe_fds[1] = -1;
+
+#ifdef SYS_pipe2
+    if (syscall(SYS_pipe2, pipe_fds, O_NONBLOCK | O_CLOEXEC) == 0) {
+        goto configure_size;
+    }
+    if (errno != ENOSYS && errno != EINVAL) {
+        return -1;
+    }
+#endif
+
+    if (pipe(pipe_fds) != 0) {
+        return -1;
+    }
+    if (set_nonblocking(pipe_fds[0]) != 0 || set_nonblocking(pipe_fds[1]) != 0 || set_cloexec(pipe_fds[0]) != 0 ||
+        set_cloexec(pipe_fds[1]) != 0) {
+        close(pipe_fds[0]);
+        close(pipe_fds[1]);
+        pipe_fds[0] = -1;
+        pipe_fds[1] = -1;
+        return -1;
+    }
+
+configure_size:
+#ifdef F_SETPIPE_SZ
+    (void)fcntl(pipe_fds[0], F_SETPIPE_SZ, (int)PROXY_SPLICE_SIZE);
+#endif
+    return 0;
 }
 
 static socklen_t sockaddr_size(const struct sockaddr_storage *addr) {
@@ -262,6 +332,17 @@ static size_t proxy_buffer_space(const struct proxy_buffer *buf) {
     return sizeof(buf->data) - buf->len;
 }
 
+static bool target_output_pending(const struct proxy_connection *conn) {
+    return proxy_buffer_pending(&conn->target_to_client) || conn->splice_pending > 0;
+}
+
+static bool target_output_has_space(const struct proxy_connection *conn) {
+    if (conn->splice_enabled) {
+        return conn->splice_pending == 0;
+    }
+    return proxy_buffer_space(&conn->target_to_client) > 0;
+}
+
 static void proxy_buffer_compact(struct proxy_buffer *buf) {
     if (buf->off == 0) {
         return;
@@ -274,16 +355,6 @@ static void proxy_buffer_compact(struct proxy_buffer *buf) {
     memmove(buf->data, buf->data + buf->off, buf->len - buf->off);
     buf->len -= buf->off;
     buf->off = 0;
-}
-
-static bool proxy_buffer_append(struct proxy_buffer *buf, const uint8_t *data, size_t len) {
-    proxy_buffer_compact(buf);
-    if (len > sizeof(buf->data) - buf->len) {
-        return false;
-    }
-    memcpy(buf->data + buf->len, data, len);
-    buf->len += len;
-    return true;
 }
 
 static int epoll_set(int epoll_fd, int op, int fd, struct epoll_ref *ref, uint32_t events) {
@@ -339,6 +410,14 @@ static void connection_schedule_close(struct proxy_connection *conn) {
         close(conn->target_fd);
         conn->target_fd = -1;
     }
+    if (conn->splice_pipe[0] >= 0) {
+        close(conn->splice_pipe[0]);
+        conn->splice_pipe[0] = -1;
+    }
+    if (conn->splice_pipe[1] >= 0) {
+        close(conn->splice_pipe[1]);
+        conn->splice_pipe[1] = -1;
+    }
 
     proxy_release_connection();
     conn->close_next = conn->ctx->closing;
@@ -352,7 +431,7 @@ static void maybe_shutdown_writes(struct proxy_connection *conn) {
         conn->target_write_shutdown = true;
     }
     if (conn->target_connected && conn->target_eof && !conn->client_write_shutdown &&
-        !proxy_buffer_pending(&conn->target_to_client)) {
+        !target_output_pending(conn)) {
         shutdown(conn->client_fd, SHUT_WR);
         conn->client_write_shutdown = true;
     }
@@ -365,7 +444,7 @@ static void connection_update_events(struct proxy_connection *conn) {
 
     maybe_shutdown_writes(conn);
     if (conn->client_eof && conn->target_eof && !proxy_buffer_pending(&conn->client_to_target) &&
-        !proxy_buffer_pending(&conn->target_to_client)) {
+        !target_output_pending(conn)) {
         connection_schedule_close(conn);
         return;
     }
@@ -383,10 +462,10 @@ static void connection_update_events(struct proxy_connection *conn) {
     if (!conn->client_eof && proxy_buffer_space(&conn->client_to_target) > 0) {
         client_events |= EPOLLIN;
     }
-    if (proxy_buffer_pending(&conn->target_to_client)) {
+    if (target_output_pending(conn)) {
         client_events |= EPOLLOUT;
     }
-    if (!conn->target_eof && proxy_buffer_space(&conn->target_to_client) > 0) {
+    if (!conn->target_eof && target_output_has_space(conn)) {
         target_events |= EPOLLIN;
     }
     if (proxy_buffer_pending(&conn->client_to_target)) {
@@ -474,19 +553,16 @@ static int flush_buffer(int fd, struct proxy_buffer *buf) {
 
 static int read_into_buffer(struct proxy_connection *conn, enum proxy_side side) {
     struct proxy_buffer *out = side == PROXY_SIDE_CLIENT ? &conn->client_to_target : &conn->target_to_client;
-    uint8_t tmp[PROXY_BUFFER_SIZE];
 
     for (;;) {
+        proxy_buffer_compact(out);
         size_t space = proxy_buffer_space(out);
         if (space == 0) {
             return 0;
         }
-        if (space > sizeof(tmp)) {
-            space = sizeof(tmp);
-        }
 
         const int fd = side == PROXY_SIDE_CLIENT ? conn->client_fd : conn->target_fd;
-        const ssize_t n = recv(fd, tmp, space, 0);
+        const ssize_t n = recv(fd, out->data + out->len, space, 0);
         if (n == 0) {
             if (side == PROXY_SIDE_CLIENT) {
                 conn->client_eof = true;
@@ -506,11 +582,71 @@ static int read_into_buffer(struct proxy_connection *conn, enum proxy_side side)
         }
 
         if (side == PROXY_SIDE_CLIENT) {
-            process_client_payload(conn, tmp, (size_t)n);
+            process_client_payload(conn, out->data + out->len, (size_t)n);
         }
-        if (!proxy_buffer_append(out, tmp, (size_t)n)) {
+        out->len += (size_t)n;
+    }
+}
+
+static int pump_splice_to_client(struct proxy_connection *conn) {
+    while (conn->splice_pending > 0) {
+        size_t len = conn->splice_pending;
+        if (len > PROXY_SPLICE_SIZE) {
+            len = PROXY_SPLICE_SIZE;
+        }
+
+        const ssize_t n = proxy_splice(conn->splice_pipe[0], conn->client_fd, len);
+        if (n > 0) {
+            conn->splice_pending -= (size_t)n;
+            continue;
+        }
+        if (n == 0) {
             return -1;
         }
+        if (errno == EINTR) {
+            continue;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return 0;
+        }
+        return -1;
+    }
+    return 0;
+}
+
+static int transfer_target_to_client(struct proxy_connection *conn) {
+    if (!conn->splice_enabled) {
+        return read_into_buffer(conn, PROXY_SIDE_TARGET);
+    }
+
+    for (;;) {
+        if (pump_splice_to_client(conn) != 0) {
+            return -1;
+        }
+        if (conn->splice_pending > 0) {
+            return 0;
+        }
+
+        const ssize_t n = proxy_splice(conn->target_fd, conn->splice_pipe[1], PROXY_SPLICE_SIZE);
+        if (n > 0) {
+            conn->splice_pending = (size_t)n;
+            continue;
+        }
+        if (n == 0) {
+            conn->target_eof = true;
+            return 0;
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return 0;
+        }
+        if (errno == EINVAL || errno == ENOSYS) {
+            conn->splice_enabled = false;
+            return read_into_buffer(conn, PROXY_SIDE_TARGET);
+        }
+        return -1;
     }
 }
 
@@ -630,18 +766,35 @@ static void handle_connection_event(struct epoll_ref *ref, uint32_t events) {
     }
 
     if (events & EPOLLOUT) {
-        struct proxy_buffer *out = side == PROXY_SIDE_CLIENT ? &conn->target_to_client : &conn->client_to_target;
-        const int fd = side == PROXY_SIDE_CLIENT ? conn->client_fd : conn->target_fd;
-        if (flush_buffer(fd, out) != 0) {
+        if (side == PROXY_SIDE_CLIENT) {
+            if (flush_buffer(conn->client_fd, &conn->target_to_client) != 0 || pump_splice_to_client(conn) != 0) {
+                connection_schedule_close(conn);
+                return;
+            }
+        } else if (flush_buffer(conn->target_fd, &conn->client_to_target) != 0) {
             connection_schedule_close(conn);
             return;
         }
     }
 
     if (events & (EPOLLIN | EPOLLRDHUP)) {
-        if (read_into_buffer(conn, side) != 0) {
+        const int read_result =
+            side == PROXY_SIDE_TARGET ? transfer_target_to_client(conn) : read_into_buffer(conn, side);
+        if (read_result != 0) {
             connection_schedule_close(conn);
             return;
+        }
+
+        if (side == PROXY_SIDE_CLIENT && proxy_buffer_pending(&conn->client_to_target)) {
+            if (flush_buffer(conn->target_fd, &conn->client_to_target) != 0) {
+                connection_schedule_close(conn);
+                return;
+            }
+        } else if (side == PROXY_SIDE_TARGET && !conn->splice_enabled && proxy_buffer_pending(&conn->target_to_client)) {
+            if (flush_buffer(conn->client_fd, &conn->target_to_client) != 0) {
+                connection_schedule_close(conn);
+                return;
+            }
         }
     }
 
@@ -779,6 +932,14 @@ static struct proxy_connection *create_connection(struct proxy_context *ctx, int
     conn->client_write_shutdown = false;
     conn->rewrite_disabled = false;
     conn->closing = false;
+    conn->splice_pipe[0] = -1;
+    conn->splice_pipe[1] = -1;
+    conn->splice_pending = 0;
+    conn->splice_enabled = create_splice_pipe(conn->splice_pipe) == 0;
+    if (!conn->splice_enabled) {
+        syslog(LOG_WARNING, "splice pipe unavailable, falling back to buffered proxy response forwarding: %s",
+               strerror(errno));
+    }
     memset(&conn->session, 0, sizeof(conn->session));
     conn->client_to_target.off = 0;
     conn->client_to_target.len = 0;
@@ -967,12 +1128,33 @@ static int run_proxy_worker(enum ua2f_mode mode, uint16_t listen_port, volatile 
 }
 
 static int proxy_worker_count(void) {
+    const char *env_workers = getenv("UA2F_PROXY_WORKERS");
+    if (env_workers != NULL && env_workers[0] != '\0') {
+        char *end = NULL;
+        errno = 0;
+        const long requested = strtol(env_workers, &end, 10);
+        if (errno == 0 && end != env_workers && *end == '\0' && requested > 0) {
+            if (requested > PROXY_MAX_WORKERS) {
+                syslog(LOG_WARNING, "UA2F_PROXY_WORKERS=%ld exceeds max %d, clamping", requested, PROXY_MAX_WORKERS);
+                return PROXY_MAX_WORKERS;
+            }
+            return (int)requested;
+        }
+        syslog(LOG_WARNING, "Invalid UA2F_PROXY_WORKERS value: %s", env_workers);
+    }
+
+#ifdef UA2F_ENABLE_UCI
+    if (config.proxy_workers > 0) {
+        return config.proxy_workers;
+    }
+#endif
+
     const long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
     if (cpu_count <= 1) {
         return 1;
     }
-    if (cpu_count > PROXY_MAX_WORKERS) {
-        return PROXY_MAX_WORKERS;
+    if (cpu_count > PROXY_DEFAULT_WORKERS) {
+        return PROXY_DEFAULT_WORKERS;
     }
     return (int)cpu_count;
 }
@@ -1024,6 +1206,8 @@ int run_proxy(enum ua2f_mode mode, uint16_t listen_port, volatile sig_atomic_t *
 }
 
 #undef PROXY_MAX_WORKERS
+#undef PROXY_DEFAULT_WORKERS
 #undef PROXY_MAX_EVENTS
 #undef PROXY_MAX_CONNECTIONS
+#undef PROXY_SPLICE_SIZE
 #undef PROXY_BUFFER_SIZE

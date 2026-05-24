@@ -103,6 +103,12 @@ void try_print_info(const int argc, char *argv[]) {
             }
             printf("Config mode: %s\n", ua2f_mode_name(config.mode));
             printf("Config listen port: %u\n", (unsigned)config.listen_port);
+            printf("Config NFQUEUE workers: %d\n", config.nfqueue_workers);
+            if (config.proxy_workers > 0) {
+                printf("Config proxy workers: %d\n", config.proxy_workers);
+            } else {
+                printf("Config proxy workers: auto\n");
+            }
 #else
             printf("UCI support disabled\n");
 #ifdef UA2F_NO_CACHE

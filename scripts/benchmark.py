@@ -6,7 +6,8 @@ This script creates a temporary network namespace as the benchmark client and
 runs the HTTP origin server, UA2F/UA3F, and netfilter rules in the host
 namespace. Transparent modes are tested through PREROUTING on a veth pair, so
 NFQUEUE, REDIRECT, and TPROXY are exercised in the same packet path they use on
-a router.
+a router. The load generator and origin server are Go helpers compiled at run
+time from scripts/bench_client.go and scripts/bench_server.go.
 
 Example:
     sudo python3 scripts/benchmark.py \
@@ -19,9 +20,7 @@ Example:
 from __future__ import annotations
 
 import argparse
-import collections
 import datetime as dt
-import http.server
 import json
 import os
 import platform
@@ -30,12 +29,10 @@ import signal
 import socket
 import statistics
 import subprocess
-import sys
 import tempfile
-import textwrap
-import threading
 import time
-from dataclasses import dataclass, field
+import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -47,309 +44,10 @@ TPROXY_TABLE = "0x1c9"
 UA2F_MODES = ("NFQUEUE", "REDIRECT", "TPROXY")
 UA3F_MODES = ("NFQUEUE", "REDIRECT", "TPROXY", "HTTP", "SOCKS5")
 TRANSPARENT_MODES = {"NFQUEUE", "REDIRECT", "TPROXY"}
-EXPLICIT_PROXY_MODES = {"HTTP", "SOCKS5"}
-
-
-CLIENT_CODE = r"""
-import argparse
-import json
-import socket
-import struct
-import threading
-import time
-
-
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--kind", required=True, choices=["direct", "http-proxy", "socks5"])
-    p.add_argument("--host", required=True)
-    p.add_argument("--port", required=True, type=int)
-    p.add_argument("--proxy-host", default="")
-    p.add_argument("--proxy-port", default=0, type=int)
-    p.add_argument("--requests", required=True, type=int)
-    p.add_argument("--concurrency", required=True, type=int)
-    p.add_argument("--timeout", required=True, type=float)
-    p.add_argument("--path-prefix", default="/bench")
-    return p.parse_args()
-
-
-def connect_socket(host, port, timeout):
-    sock = socket.create_connection((host, port), timeout=timeout)
-    sock.settimeout(timeout)
-    try:
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    except OSError:
-        pass
-    return sock
-
-
-def socks5_connect(proxy_host, proxy_port, target_host, target_port, timeout):
-    sock = connect_socket(proxy_host, proxy_port, timeout)
-    sock.sendall(b"\x05\x01\x00")
-    resp = sock.recv(2)
-    if resp != b"\x05\x00":
-        raise OSError("SOCKS5 auth negotiation failed: %r" % (resp,))
-
-    try:
-        addr = socket.inet_aton(target_host)
-        req = b"\x05\x01\x00\x01" + addr + struct.pack("!H", target_port)
-    except OSError:
-        host_bytes = target_host.encode("idna")
-        if len(host_bytes) > 255:
-            raise OSError("SOCKS5 target host is too long")
-        req = b"\x05\x01\x00\x03" + bytes([len(host_bytes)]) + host_bytes + struct.pack("!H", target_port)
-    sock.sendall(req)
-
-    head = sock.recv(4)
-    if len(head) != 4 or head[1] != 0:
-        raise OSError("SOCKS5 connect failed: %r" % (head,))
-    atyp = head[3]
-    if atyp == 1:
-        remain = 4 + 2
-    elif atyp == 3:
-        remain = sock.recv(1)[0] + 2
-    elif atyp == 4:
-        remain = 16 + 2
-    else:
-        raise OSError("SOCKS5 unknown address type: %r" % (atyp,))
-    while remain > 0:
-        chunk = sock.recv(remain)
-        if not chunk:
-            raise OSError("SOCKS5 short connect response")
-        remain -= len(chunk)
-    return sock
-
-
-def open_connection(args):
-    if args.kind == "direct":
-        return connect_socket(args.host, args.port, args.timeout)
-    if args.kind == "http-proxy":
-        return connect_socket(args.proxy_host, args.proxy_port, args.timeout)
-    if args.kind == "socks5":
-        return socks5_connect(args.proxy_host, args.proxy_port, args.host, args.port, args.timeout)
-    raise AssertionError(args.kind)
-
-
-def read_response(sock, pending):
-    data = pending
-    while b"\r\n\r\n" not in data:
-        chunk = sock.recv(65536)
-        if not chunk:
-            raise OSError("connection closed before response headers")
-        data += chunk
-
-    head, data = data.split(b"\r\n\r\n", 1)
-    lines = head.split(b"\r\n")
-    status = int(lines[0].split()[1])
-    content_length = None
-    for line in lines[1:]:
-        key, sep, value = line.partition(b":")
-        if sep and key.lower() == b"content-length":
-            content_length = int(value.strip())
-            break
-    if content_length is None:
-        raise OSError("response has no Content-Length")
-
-    while len(data) < content_length:
-        chunk = sock.recv(65536)
-        if not chunk:
-            raise OSError("connection closed before response body")
-        data += chunk
-
-    body = data[:content_length]
-    rest = data[content_length:]
-    return status, len(head) + 4 + len(body), rest
-
-
-def make_request(args, sock, pending, index):
-    path = "%s/%d" % (args.path_prefix, index)
-    target = path
-    if args.kind == "http-proxy":
-        target = "http://%s:%d%s" % (args.host, args.port, path)
-    ua = "UA-BENCH/%d" % index
-    req = (
-        "GET %s HTTP/1.1\r\n"
-        "Host: %s:%d\r\n"
-        "User-Agent: %s\r\n"
-        "Accept: */*\r\n"
-        "Connection: keep-alive\r\n"
-        "\r\n"
-    ) % (target, args.host, args.port, ua)
-    raw = req.encode("ascii")
-    sock.sendall(raw)
-    status, recv_bytes, pending = read_response(sock, pending)
-    return status, len(raw), recv_bytes, pending
-
-
-def worker(args, worker_id, count, start_index, out):
-    latencies = []
-    status_counts = {}
-    errors = 0
-    samples = []
-    bytes_sent = 0
-    bytes_recv = 0
-    sock = None
-    pending = b""
-
-    try:
-        sock = open_connection(args)
-        for i in range(count):
-            idx = start_index + i
-            begin = time.perf_counter()
-            try:
-                status, sent, received, pending = make_request(args, sock, pending, idx)
-                elapsed = time.perf_counter() - begin
-                latencies.append(elapsed)
-                status_counts[str(status)] = status_counts.get(str(status), 0) + 1
-                bytes_sent += sent
-                bytes_recv += received
-            except Exception as exc:
-                errors += 1
-                if len(samples) < 10:
-                    samples.append(str(exc))
-                try:
-                    if sock is not None:
-                        sock.close()
-                except OSError:
-                    pass
-                pending = b""
-                try:
-                    sock = open_connection(args)
-                except Exception as reopen_exc:
-                    if len(samples) < 10:
-                        samples.append("reopen: %s" % reopen_exc)
-                    time.sleep(0.01)
-                    sock = None
-    finally:
-        try:
-            if sock is not None:
-                sock.close()
-        except OSError:
-            pass
-
-    out[worker_id] = {
-        "latencies": latencies,
-        "status_counts": status_counts,
-        "errors": errors,
-        "error_samples": samples,
-        "bytes_sent": bytes_sent,
-        "bytes_recv": bytes_recv,
-    }
-
-
-def main():
-    args = parse_args()
-    total = args.requests
-    concurrency = max(1, min(args.concurrency, total if total > 0 else 1))
-    counts = [total // concurrency] * concurrency
-    for i in range(total % concurrency):
-        counts[i] += 1
-
-    starts = []
-    n = 0
-    for c in counts:
-        starts.append(n)
-        n += c
-
-    outputs = [None] * concurrency
-    begin = time.perf_counter()
-    threads = [
-        threading.Thread(target=worker, args=(args, i, counts[i], starts[i], outputs))
-        for i in range(concurrency)
-        if counts[i] > 0
-    ]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    duration = time.perf_counter() - begin
-
-    latencies = []
-    status_counts = {}
-    errors = 0
-    samples = []
-    bytes_sent = 0
-    bytes_recv = 0
-    for item in outputs:
-        if not item:
-            continue
-        latencies.extend(item["latencies"])
-        errors += item["errors"]
-        bytes_sent += item["bytes_sent"]
-        bytes_recv += item["bytes_recv"]
-        samples.extend(item["error_samples"])
-        for key, value in item["status_counts"].items():
-            status_counts[key] = status_counts.get(key, 0) + value
-
-    print(json.dumps({
-        "requests": total,
-        "completed": len(latencies),
-        "errors": errors,
-        "error_samples": samples[:20],
-        "duration_sec": duration,
-        "latencies_sec": latencies,
-        "status_counts": status_counts,
-        "bytes_sent": bytes_sent,
-        "bytes_recv": bytes_recv,
-        "bytes_total": bytes_sent + bytes_recv,
-    }))
-
-
-if __name__ == "__main__":
-    main()
-"""
 
 
 class BenchmarkError(RuntimeError):
     pass
-
-
-@dataclass
-class ServerStats:
-    lock: threading.Lock = field(default_factory=threading.Lock)
-    requests: int = 0
-    user_agents: collections.Counter[str] = field(default_factory=collections.Counter)
-
-    def reset(self) -> None:
-        with self.lock:
-            self.requests = 0
-            self.user_agents.clear()
-
-    def record(self, user_agent: str) -> None:
-        with self.lock:
-            self.requests += 1
-            self.user_agents[user_agent] += 1
-
-    def snapshot(self) -> dict[str, Any]:
-        with self.lock:
-            return {
-                "requests": self.requests,
-                "user_agents": dict(self.user_agents.most_common(10)),
-            }
-
-
-def make_handler(stats: ServerStats, body: bytes) -> type[http.server.BaseHTTPRequestHandler]:
-    class Handler(http.server.BaseHTTPRequestHandler):
-        protocol_version = "HTTP/1.1"
-
-        def do_GET(self) -> None:  # noqa: N802
-            stats.record(self.headers.get("User-Agent", ""))
-            self.send_response(200)
-            self.send_header("Content-Type", "application/octet-stream")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Connection", "keep-alive")
-            self.end_headers()
-            self.wfile.write(body)
-
-        def log_message(self, fmt: str, *args: Any) -> None:
-            return
-
-    return Handler
-
-
-class ReusableThreadingHTTPServer(http.server.ThreadingHTTPServer):
-    allow_reuse_address = True
-    daemon_threads = True
 
 
 @dataclass
@@ -428,6 +126,24 @@ def resolve_binary(explicit: str | None, candidates: list[str]) -> Path | None:
         if path.is_file() and os.access(path, os.X_OK):
             return path
     return None
+
+
+def repo_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+def build_bench_tools(tmp_dir: Path) -> tuple[Path, Path]:
+    root = repo_root()
+    client_bin = tmp_dir / "bench-client"
+    server_bin = tmp_dir / "bench-server"
+    run_cmd(["go", "build", "-o", str(client_bin), str(root / "scripts" / "bench_client.go")])
+    run_cmd(["go", "build", "-o", str(server_bin), str(root / "scripts" / "bench_server.go")])
+    return client_bin, server_bin
+
+
+def go_version() -> str:
+    result = run_cmd(["go", "version"], check=False)
+    return result.stdout.strip() if result.returncode == 0 else "unknown"
 
 
 def setup_netns(ns: Netns) -> None:
@@ -543,6 +259,55 @@ def wait_for_port(host: str, port: int, timeout: float) -> None:
     raise BenchmarkError(f"Timed out waiting for {host}:{port}: {last_error}")
 
 
+def server_control_addr(args: argparse.Namespace) -> str:
+    return f"127.0.0.1:{args.server_control_port}"
+
+
+def server_control_request(control_addr: str, path: str, method: str = "GET") -> dict[str, Any]:
+    request = urllib.request.Request(f"http://{control_addr}{path}", method=method)
+    with urllib.request.urlopen(request, timeout=5.0) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def server_reset(control_addr: str) -> None:
+    server_control_request(control_addr, "/__ua_bench_reset", method="POST")
+
+
+def server_snapshot(control_addr: str) -> dict[str, Any]:
+    return server_control_request(control_addr, "/__ua_bench_stats")
+
+
+def safe_server_snapshot(control_addr: str) -> dict[str, Any]:
+    try:
+        return server_snapshot(control_addr)
+    except Exception:
+        return {"requests": 0, "user_agents": {}}
+
+
+def start_bench_server(server_bin: Path, args: argparse.Namespace, output_dir: Path) -> ProcessHandle:
+    log_path = output_dir / "bench-server.log"
+    log_file = log_path.open("wb")
+    cmd = [
+        str(server_bin),
+        "--addr", f"{args.server_ip}:{args.server_port}",
+        "--control-addr", server_control_addr(args),
+        "--body-bytes", str(args.body_bytes),
+    ]
+    proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT, start_new_session=True)
+    log_file.close()
+    handle = ProcessHandle(proc=proc, log_path=log_path)
+
+    try:
+        wait_for_port(args.server_ip, args.server_port, 5.0)
+        wait_for_port("127.0.0.1", args.server_control_port, 5.0)
+        if proc.poll() is not None:
+            raise BenchmarkError(f"bench server exited early with {proc.returncode}; see {log_path}")
+    except Exception:
+        stop_process(handle)
+        raise
+    return handle
+
+
 def start_process(case: Case, proxy_port: int, output_dir: Path, profiler: str) -> ProcessHandle:
     assert case.binary is not None
     log_path = output_dir / f"{case_slug(case)}.log"
@@ -655,8 +420,23 @@ def read_proc_cpu(pid: int) -> float | None:
         return None
 
 
+def read_proc_memory(pid: int) -> dict[str, int]:
+    fields: dict[str, int] = {}
+    try:
+        for line in Path(f"/proc/{pid}/status").read_text().splitlines():
+            key, sep, value = line.partition(":")
+            if sep == "" or key not in {"VmRSS", "VmHWM", "VmSize"}:
+                continue
+            parts = value.strip().split()
+            if parts:
+                fields[key] = int(parts[0])
+    except (OSError, ValueError):
+        pass
+    return fields
+
+
 def run_client(
-    client_script: Path,
+    client_bin: Path,
     ns: Netns,
     kind: str,
     requests: int,
@@ -680,7 +460,7 @@ def run_client(
 
     cmd = [
         "ip", "netns", "exec", ns.name,
-        sys.executable, str(client_script),
+        str(client_bin),
         "--kind", kind,
         "--host", ns.server_ip,
         "--port", str(server_port),
@@ -766,16 +546,17 @@ def run_case(
     case: Case,
     args: argparse.Namespace,
     ns: Netns,
-    stats: ServerStats,
-    client_script: Path,
+    control_addr: str,
+    client_bin: Path,
     output_dir: Path,
     chain_suffix: str,
 ) -> dict[str, Any]:
     print(f"[bench] {case.tool} {case_label(case)}")
-    stats.reset()
+    server_reset(control_addr)
     handle: ProcessHandle | None = None
     proc_cpu_before: float | None = None
     proc_cpu_after: float | None = None
+    proc_memory_after: dict[str, int] = {}
     started_at = time.time()
     result: dict[str, Any] = {
         "tool": case.tool,
@@ -813,34 +594,46 @@ def run_case(
 
         if args.warmup > 0:
             _ = run_client(
-                client_script, ns, kind, args.warmup, min(args.concurrency, args.warmup),
+                client_bin, ns, kind, args.warmup, min(args.concurrency, args.warmup),
                 args.timeout, args.server_port, args.proxy_port,
             )
 
-        stats.reset()
+        server_reset(control_addr)
         client = run_client(
-            client_script, ns, kind, args.requests, args.concurrency,
+            client_bin, ns, kind, args.requests, args.concurrency,
             args.timeout, args.server_port, args.proxy_port,
         )
-        server_snapshot = stats.snapshot()
+        server_snapshot_data = server_snapshot(control_addr)
         summary = summarize_client(client)
-        ua_ok, ua_detail = ua_check(case.tool, server_snapshot)
+        ua_ok, ua_detail = ua_check(case.tool, server_snapshot_data)
 
         if handle is not None:
             proc_cpu_after = read_proc_cpu(handle.proc.pid)
+            proc_memory_after = read_proc_memory(handle.proc.pid)
+
+        process_cpu_sec = (
+            proc_cpu_after - proc_cpu_before
+            if proc_cpu_before is not None and proc_cpu_after is not None
+            else None
+        )
+        process_cpu_pct = (
+            process_cpu_sec / summary["duration_sec"] * 100.0
+            if process_cpu_sec is not None and summary["duration_sec"] > 0
+            else None
+        )
 
         result.update({
             "ok": summary["errors"] == 0 and ua_ok and summary["completed"] == args.requests,
             "client": client,
             "summary": summary,
-            "server": server_snapshot,
+            "server": server_snapshot_data,
             "ua_ok": ua_ok,
             "ua_detail": ua_detail,
-            "process_cpu_sec": (
-                proc_cpu_after - proc_cpu_before
-                if proc_cpu_before is not None and proc_cpu_after is not None
-                else None
-            ),
+            "process_cpu_sec": process_cpu_sec,
+            "process_cpu_pct": process_cpu_pct,
+            "process_rss_kb": proc_memory_after.get("VmRSS"),
+            "process_hwm_kb": proc_memory_after.get("VmHWM"),
+            "process_vms_kb": proc_memory_after.get("VmSize"),
             "log_path": str(handle.log_path) if handle else None,
             "profile_path": str(handle.profile_path) if handle and handle.profile_path else None,
         })
@@ -863,7 +656,7 @@ def run_case(
                 "bytes_total": 0,
                 "error_samples": [str(exc)],
             },
-            "server": stats.snapshot(),
+            "server": safe_server_snapshot(control_addr),
             "ua_ok": False,
             "ua_detail": str(exc),
             "log_path": str(handle.log_path) if handle else None,
@@ -886,6 +679,12 @@ def fmt(value: Any, digits: int = 2) -> str:
     return str(value)
 
 
+def fmt_kb_as_mb(value: Any) -> str:
+    if value is None:
+        return "-"
+    return fmt(float(value) / 1024.0)
+
+
 def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns: Netns) -> str:
     generated = dt.datetime.now(dt.timezone.utc).isoformat()
     lines = [
@@ -895,13 +694,17 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
         f"- Host: `{platform.node()}`",
         f"- Kernel: `{platform.platform()}`",
         f"- Python: `{platform.python_version()}`",
+        f"- Go: `{go_version()}`",
         f"- CPU count: `{os.cpu_count()}`",
         f"- Client netns: `{ns.name}`",
         f"- Server endpoint: `{ns.server_ip}:{args.server_port}`",
+        f"- Server control endpoint: `127.0.0.1:{args.server_control_port}`",
         f"- Requests per case: `{args.requests}`",
         f"- Concurrency: `{args.concurrency}`",
         f"- Response body bytes: `{args.body_bytes}`",
         f"- Profiler: `{args.profiler}`",
+        "",
+        "The benchmark load generator and origin server are compiled from Go helpers under `scripts/`.",
         "",
         "Transparent modes use a veth client namespace and host PREROUTING rules. "
         f"UA2F NFQUEUE uses queue `{UA2F_QUEUE}` or a balanced range starting there; "
@@ -909,15 +712,15 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
         "",
         "## Results",
         "",
-        "| Tool | Mode | NFQ workers | OK | Completed | Errors | Req/s | Mbps | Avg ms | P50 ms | P95 ms | P99 ms | Proc CPU s | UA check |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| Tool | Mode | NFQ workers | OK | Completed | Errors | Req/s | Mbps | Avg ms | P50 ms | P95 ms | P99 ms | Proc CPU s | Proc CPU % | RSS MB | HWM MB | UA check |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
 
     for item in results:
         summary = item.get("summary", {})
         lines.append(
             "| {tool} | {mode} | {workers} | {ok} | {completed} | {errors} | {rps} | {mbps} | "
-            "{avg} | {p50} | {p95} | {p99} | {cpu} | {ua} |".format(
+            "{avg} | {p50} | {p95} | {p99} | {cpu} | {cpu_pct} | {rss} | {hwm} | {ua} |".format(
                 tool=item.get("tool"),
                 mode=item.get("label", item.get("mode")),
                 workers=item.get("nfqueue_workers", "-") if item.get("mode") == "NFQUEUE" else "-",
@@ -931,6 +734,9 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
                 p95=fmt(summary.get("p95_ms")),
                 p99=fmt(summary.get("p99_ms")),
                 cpu=fmt(item.get("process_cpu_sec")),
+                cpu_pct=fmt(item.get("process_cpu_pct")),
+                rss=fmt_kb_as_mb(item.get("process_rss_kb")),
+                hwm=fmt_kb_as_mb(item.get("process_hwm_kb")),
                 ua=item.get("ua_detail", "-").replace("|", "\\|"),
             )
         )
@@ -1037,6 +843,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=10.0, help="Per-socket timeout in seconds")
     parser.add_argument("--body-bytes", type=int, default=4096, help="Origin response body size")
     parser.add_argument("--server-port", type=int, default=18080, help="Origin HTTP server port")
+    parser.add_argument(
+        "--server-control-port",
+        type=int,
+        default=0,
+        help="Go bench server stats/control port; 0 means server-port + 1",
+    )
     parser.add_argument("--proxy-port", type=int, default=10010, help="Transparent/proxy listener port")
     parser.add_argument("--server-ip", default="10.250.0.1", help="Host-side veth IP")
     parser.add_argument("--client-ip", default="10.250.0.2", help="Client namespace veth IP")
@@ -1059,6 +871,8 @@ def parse_args() -> argparse.Namespace:
         parsed.ua2f_nfqueue_workers = parse_positive_int_list(parsed.ua2f_nfqueue_workers)
     except argparse.ArgumentTypeError as exc:
         parser.error(f"--ua2f-nfqueue-workers: {exc}")
+    if parsed.server_control_port == 0:
+        parsed.server_control_port = parsed.server_port + 1
     if parsed.requests < 1:
         parser.error("--requests must be positive")
     if parsed.concurrency < 1:
@@ -1067,6 +881,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--warmup cannot be negative")
     if parsed.body_bytes < 0:
         parser.error("--body-bytes cannot be negative")
+    if parsed.server_control_port < 1:
+        parser.error("--server-control-port must be positive")
     return parsed
 
 
@@ -1098,7 +914,7 @@ def main() -> int:
         return 0
 
     require_root()
-    require_commands(["ip", "iptables", sys.executable])
+    require_commands(["ip", "iptables", "go"])
     if args.profiler == "callgrind":
         require_commands(["valgrind"])
     if any(case.tool == "ua2f" and case.binary is None for case in cases):
@@ -1106,34 +922,26 @@ def main() -> int:
     if any(case.tool == "ua3f" and case.binary is None for case in cases):
         raise SystemExit("UA3F binary not found. Pass --ua3f /path/to/ua3f or build it first.")
 
-    stats = ServerStats()
-    body = b"x" * args.body_bytes
-    server: ReusableThreadingHTTPServer | None = None
-    server_thread: threading.Thread | None = None
-
     results: list[dict[str, Any]] = []
     timestamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     report_path = Path(args.report).resolve() if args.report else output_dir / f"ua-benchmark-{timestamp}.md"
     json_path = Path(args.json_output).resolve() if args.json_output else output_dir / f"ua-benchmark-{timestamp}.json"
+    go_info = go_version()
 
     with tempfile.TemporaryDirectory(prefix="ua-bench-") as tmp:
-        client_script = Path(tmp) / "client.py"
-        client_script.write_text(CLIENT_CODE)
+        client_bin, server_bin = build_bench_tools(Path(tmp))
+        server_handle: ProcessHandle | None = None
+        control_addr = server_control_addr(args)
 
         try:
             setup_netns(ns)
-            server = ReusableThreadingHTTPServer((args.server_ip, args.server_port), make_handler(stats, body))
-            server_thread = threading.Thread(target=server.serve_forever, daemon=True)
-            server_thread.start()
-            wait_for_port(args.server_ip, args.server_port, 5.0)
+            server_handle = start_bench_server(server_bin, args, output_dir)
 
             for index, case in enumerate(cases):
                 chain_suffix = f"{suffix}_{index}"
-                results.append(run_case(case, args, ns, stats, client_script, output_dir, chain_suffix))
+                results.append(run_case(case, args, ns, control_addr, client_bin, output_dir, chain_suffix))
         finally:
-            if server is not None:
-                server.shutdown()
-                server.server_close()
+            stop_process(server_handle)
             cleanup_netns(ns)
 
     payload = {
@@ -1143,6 +951,7 @@ def main() -> int:
             "host": platform.node(),
             "platform": platform.platform(),
             "python": platform.python_version(),
+            "go": go_info,
             "cpu_count": os.cpu_count(),
         },
         "results": results,

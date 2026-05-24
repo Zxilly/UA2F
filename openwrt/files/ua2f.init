@@ -46,6 +46,27 @@ delete_nft_table() {
 	nft delete table inet ua2f 2>"/dev/null"
 }
 
+normalize_worker_count() {
+	local value="$1"
+	local default="$2"
+	local min="$3"
+	local max="$4"
+
+	case "$value" in
+		""|*[!0-9]*)
+			echo "$default"
+			return
+			;;
+	esac
+
+	if [ "$value" -lt "$min" ] || [ "$value" -gt "$max" ]; then
+		echo "$default"
+		return
+	fi
+
+	echo "$value"
+}
+
 if type extra_command >"/dev/null" 2>&1; then
 	extra_command "setup_firewall"
 else
@@ -329,13 +350,15 @@ setup_firewall() {
 		return 1
 	fi
 
-	local handle_tls handle_intranet handle_mmtls disable_connmark mode listen_port
+	local handle_tls handle_intranet handle_mmtls disable_connmark mode listen_port nfqueue_workers
 	config_get_bool handle_tls "firewall" "handle_tls" "0"
 	config_get_bool handle_intranet "firewall" "handle_intranet" "0"
 	config_get_bool handle_mmtls "firewall" "handle_mmtls" "0"
 	config_get_bool disable_connmark "main" "disable_connmark" "0"
 	config_get mode "main" "mode" "NFQUEUE"
 	config_get listen_port "main" "listen_port" "10010"
+	config_get nfqueue_workers "main" "nfqueue_workers" "1"
+	nfqueue_workers="$(normalize_worker_count "$nfqueue_workers" 1 1 16)"
 	mode="$(echo "$mode" | tr '[:lower:]' '[:upper:]')"
 
 	case "$mode" in
@@ -355,6 +378,13 @@ setup_firewall() {
 			return 1
 			;;
 	esac
+
+	local nfqueue_end nfqueue_expr
+	nfqueue_end=$((10010 + nfqueue_workers - 1))
+	nfqueue_expr="queue num 10010 bypass"
+	if [ "$nfqueue_workers" -gt 1 ]; then
+		nfqueue_expr="queue num 10010-$nfqueue_end bypass"
+	fi
 
 	if [ -n "$HAS_NFT" ]; then
 		delete_nft_table
@@ -395,7 +425,7 @@ setup_firewall() {
 					$([ "$handle_tls" -eq "1" ] || echo 'tcp dport 443 counter return comment "!ua2f: bypass HTTPS";')
 					$([ "$disable_connmark" -eq "1" ] || echo 'tcp dport 80 counter ct mark set 44;')
 					$([ "$disable_connmark" -eq "1" ] || echo 'ct mark 43 counter return comment "!ua2f: bypass non-http stream";')
-					meta l4proto tcp ct direction original counter queue num 10010 bypass;
+					meta l4proto tcp ct direction original counter $nfqueue_expr;
 				}
 			}
 		EOF
@@ -420,7 +450,11 @@ setup_firewall() {
 			[ "$disable_connmark" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
       [ "$disable_connmark" -eq "1" ] || $IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 			[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-			$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+			if [ "$nfqueue_workers" -gt 1 ]; then
+				$IPT_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
+			else
+				$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+			fi
 		fi
 		$IPT_M -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 
@@ -450,7 +484,11 @@ setup_firewall() {
 				[ "$disable_connmark" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
         [ "$disable_connmark" -eq "1" ] || $IPT6_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 				[ "$handle_mmtls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-				$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+				if [ "$nfqueue_workers" -gt 1 ]; then
+					$IPT6_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
+				else
+					$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+				fi
 			fi
 			$IPT6_M -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
 		fi

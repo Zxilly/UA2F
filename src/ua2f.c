@@ -45,7 +45,11 @@ void signal_handler(int sig) {
 static int nfqueue_worker_count(void) {
     const char *value = getenv("UA2F_NFQUEUE_WORKERS");
     if (value == NULL || value[0] == '\0') {
+#ifdef UA2F_ENABLE_UCI
+        return config.nfqueue_workers;
+#else
         return 1;
+#endif
     }
 
     errno = 0;

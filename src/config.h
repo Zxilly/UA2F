@@ -17,6 +17,8 @@ struct ua2f_config {
     int session_ttl; // seconds, default 300
     enum ua2f_mode mode;
     uint16_t listen_port;
+    int nfqueue_workers; // 1-16
+    int proxy_workers; // 0 = auto, otherwise 1-16
 };
 
 void load_config();

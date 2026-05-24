@@ -1,10 +1,13 @@
 #ifdef UA2F_ENABLE_UCI
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <uci.h>
 
 #include "config.h"
+
+#define UA2F_MAX_CONFIG_WORKERS 16
 
 struct ua2f_config config = {
     .use_custom_ua = false,
@@ -14,7 +17,26 @@ struct ua2f_config config = {
     .session_ttl = 300,
     .mode = UA2F_MODE_NFQUEUE,
     .listen_port = UA2F_DEFAULT_PROXY_PORT,
+    .nfqueue_workers = 1,
+    .proxy_workers = 0,
 };
+
+static void load_int_option(struct uci_context *ctx, struct uci_section *section, const char *name, int min_value,
+                            int max_value, int *target) {
+    const __auto_type value = uci_lookup_option_string(ctx, section, name);
+    if (value == NULL) {
+        return;
+    }
+
+    char *endptr = NULL;
+    const long parsed = strtol(value, &endptr, 10);
+    if (endptr != value && *endptr == '\0' && parsed >= min_value && parsed <= max_value) {
+        *target = (int)parsed;
+        return;
+    }
+
+    syslog(LOG_WARNING, "Invalid %s value: %s, using default %d", name, value, *target);
+}
 
 void load_config() {
     const __auto_type ctx = uci_alloc_context();
@@ -45,28 +67,8 @@ void load_config() {
         config.disable_connmark = true;
     }
 
-    const __auto_type max_sessions_str = uci_lookup_option_string(ctx, section, "max_http_sessions");
-    if (max_sessions_str != NULL) {
-        char *endptr;
-        const long val = strtol(max_sessions_str, &endptr, 10);
-        if (*endptr == '\0' && val >= 0) {
-            config.max_http_sessions = (int)val;
-        } else {
-            syslog(LOG_WARNING, "Invalid max_http_sessions value: %s, using default %d", max_sessions_str,
-                   config.max_http_sessions);
-        }
-    }
-
-    const __auto_type session_ttl_str = uci_lookup_option_string(ctx, section, "session_ttl");
-    if (session_ttl_str != NULL) {
-        char *endptr;
-        const long val = strtol(session_ttl_str, &endptr, 10);
-        if (*endptr == '\0' && val > 0) {
-            config.session_ttl = (int)val;
-        } else {
-            syslog(LOG_WARNING, "Invalid session_ttl value: %s, using default %d", session_ttl_str, config.session_ttl);
-        }
-    }
+    load_int_option(ctx, section, "max_http_sessions", 0, INT_MAX, &config.max_http_sessions);
+    load_int_option(ctx, section, "session_ttl", 1, INT_MAX, &config.session_ttl);
 
     const __auto_type mode_str = uci_lookup_option_string(ctx, section, "mode");
     if (mode_str != NULL && strlen(mode_str) > 0) {
@@ -90,7 +92,11 @@ void load_config() {
         }
     }
 
+    load_int_option(ctx, section, "nfqueue_workers", 1, UA2F_MAX_CONFIG_WORKERS, &config.nfqueue_workers);
+    load_int_option(ctx, section, "proxy_workers", 0, UA2F_MAX_CONFIG_WORKERS, &config.proxy_workers);
+
 cleanup:
     uci_free_context(ctx);
 }
+#undef UA2F_MAX_CONFIG_WORKERS
 #endif
