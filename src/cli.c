@@ -81,7 +81,7 @@ void try_print_info(const int argc, char *argv[]) {
             printf("Git branch: %s\n", UA2F_GIT_BRANCH);
             printf("Git tag: %s\n", UA2F_GIT_TAG);
             printf("Git dirty: %s\n", UA2F_GIT_DIRTY);
-#ifdef UA2F_CUSTOM_UA
+#ifdef UA2F_USE_CUSTOM_UA
             printf("Embed UA: %s\n", UA2F_CUSTOM_UA);
 #else
             printf("Embed UA: not set\n");

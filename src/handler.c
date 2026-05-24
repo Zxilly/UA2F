@@ -24,6 +24,7 @@
 #include <stdlib.h>
 
 static char *replacement_user_agent_string = NULL;
+static bool replacement_user_agent_cleanup_registered = false;
 
 static const struct mark_op MARK_NONE = {false, 0};
 static const struct mark_op MARK_NOT_HTTP = {true, CONNMARK_NOT_HTTP};
@@ -35,12 +36,21 @@ bool use_conntrack = true;
 bool use_conntrack = false;
 #endif
 
+static void destroy_handler(void) {
+    free(replacement_user_agent_string);
+    replacement_user_agent_string = NULL;
+}
+
 void init_handler() {
     init_not_http_cache(60);
 
-    free(replacement_user_agent_string);
+    destroy_handler();
     replacement_user_agent_string = malloc(UA2F_MAX_USER_AGENT_LENGTH);
     assert(replacement_user_agent_string != NULL && "Failed to allocate user agent string");
+    if (!replacement_user_agent_cleanup_registered) {
+        atexit(destroy_handler);
+        replacement_user_agent_cleanup_registered = true;
+    }
     bool ua_set = false;
 
 #ifdef UA2F_ENABLE_UCI
@@ -63,7 +73,7 @@ void init_handler() {
     }
 #endif
 
-#ifdef UA2F_CUSTOM_UA
+#ifdef UA2F_USE_CUSTOM_UA
     if (!ua_set) {
         memset(replacement_user_agent_string, ' ', UA2F_MAX_USER_AGENT_LENGTH);
         size_t custom_ua_len = strlen(UA2F_CUSTOM_UA);
@@ -343,6 +353,13 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
         }
         http_parser_init_session(session);
         new_session = true;
+    }
+
+    if (session == NULL) {
+        session_wrunlock();
+        syslog(LOG_ERR, "HTTP session unexpectedly missing");
+        SEND_VERDICT(NF_DROP, MARK_NONE, NULL);
+        goto end;
     }
 
     // Level 3: feed to llhttp (session is valid, we hold the lock)

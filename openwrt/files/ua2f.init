@@ -1,4 +1,6 @@
 #!/bin/sh /etc/rc.common
+# shellcheck shell=ash
+# shellcheck disable=SC2034
 # Copyright (C) 2020 Zxilly <zhouxinyu1001@gmail.com>
 # Copyright (C) 2021 Tianling Shen <cnsztl@immortalwrt.org>
 
@@ -475,7 +477,7 @@ start_service() {
 		setup_firewall
 		[ -n "$HAS_NFT" ] || {
 			mkdir -p "$FW_DIR"
-			echo -e "/etc/init.d/$NAME setup_firewall" > "$FW_CONF"
+			printf '/etc/init.d/%s setup_firewall\n' "$NAME" > "$FW_CONF"
 		}
 	fi
 
