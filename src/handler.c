@@ -19,6 +19,7 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <limits.h>
+#include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <stdlib.h>
@@ -178,6 +179,73 @@ bool ipv6_set_transport_header(struct pkt_buff *pkt_buff) {
     return true;
 }
 
+static size_t tcp_header_length(const struct tcphdr *tcp_hdr) {
+    return (size_t)tcp_hdr->th_off * 4U;
+}
+
+static bool packet_has_tcp_payload_fast(const struct nf_packet *pkt, int type, bool *has_payload) {
+    *has_payload = false;
+
+    if (type == IPV4) {
+        if (pkt->payload_len < sizeof(struct iphdr)) {
+            return false;
+        }
+
+        const struct iphdr *ip_hdr = (const struct iphdr *)pkt->payload;
+        if (ip_hdr->version != 4 || ip_hdr->protocol != IPPROTO_TCP) {
+            return false;
+        }
+
+        const size_t ip_header_len = (size_t)ip_hdr->ihl * 4U;
+        const size_t ip_total_len = (size_t)ntohs(ip_hdr->tot_len);
+        const uint16_t fragment = ntohs(ip_hdr->frag_off);
+        if (ip_header_len < sizeof(struct iphdr) || ip_total_len < ip_header_len ||
+            ip_total_len > pkt->payload_len || (fragment & 0x3fffU) != 0) {
+            return false;
+        }
+        if (ip_total_len < ip_header_len + sizeof(struct tcphdr)) {
+            return false;
+        }
+
+        const struct tcphdr *tcp_hdr = (const struct tcphdr *)((const uint8_t *)pkt->payload + ip_header_len);
+        const size_t tcp_header_len = tcp_header_length(tcp_hdr);
+        if (tcp_header_len < sizeof(struct tcphdr) || ip_total_len < ip_header_len + tcp_header_len) {
+            return false;
+        }
+
+        *has_payload = ip_total_len > ip_header_len + tcp_header_len;
+        return true;
+    }
+
+    if (type == IPV6) {
+        if (pkt->payload_len < sizeof(struct ip6_hdr)) {
+            return false;
+        }
+
+        const struct ip6_hdr *ip_hdr = (const struct ip6_hdr *)pkt->payload;
+        if ((ip_hdr->ip6_vfc >> 4) != 6 || ip_hdr->ip6_nxt != IPPROTO_TCP) {
+            return false;
+        }
+
+        const size_t ip_total_len = sizeof(struct ip6_hdr) + (size_t)ntohs(ip_hdr->ip6_plen);
+        if (ip_total_len < sizeof(struct ip6_hdr) || ip_total_len > pkt->payload_len ||
+            ip_total_len < sizeof(struct ip6_hdr) + sizeof(struct tcphdr)) {
+            return false;
+        }
+
+        const struct tcphdr *tcp_hdr = (const struct tcphdr *)((const uint8_t *)pkt->payload + sizeof(struct ip6_hdr));
+        const size_t tcp_header_len = tcp_header_length(tcp_hdr);
+        if (tcp_header_len < sizeof(struct tcphdr) || ip_total_len < sizeof(struct ip6_hdr) + tcp_header_len) {
+            return false;
+        }
+
+        *has_payload = ip_total_len > sizeof(struct ip6_hdr) + tcp_header_len;
+        return true;
+    }
+
+    return false;
+}
+
 int get_pkt_ip_version(const struct nf_packet *pkt) {
     if (pkt->has_conntrack) {
         return pkt->orig.ip_version;
@@ -191,6 +259,14 @@ int get_pkt_ip_version(const struct nf_packet *pkt) {
     default:
         syslog(LOG_WARNING, "Received unknown ip packet %x.", pkt->hw_protocol);
         return IP_UNK;
+    }
+}
+
+static void count_ip_packet(int type) {
+    if (type == IPV4) {
+        count_ipv4_packet();
+    } else if (type == IPV6) {
+        count_ipv6_packet();
     }
 }
 
@@ -223,6 +299,17 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
         goto end;
     }
 
+    bool has_tcp_payload = false;
+    bool counted_ip_packet = false;
+    if (packet_has_tcp_payload_fast(pkt, type, &has_tcp_payload)) {
+        count_ip_packet(type);
+        counted_ip_packet = true;
+        if (!has_tcp_payload) {
+            SEND_VERDICT(NF_ACCEPT, MARK_NONE, NULL);
+            goto end;
+        }
+    }
+
     pkt_buff = pktb_alloc(type == IPV4 ? AF_INET : AF_INET6, pkt->payload, pkt->payload_len, 0);
     if (pkt_buff == NULL) {
         syslog(LOG_ERR, "Failed to allocate packet buffer");
@@ -234,13 +321,17 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
             syslog(LOG_ERR, "Failed to set ipv4 transport header");
             goto end;
         }
-        count_ipv4_packet();
+        if (!counted_ip_packet) {
+            count_ipv4_packet();
+        }
     } else if (type == IPV6) {
         if (!ipv6_set_transport_header(pkt_buff)) {
             syslog(LOG_ERR, "Failed to set ipv6 transport header");
             goto end;
         }
-        count_ipv6_packet();
+        if (!counted_ip_packet) {
+            count_ipv6_packet();
+        }
     } else {
         syslog(LOG_ERR, "Unknown ip version");
         goto end;
