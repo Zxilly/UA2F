@@ -87,6 +87,7 @@ dkms.conf
 coverage_html/
 /third_party/
 /ref/
+/scripts/benchmark-results/
 /venv/
 .vscode/
 .cache/
