@@ -7,6 +7,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -17,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdatomic.h>
-#include <sys/select.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <syslog.h>
@@ -43,24 +44,88 @@
 #define SO_MARK 36
 #endif
 
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT 15
+#endif
+
 #define PROXY_BUFFER_SIZE 16384
 #define PROXY_MAX_CONNECTIONS 512
+#define PROXY_MAX_EVENTS 128
+#define PROXY_MAX_WORKERS 4
+
+struct proxy_context;
+struct proxy_connection;
+struct proxy_listener;
+
+enum epoll_ref_type {
+    EPOLL_REF_LISTENER = 1,
+    EPOLL_REF_CONNECTION,
+};
+
+enum proxy_side {
+    PROXY_SIDE_CLIENT = 1,
+    PROXY_SIDE_TARGET,
+};
+
+struct epoll_ref {
+    enum epoll_ref_type type;
+    union {
+        struct proxy_listener *listener;
+        struct {
+            struct proxy_connection *conn;
+            enum proxy_side side;
+        } connection;
+    };
+};
 
 struct proxy_listener {
     int fd;
     int family;
+    struct epoll_ref ref;
 };
 
-struct connection_args {
+struct proxy_buffer {
+    uint8_t data[PROXY_BUFFER_SIZE];
+    size_t off;
+    size_t len;
+};
+
+struct proxy_connection {
+    struct proxy_context *ctx;
+    struct proxy_connection *next;
+    struct proxy_connection *close_next;
+
     int client_fd;
+    int target_fd;
     int family;
+    bool target_connected;
+    bool client_eof;
+    bool target_eof;
+    bool target_write_shutdown;
+    bool client_write_shutdown;
+    bool rewrite_disabled;
+    bool closing;
+
+    struct http_session session;
+    struct proxy_buffer client_to_target;
+    struct proxy_buffer target_to_client;
+    struct epoll_ref client_ref;
+    struct epoll_ref target_ref;
+};
+
+struct proxy_context {
+    int epoll_fd;
+    struct proxy_connection *connections;
+    struct proxy_connection *closing;
+};
+
+struct proxy_worker_args {
     enum ua2f_mode mode;
     uint16_t listen_port;
-};
-
-struct raw_pipe_args {
-    int from_fd;
-    int to_fd;
+    volatile sig_atomic_t *should_exit;
+    int worker_id;
+    int worker_count;
+    int result;
 };
 
 static atomic_int active_connections = 0;
@@ -78,6 +143,14 @@ static bool proxy_try_acquire_connection(void) {
 
 static void proxy_release_connection(void) {
     atomic_fetch_sub_explicit(&active_connections, 1, memory_order_relaxed);
+}
+
+static int set_nonblocking(int fd) {
+    const int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) {
+        return -1;
+    }
+    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
 static socklen_t sockaddr_size(const struct sockaddr_storage *addr) {
@@ -178,58 +251,157 @@ static void format_sockaddr(const struct sockaddr_storage *addr, char *buf, size
     }
 }
 
-static bool send_all(int fd, const void *data, size_t len) {
-    const uint8_t *p = (const uint8_t *)data;
-    while (len > 0) {
-        const ssize_t sent = send(fd, p, len, MSG_NOSIGNAL);
-        if (sent < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            return false;
-        }
-        if (sent == 0) {
-            return false;
-        }
-        p += sent;
-        len -= (size_t)sent;
+static bool proxy_buffer_pending(const struct proxy_buffer *buf) {
+    return buf->off < buf->len;
+}
+
+static size_t proxy_buffer_space(const struct proxy_buffer *buf) {
+    if (buf->off == buf->len) {
+        return sizeof(buf->data);
     }
+    return sizeof(buf->data) - buf->len;
+}
+
+static void proxy_buffer_compact(struct proxy_buffer *buf) {
+    if (buf->off == 0) {
+        return;
+    }
+    if (buf->off == buf->len) {
+        buf->off = 0;
+        buf->len = 0;
+        return;
+    }
+    memmove(buf->data, buf->data + buf->off, buf->len - buf->off);
+    buf->len -= buf->off;
+    buf->off = 0;
+}
+
+static bool proxy_buffer_append(struct proxy_buffer *buf, const uint8_t *data, size_t len) {
+    proxy_buffer_compact(buf);
+    if (len > sizeof(buf->data) - buf->len) {
+        return false;
+    }
+    memcpy(buf->data + buf->len, data, len);
+    buf->len += len;
     return true;
 }
 
-static int copy_raw_loop(int from_fd, int to_fd) {
-    uint8_t buf[PROXY_BUFFER_SIZE];
+static int epoll_set(int epoll_fd, int op, int fd, struct epoll_ref *ref, uint32_t events) {
+    struct epoll_event event;
+    memset(&event, 0, sizeof(event));
+    event.events = events | EPOLLERR | EPOLLHUP | EPOLLRDHUP;
+    event.data.ptr = ref;
+    return epoll_ctl(epoll_fd, op, fd, &event);
+}
 
-    for (;;) {
-        const ssize_t n = recv(from_fd, buf, sizeof(buf), 0);
-        if (n == 0) {
-            return 0;
-        }
-        if (n < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            return -1;
-        }
+static void connection_schedule_close(struct proxy_connection *conn);
+static void connection_update_events(struct proxy_connection *conn);
 
-        if (!send_all(to_fd, buf, (size_t)n)) {
-            return -1;
+static void connection_add(struct proxy_context *ctx, struct proxy_connection *conn) {
+    conn->next = ctx->connections;
+    ctx->connections = conn;
+}
+
+static void connection_unlink(struct proxy_context *ctx, struct proxy_connection *conn) {
+    struct proxy_connection **cur = &ctx->connections;
+    while (*cur != NULL) {
+        if (*cur == conn) {
+            *cur = conn->next;
+            conn->next = NULL;
+            return;
         }
+        cur = &(*cur)->next;
     }
 }
 
-static void shutdown_pair(int fd1, int fd2) {
-    shutdown(fd1, SHUT_RDWR);
-    shutdown(fd2, SHUT_RDWR);
+static void free_closed_connections(struct proxy_context *ctx) {
+    while (ctx->closing != NULL) {
+        struct proxy_connection *conn = ctx->closing;
+        ctx->closing = conn->close_next;
+        connection_unlink(ctx, conn);
+        free(conn);
+    }
 }
 
-static void *raw_pipe_thread(void *arg) {
-    struct raw_pipe_args *pipe_args = (struct raw_pipe_args *)arg;
+static void connection_schedule_close(struct proxy_connection *conn) {
+    if (conn->closing) {
+        return;
+    }
+    conn->closing = true;
 
-    (void)copy_raw_loop(pipe_args->from_fd, pipe_args->to_fd);
-    shutdown_pair(pipe_args->from_fd, pipe_args->to_fd);
+    if (conn->client_fd >= 0) {
+        epoll_ctl(conn->ctx->epoll_fd, EPOLL_CTL_DEL, conn->client_fd, NULL);
+        close(conn->client_fd);
+        conn->client_fd = -1;
+    }
+    if (conn->target_fd >= 0) {
+        epoll_ctl(conn->ctx->epoll_fd, EPOLL_CTL_DEL, conn->target_fd, NULL);
+        close(conn->target_fd);
+        conn->target_fd = -1;
+    }
 
-    return NULL;
+    proxy_release_connection();
+    conn->close_next = conn->ctx->closing;
+    conn->ctx->closing = conn;
+}
+
+static void maybe_shutdown_writes(struct proxy_connection *conn) {
+    if (conn->target_connected && conn->client_eof && !conn->target_write_shutdown &&
+        !proxy_buffer_pending(&conn->client_to_target)) {
+        shutdown(conn->target_fd, SHUT_WR);
+        conn->target_write_shutdown = true;
+    }
+    if (conn->target_connected && conn->target_eof && !conn->client_write_shutdown &&
+        !proxy_buffer_pending(&conn->target_to_client)) {
+        shutdown(conn->client_fd, SHUT_WR);
+        conn->client_write_shutdown = true;
+    }
+}
+
+static void connection_update_events(struct proxy_connection *conn) {
+    if (conn->closing) {
+        return;
+    }
+
+    maybe_shutdown_writes(conn);
+    if (conn->client_eof && conn->target_eof && !proxy_buffer_pending(&conn->client_to_target) &&
+        !proxy_buffer_pending(&conn->target_to_client)) {
+        connection_schedule_close(conn);
+        return;
+    }
+
+    if (!conn->target_connected) {
+        if (epoll_set(conn->ctx->epoll_fd, EPOLL_CTL_MOD, conn->target_fd, &conn->target_ref, EPOLLOUT) != 0) {
+            syslog(LOG_WARNING, "epoll target connect modify failed: %s", strerror(errno));
+            connection_schedule_close(conn);
+        }
+        return;
+    }
+
+    uint32_t client_events = 0;
+    uint32_t target_events = 0;
+    if (!conn->client_eof && proxy_buffer_space(&conn->client_to_target) > 0) {
+        client_events |= EPOLLIN;
+    }
+    if (proxy_buffer_pending(&conn->target_to_client)) {
+        client_events |= EPOLLOUT;
+    }
+    if (!conn->target_eof && proxy_buffer_space(&conn->target_to_client) > 0) {
+        target_events |= EPOLLIN;
+    }
+    if (proxy_buffer_pending(&conn->client_to_target)) {
+        target_events |= EPOLLOUT;
+    }
+
+    if (epoll_set(conn->ctx->epoll_fd, EPOLL_CTL_MOD, conn->client_fd, &conn->client_ref, client_events) != 0) {
+        syslog(LOG_WARNING, "epoll client modify failed: %s", strerror(errno));
+        connection_schedule_close(conn);
+        return;
+    }
+    if (epoll_set(conn->ctx->epoll_fd, EPOLL_CTL_MOD, conn->target_fd, &conn->target_ref, target_events) != 0) {
+        syslog(LOG_WARNING, "epoll target modify failed: %s", strerror(errno));
+        connection_schedule_close(conn);
+    }
 }
 
 static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct http_session *session) {
@@ -237,7 +409,7 @@ static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct ht
     if (replacement == NULL) {
         return;
     }
-    const size_t replacement_len = get_replacement_user_agent_string_length();
+    const size_t replacement_len = UA2F_MAX_USER_AGENT_LENGTH;
 
     for (int i = 0; i < session->ua_entry_count; i++) {
         const size_t offset = session->ua_entries[i].offset;
@@ -258,40 +430,86 @@ static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct ht
     }
 }
 
-static int copy_rewrite_loop(int from_fd, int to_fd) {
-    uint8_t buf[PROXY_BUFFER_SIZE];
-    struct http_session session;
-    memset(&session, 0, sizeof(session));
-    http_parser_init_session(&session);
+static void process_client_payload(struct proxy_connection *conn, uint8_t *buf, size_t len) {
+    if (conn->rewrite_disabled) {
+        return;
+    }
+
+    count_tcp_packet();
+    session_reset_per_packet(&conn->session, buf);
+    const int parse_ret = http_parser_feed(&conn->session, (const char *)buf, len);
+    if (conn->session.ua_entry_count > 0) {
+        rewrite_user_agent_entries(buf, len, &conn->session);
+        count_user_agent_packet();
+    }
+
+    try_print_statistics();
+
+    if (parse_ret != 0) {
+        conn->rewrite_disabled = true;
+    }
+}
+
+static int flush_buffer(int fd, struct proxy_buffer *buf) {
+    while (proxy_buffer_pending(buf)) {
+        const ssize_t sent = send(fd, buf->data + buf->off, buf->len - buf->off, MSG_NOSIGNAL);
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return 0;
+            }
+            return -1;
+        }
+        if (sent == 0) {
+            return -1;
+        }
+        buf->off += (size_t)sent;
+    }
+    buf->off = 0;
+    buf->len = 0;
+    return 0;
+}
+
+static int read_into_buffer(struct proxy_connection *conn, enum proxy_side side) {
+    struct proxy_buffer *out = side == PROXY_SIDE_CLIENT ? &conn->client_to_target : &conn->target_to_client;
+    uint8_t tmp[PROXY_BUFFER_SIZE];
 
     for (;;) {
-        const ssize_t n = recv(from_fd, buf, sizeof(buf), 0);
+        size_t space = proxy_buffer_space(out);
+        if (space == 0) {
+            return 0;
+        }
+        if (space > sizeof(tmp)) {
+            space = sizeof(tmp);
+        }
+
+        const int fd = side == PROXY_SIDE_CLIENT ? conn->client_fd : conn->target_fd;
+        const ssize_t n = recv(fd, tmp, space, 0);
         if (n == 0) {
+            if (side == PROXY_SIDE_CLIENT) {
+                conn->client_eof = true;
+            } else {
+                conn->target_eof = true;
+            }
             return 0;
         }
         if (n < 0) {
             if (errno == EINTR) {
                 continue;
             }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return 0;
+            }
             return -1;
         }
 
-        count_tcp_packet();
-        session_reset_per_packet(&session, buf);
-        const int parse_ret = http_parser_feed(&session, (const char *)buf, (size_t)n);
-        if (session.ua_entry_count > 0) {
-            rewrite_user_agent_entries(buf, (size_t)n, &session);
-            count_user_agent_packet();
+        if (side == PROXY_SIDE_CLIENT) {
+            process_client_payload(conn, tmp, (size_t)n);
         }
-
-        if (!send_all(to_fd, buf, (size_t)n)) {
+        if (!proxy_buffer_append(out, tmp, (size_t)n)) {
             return -1;
-        }
-
-        try_print_statistics();
-
-        if (parse_ret != 0) {
-            return copy_raw_loop(from_fd, to_fd);
         }
     }
 }
@@ -336,10 +554,17 @@ static bool get_tproxy_original_dst(int fd, struct sockaddr_storage *dst, sockle
     return true;
 }
 
-static int connect_target(const struct sockaddr_storage *dst, socklen_t dst_len) {
+static int connect_target(const struct sockaddr_storage *dst, socklen_t dst_len, bool *in_progress) {
+    *in_progress = false;
     const int fd = socket(dst->ss_family, SOCK_STREAM, 0);
     if (fd < 0) {
         syslog(LOG_WARNING, "socket target failed: %s", strerror(errno));
+        return -1;
+    }
+
+    if (set_nonblocking(fd) != 0) {
+        syslog(LOG_WARNING, "set target nonblocking failed: %s", strerror(errno));
+        close(fd);
         return -1;
     }
 
@@ -351,6 +576,10 @@ static int connect_target(const struct sockaddr_storage *dst, socklen_t dst_len)
     }
 
     if (connect(fd, (const struct sockaddr *)dst, dst_len) != 0) {
+        if (errno == EINPROGRESS) {
+            *in_progress = true;
+            return fd;
+        }
         char dst_buf[128];
         format_sockaddr(dst, dst_buf, sizeof(dst_buf));
         syslog(LOG_WARNING, "connect target %s failed: %s", dst_buf, strerror(errno));
@@ -361,69 +590,70 @@ static int connect_target(const struct sockaddr_storage *dst, socklen_t dst_len)
     return fd;
 }
 
-static void *connection_thread(void *arg) {
-    struct connection_args *conn = (struct connection_args *)arg;
-    const int client_fd = conn->client_fd;
-    const int family = conn->family;
-    const enum ua2f_mode mode = conn->mode;
-    const uint16_t listen_port = conn->listen_port;
-    free(conn);
-    int target_fd = -1;
-
-    struct sockaddr_storage dst;
-    socklen_t dst_len = sizeof(dst);
-    bool got_dst = false;
-    if (mode == UA2F_MODE_REDIRECT) {
-        got_dst = get_redirect_original_dst(client_fd, family, &dst, &dst_len);
-    } else {
-        got_dst = get_tproxy_original_dst(client_fd, &dst, &dst_len);
+static bool finish_target_connect(struct proxy_connection *conn) {
+    int error = 0;
+    socklen_t error_len = sizeof(error);
+    if (getsockopt(conn->target_fd, SOL_SOCKET, SO_ERROR, &error, &error_len) != 0) {
+        syslog(LOG_WARNING, "getsockopt SO_ERROR failed: %s", strerror(errno));
+        return false;
+    }
+    if (error != 0) {
+        syslog(LOG_WARNING, "connect target failed: %s", strerror(error));
+        return false;
     }
 
-    if (!got_dst) {
-        goto done;
+    conn->target_connected = true;
+    if (epoll_set(conn->ctx->epoll_fd, EPOLL_CTL_ADD, conn->client_fd, &conn->client_ref, EPOLLIN) != 0) {
+        syslog(LOG_WARNING, "epoll client add failed: %s", strerror(errno));
+        return false;
+    }
+    return true;
+}
+
+static void handle_connection_event(struct epoll_ref *ref, uint32_t events) {
+    struct proxy_connection *conn = ref->connection.conn;
+    const enum proxy_side side = ref->connection.side;
+    if (conn->closing) {
+        return;
     }
 
-    if (should_drop_proxy_loop(client_fd, mode, &dst, listen_port)) {
-        char dst_buf[128];
-        format_sockaddr(&dst, dst_buf, sizeof(dst_buf));
-        syslog(LOG_WARNING, "dropping transparent proxy loop to %s", dst_buf);
-        goto done;
+    if (side == PROXY_SIDE_TARGET && !conn->target_connected) {
+        if ((events & (EPOLLOUT | EPOLLERR | EPOLLHUP)) == 0) {
+            return;
+        }
+        if (!finish_target_connect(conn)) {
+            connection_schedule_close(conn);
+            return;
+        }
+        connection_update_events(conn);
+        return;
     }
 
-    if (dst.ss_family == AF_INET) {
-        count_ipv4_packet();
-    } else if (dst.ss_family == AF_INET6) {
-        count_ipv6_packet();
+    if (events & EPOLLOUT) {
+        struct proxy_buffer *out = side == PROXY_SIDE_CLIENT ? &conn->target_to_client : &conn->client_to_target;
+        const int fd = side == PROXY_SIDE_CLIENT ? conn->client_fd : conn->target_fd;
+        if (flush_buffer(fd, out) != 0) {
+            connection_schedule_close(conn);
+            return;
+        }
     }
 
-    target_fd = connect_target(&dst, dst_len);
-    if (target_fd < 0) {
-        goto done;
+    if (events & (EPOLLIN | EPOLLRDHUP)) {
+        if (read_into_buffer(conn, side) != 0) {
+            connection_schedule_close(conn);
+            return;
+        }
     }
 
-    struct raw_pipe_args pipe_args = {
-        .from_fd = target_fd,
-        .to_fd = client_fd,
-    };
-    pthread_t pipe_thread;
-    bool pipe_started = pthread_create(&pipe_thread, NULL, raw_pipe_thread, &pipe_args) == 0;
-    if (!pipe_started) {
-        syslog(LOG_WARNING, "pthread_create pipe failed");
-        goto done;
+    if ((events & (EPOLLERR | EPOLLHUP)) != 0) {
+        if (side == PROXY_SIDE_CLIENT) {
+            conn->client_eof = true;
+        } else {
+            conn->target_eof = true;
+        }
     }
 
-    (void)copy_rewrite_loop(client_fd, target_fd);
-    shutdown_pair(client_fd, target_fd);
-
-    pthread_join(pipe_thread, NULL);
-
-done:
-    if (target_fd >= 0) {
-        close(target_fd);
-    }
-    close(client_fd);
-    proxy_release_connection();
-    return NULL;
+    connection_update_events(conn);
 }
 
 static int set_socket_int(int fd, int level, int option, int value, const char *name) {
@@ -441,7 +671,18 @@ static int create_listener(int family, enum ua2f_mode mode, uint16_t listen_port
         return -1;
     }
 
+    if (set_nonblocking(fd) != 0) {
+        syslog(LOG_WARNING, "set listener nonblocking failed: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
+
     if (set_socket_int(fd, SOL_SOCKET, SO_REUSEADDR, 1, "SO_REUSEADDR") != 0) {
+        close(fd);
+        return -1;
+    }
+
+    if (set_socket_int(fd, SOL_SOCKET, SO_REUSEPORT, 1, "SO_REUSEPORT") != 0) {
         close(fd);
         return -1;
     }
@@ -500,11 +741,157 @@ static void close_listeners(struct proxy_listener *listeners, size_t count) {
     for (size_t i = 0; i < count; i++) {
         if (listeners[i].fd >= 0) {
             close(listeners[i].fd);
+            listeners[i].fd = -1;
         }
     }
 }
 
-int run_proxy(enum ua2f_mode mode, uint16_t listen_port, volatile sig_atomic_t *should_exit) {
+static void close_all_connections(struct proxy_context *ctx) {
+    struct proxy_connection *conn = ctx->connections;
+    while (conn != NULL) {
+        struct proxy_connection *next = conn->next;
+        connection_schedule_close(conn);
+        conn = next;
+    }
+    free_closed_connections(ctx);
+}
+
+static struct proxy_connection *create_connection(struct proxy_context *ctx, int client_fd, int target_fd, int family,
+                                                  bool target_in_progress) {
+    struct proxy_connection *conn = malloc(sizeof(*conn));
+    if (conn == NULL) {
+        close(client_fd);
+        close(target_fd);
+        proxy_release_connection();
+        return NULL;
+    }
+
+    conn->ctx = ctx;
+    conn->next = NULL;
+    conn->close_next = NULL;
+    conn->client_fd = client_fd;
+    conn->target_fd = target_fd;
+    conn->family = family;
+    conn->target_connected = !target_in_progress;
+    conn->client_eof = false;
+    conn->target_eof = false;
+    conn->target_write_shutdown = false;
+    conn->client_write_shutdown = false;
+    conn->rewrite_disabled = false;
+    conn->closing = false;
+    memset(&conn->session, 0, sizeof(conn->session));
+    conn->client_to_target.off = 0;
+    conn->client_to_target.len = 0;
+    conn->target_to_client.off = 0;
+    conn->target_to_client.len = 0;
+    conn->client_ref.type = EPOLL_REF_CONNECTION;
+    conn->client_ref.connection.conn = conn;
+    conn->client_ref.connection.side = PROXY_SIDE_CLIENT;
+    conn->target_ref.type = EPOLL_REF_CONNECTION;
+    conn->target_ref.connection.conn = conn;
+    conn->target_ref.connection.side = PROXY_SIDE_TARGET;
+    http_parser_init_session(&conn->session);
+    connection_add(ctx, conn);
+
+    if (epoll_set(ctx->epoll_fd, EPOLL_CTL_ADD, target_fd, &conn->target_ref,
+                  target_in_progress ? EPOLLOUT : EPOLLIN) != 0) {
+        syslog(LOG_WARNING, "epoll target add failed: %s", strerror(errno));
+        connection_schedule_close(conn);
+        return NULL;
+    }
+
+    if (!target_in_progress &&
+        epoll_set(ctx->epoll_fd, EPOLL_CTL_ADD, client_fd, &conn->client_ref, EPOLLIN) != 0) {
+        syslog(LOG_WARNING, "epoll client add failed: %s", strerror(errno));
+        connection_schedule_close(conn);
+        return NULL;
+    }
+
+    connection_update_events(conn);
+    return conn;
+}
+
+static void accept_listener_connections(struct proxy_context *ctx, const struct proxy_listener *listener,
+                                        enum ua2f_mode mode, uint16_t listen_port) {
+    for (;;) {
+        const int client_fd = accept(listener->fd, NULL, NULL);
+        if (client_fd < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return;
+            }
+            syslog(LOG_WARNING, "accept failed: %s", strerror(errno));
+            return;
+        }
+
+        if (!proxy_try_acquire_connection()) {
+            syslog(LOG_WARNING, "Too many active proxy connections, rejecting client");
+            close(client_fd);
+            continue;
+        }
+
+        if (set_nonblocking(client_fd) != 0) {
+            syslog(LOG_WARNING, "set client nonblocking failed: %s", strerror(errno));
+            close(client_fd);
+            proxy_release_connection();
+            continue;
+        }
+
+        struct sockaddr_storage dst;
+        socklen_t dst_len = sizeof(dst);
+        bool got_dst = false;
+        if (mode == UA2F_MODE_REDIRECT) {
+            got_dst = get_redirect_original_dst(client_fd, listener->family, &dst, &dst_len);
+        } else {
+            got_dst = get_tproxy_original_dst(client_fd, &dst, &dst_len);
+        }
+        if (!got_dst) {
+            close(client_fd);
+            proxy_release_connection();
+            continue;
+        }
+
+        if (should_drop_proxy_loop(client_fd, mode, &dst, listen_port)) {
+            char dst_buf[128];
+            format_sockaddr(&dst, dst_buf, sizeof(dst_buf));
+            syslog(LOG_WARNING, "dropping transparent proxy loop to %s", dst_buf);
+            close(client_fd);
+            proxy_release_connection();
+            continue;
+        }
+
+        if (dst.ss_family == AF_INET) {
+            count_ipv4_packet();
+        } else if (dst.ss_family == AF_INET6) {
+            count_ipv6_packet();
+        }
+
+        bool target_in_progress = false;
+        const int target_fd = connect_target(&dst, dst_len, &target_in_progress);
+        if (target_fd < 0) {
+            close(client_fd);
+            proxy_release_connection();
+            continue;
+        }
+
+        if (create_connection(ctx, client_fd, target_fd, listener->family, target_in_progress) == NULL) {
+            free_closed_connections(ctx);
+        }
+    }
+}
+
+static int run_proxy_worker(enum ua2f_mode mode, uint16_t listen_port, volatile sig_atomic_t *should_exit,
+                            int worker_id, int worker_count) {
+    struct proxy_context ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+    if (ctx.epoll_fd < 0) {
+        syslog(LOG_ERR, "epoll_create1 failed: %s", strerror(errno));
+        return -1;
+    }
+
     struct proxy_listener listeners[2] = {
         {.fd = -1, .family = AF_INET},
         {.fd = -1, .family = AF_INET6},
@@ -513,94 +900,130 @@ int run_proxy(enum ua2f_mode mode, uint16_t listen_port, volatile sig_atomic_t *
 
     const int v4 = create_listener(AF_INET, mode, listen_port);
     if (v4 >= 0) {
-        listeners[listener_count++] = (struct proxy_listener){.fd = v4, .family = AF_INET};
+        listeners[listener_count] = (struct proxy_listener){.fd = v4, .family = AF_INET};
+        listeners[listener_count].ref.type = EPOLL_REF_LISTENER;
+        listeners[listener_count].ref.listener = &listeners[listener_count];
+        listener_count++;
     }
 
     const int v6 = create_listener(AF_INET6, mode, listen_port);
     if (v6 >= 0) {
-        listeners[listener_count++] = (struct proxy_listener){.fd = v6, .family = AF_INET6};
+        listeners[listener_count] = (struct proxy_listener){.fd = v6, .family = AF_INET6};
+        listeners[listener_count].ref.type = EPOLL_REF_LISTENER;
+        listeners[listener_count].ref.listener = &listeners[listener_count];
+        listener_count++;
     }
 
     if (listener_count == 0) {
-        syslog(LOG_ERR, "Failed to start %s proxy listeners on port %u", ua2f_mode_name(mode), (unsigned)listen_port);
+        syslog(LOG_ERR, "Failed to start %s proxy listeners on port %u for worker %d", ua2f_mode_name(mode),
+               (unsigned)listen_port, worker_id);
+        close(ctx.epoll_fd);
         return -1;
     }
 
-    syslog(LOG_INFO, "UA2F %s mode listening on port %u", ua2f_mode_name(mode), (unsigned)listen_port);
+    for (size_t i = 0; i < listener_count; i++) {
+        if (epoll_set(ctx.epoll_fd, EPOLL_CTL_ADD, listeners[i].fd, &listeners[i].ref, EPOLLIN) != 0) {
+            syslog(LOG_ERR, "epoll listener add failed: %s", strerror(errno));
+            close_listeners(listeners, listener_count);
+            close(ctx.epoll_fd);
+            return -1;
+        }
+    }
+
+    if (worker_id == 0) {
+        syslog(LOG_INFO, "UA2F %s mode listening on port %u with %d epoll worker(s)", ua2f_mode_name(mode),
+               (unsigned)listen_port, worker_count);
+    }
 
     while (!*should_exit) {
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        int max_fd = -1;
-        for (size_t i = 0; i < listener_count; i++) {
-            FD_SET(listeners[i].fd, &readfds);
-            if (listeners[i].fd > max_fd) {
-                max_fd = listeners[i].fd;
-            }
-        }
-
-        struct timeval timeout = {
-            .tv_sec = 1,
-            .tv_usec = 0,
-        };
-        const int ready = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
+        struct epoll_event events[PROXY_MAX_EVENTS];
+        const int ready = epoll_wait(ctx.epoll_fd, events, PROXY_MAX_EVENTS, 1000);
         if (ready < 0) {
             if (errno == EINTR) {
                 continue;
             }
-            syslog(LOG_ERR, "select listener failed: %s", strerror(errno));
+            syslog(LOG_ERR, "epoll_wait failed: %s", strerror(errno));
+            close_all_connections(&ctx);
             close_listeners(listeners, listener_count);
+            close(ctx.epoll_fd);
             return -1;
         }
-        if (ready == 0) {
-            continue;
+
+        for (int i = 0; i < ready; i++) {
+            struct epoll_ref *ref = (struct epoll_ref *)events[i].data.ptr;
+            if (ref->type == EPOLL_REF_LISTENER) {
+                accept_listener_connections(&ctx, ref->listener, mode, listen_port);
+            } else if (ref->type == EPOLL_REF_CONNECTION) {
+                handle_connection_event(ref, events[i].events);
+            }
         }
-
-        for (size_t i = 0; i < listener_count; i++) {
-            if (!FD_ISSET(listeners[i].fd, &readfds)) {
-                continue;
-            }
-
-            const int client_fd = accept(listeners[i].fd, NULL, NULL);
-            if (client_fd < 0) {
-                if (errno == EINTR) {
-                    continue;
-                }
-                syslog(LOG_WARNING, "accept failed: %s", strerror(errno));
-                continue;
-            }
-
-            if (!proxy_try_acquire_connection()) {
-                syslog(LOG_WARNING, "Too many active proxy connections, rejecting client");
-                close(client_fd);
-                continue;
-            }
-
-            struct connection_args *args = malloc(sizeof(*args));
-            if (args == NULL) {
-                close(client_fd);
-                proxy_release_connection();
-                continue;
-            }
-            args->client_fd = client_fd;
-            args->family = listeners[i].family;
-            args->mode = mode;
-            args->listen_port = listen_port;
-
-            pthread_t tid;
-            if (pthread_create(&tid, NULL, connection_thread, args) != 0) {
-                syslog(LOG_WARNING, "pthread_create connection failed");
-                close(client_fd);
-                free(args);
-                proxy_release_connection();
-                continue;
-            }
-            pthread_detach(tid);
-        }
+        free_closed_connections(&ctx);
     }
 
+    close_all_connections(&ctx);
     close_listeners(listeners, listener_count);
+    close(ctx.epoll_fd);
     return 0;
 }
 
+static int proxy_worker_count(void) {
+    const long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpu_count <= 1) {
+        return 1;
+    }
+    if (cpu_count > PROXY_MAX_WORKERS) {
+        return PROXY_MAX_WORKERS;
+    }
+    return (int)cpu_count;
+}
+
+static void *proxy_worker_thread(void *arg) {
+    struct proxy_worker_args *worker = (struct proxy_worker_args *)arg;
+    worker->result =
+        run_proxy_worker(worker->mode, worker->listen_port, worker->should_exit, worker->worker_id, worker->worker_count);
+    if (worker->result != 0) {
+        *worker->should_exit = 1;
+    }
+    return NULL;
+}
+
+int run_proxy(enum ua2f_mode mode, uint16_t listen_port, volatile sig_atomic_t *should_exit) {
+    const int worker_count = proxy_worker_count();
+    if (worker_count == 1) {
+        return run_proxy_worker(mode, listen_port, should_exit, 0, 1);
+    }
+
+    pthread_t threads[PROXY_MAX_WORKERS];
+    struct proxy_worker_args args[PROXY_MAX_WORKERS];
+    int started = 0;
+    for (int i = 0; i < worker_count; i++) {
+        args[i] = (struct proxy_worker_args){
+            .mode = mode,
+            .listen_port = listen_port,
+            .should_exit = should_exit,
+            .worker_id = i,
+            .worker_count = worker_count,
+            .result = 0,
+        };
+        if (pthread_create(&threads[i], NULL, proxy_worker_thread, &args[i]) != 0) {
+            syslog(LOG_ERR, "Failed to start proxy worker %d: %s", i, strerror(errno));
+            *should_exit = 1;
+            break;
+        }
+        started++;
+    }
+
+    int result = started == worker_count ? 0 : -1;
+    for (int i = 0; i < started; i++) {
+        pthread_join(threads[i], NULL);
+        if (args[i].result != 0) {
+            result = -1;
+        }
+    }
+    return result;
+}
+
+#undef PROXY_MAX_WORKERS
+#undef PROXY_MAX_EVENTS
+#undef PROXY_MAX_CONNECTIONS
 #undef PROXY_BUFFER_SIZE
