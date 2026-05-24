@@ -367,6 +367,17 @@ class Case:
     tool: str
     mode: str
     binary: Path | None = None
+    nfqueue_workers: int = 1
+
+
+def case_label(case: Case) -> str:
+    if case.tool == "ua2f" and case.mode == "NFQUEUE":
+        return f"{case.mode}-w{case.nfqueue_workers}"
+    return case.mode
+
+
+def case_slug(case: Case) -> str:
+    return f"{case.tool.lower()}-{case_label(case).lower()}"
 
 
 @dataclass
@@ -457,7 +468,15 @@ def cleanup_firewall(chain_suffix: str, ns: Netns, server_port: int) -> None:
     run_ignore(["ip", "route", "flush", "table", TPROXY_TABLE])
 
 
-def setup_firewall(mode: str, queue_num: int, proxy_port: int, chain_suffix: str, ns: Netns, server_port: int) -> None:
+def setup_firewall(
+    mode: str,
+    queue_num: int,
+    proxy_port: int,
+    chain_suffix: str,
+    ns: Netns,
+    server_port: int,
+    queue_count: int = 1,
+) -> None:
     cleanup_firewall(chain_suffix, ns, server_port)
     mangle_chain = f"UA_BENCH_M_{chain_suffix}"
     nat_chain = f"UA_BENCH_N_{chain_suffix}"
@@ -468,9 +487,15 @@ def setup_firewall(mode: str, queue_num: int, proxy_port: int, chain_suffix: str
             "iptables", "-t", "mangle", "-I", "PREROUTING", "1",
             "-i", ns.host_if, "-p", "tcp", "--dport", str(server_port), "-j", mangle_chain,
         ])
+        nfqueue_target = ["-j", "NFQUEUE"]
+        if queue_count > 1:
+            nfqueue_target.extend(["--queue-balance", f"{queue_num}:{queue_num + queue_count - 1}"])
+        else:
+            nfqueue_target.extend(["--queue-num", str(queue_num)])
+        nfqueue_target.append("--queue-bypass")
         run_cmd([
             "iptables", "-t", "mangle", "-A", mangle_chain,
-            "-j", "NFQUEUE", "--queue-num", str(queue_num), "--queue-bypass",
+            *nfqueue_target,
         ])
         return
 
@@ -520,11 +545,13 @@ def wait_for_port(host: str, port: int, timeout: float) -> None:
 
 def start_process(case: Case, proxy_port: int, output_dir: Path, profiler: str) -> ProcessHandle:
     assert case.binary is not None
-    log_path = output_dir / f"{case.tool.lower()}-{case.mode.lower()}.log"
+    log_path = output_dir / f"{case_slug(case)}.log"
     log_file = log_path.open("wb")
     env = os.environ.copy()
 
     if case.tool == "ua2f":
+        if case.mode == "NFQUEUE":
+            env["UA2F_NFQUEUE_WORKERS"] = str(case.nfqueue_workers)
         cmd = [
             str(case.binary),
             "--mode", case.mode,
@@ -549,7 +576,7 @@ def start_process(case: Case, proxy_port: int, output_dir: Path, profiler: str) 
 
     profile_path = None
     if profiler == "callgrind":
-        profile_path = output_dir / f"callgrind.{case.tool.lower()}-{case.mode.lower()}.out"
+        profile_path = output_dir / f"callgrind.{case_slug(case)}.out"
         cmd = [
             "valgrind",
             "--tool=callgrind",
@@ -744,7 +771,7 @@ def run_case(
     output_dir: Path,
     chain_suffix: str,
 ) -> dict[str, Any]:
-    print(f"[bench] {case.tool} {case.mode}")
+    print(f"[bench] {case.tool} {case_label(case)}")
     stats.reset()
     handle: ProcessHandle | None = None
     proc_cpu_before: float | None = None
@@ -753,6 +780,8 @@ def run_case(
     result: dict[str, Any] = {
         "tool": case.tool,
         "mode": case.mode,
+        "label": case_label(case),
+        "nfqueue_workers": case.nfqueue_workers,
         "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "binary": str(case.binary) if case.binary else None,
     }
@@ -765,7 +794,16 @@ def run_case(
             proc_cpu_before = read_proc_cpu(handle.proc.pid)
             if case.mode in TRANSPARENT_MODES:
                 queue = UA2F_QUEUE if case.tool == "ua2f" else UA3F_QUEUE
-                setup_firewall(case.mode, queue, args.proxy_port, chain_suffix, ns, args.server_port)
+                queue_count = case.nfqueue_workers if case.tool == "ua2f" and case.mode == "NFQUEUE" else 1
+                setup_firewall(
+                    case.mode,
+                    queue,
+                    args.proxy_port,
+                    chain_suffix,
+                    ns,
+                    args.server_port,
+                    queue_count=queue_count,
+                )
 
         kind = "direct"
         if case.mode == "HTTP":
@@ -866,21 +904,23 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
         f"- Profiler: `{args.profiler}`",
         "",
         "Transparent modes use a veth client namespace and host PREROUTING rules. "
-        f"UA2F NFQUEUE uses queue `{UA2F_QUEUE}`; UA3F NFQUEUE uses queue `{UA3F_QUEUE}`.",
+        f"UA2F NFQUEUE uses queue `{UA2F_QUEUE}` or a balanced range starting there; "
+        f"UA3F NFQUEUE uses queue `{UA3F_QUEUE}`.",
         "",
         "## Results",
         "",
-        "| Tool | Mode | OK | Completed | Errors | Req/s | Mbps | Avg ms | P50 ms | P95 ms | P99 ms | Proc CPU s | UA check |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| Tool | Mode | NFQ workers | OK | Completed | Errors | Req/s | Mbps | Avg ms | P50 ms | P95 ms | P99 ms | Proc CPU s | UA check |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
 
     for item in results:
         summary = item.get("summary", {})
         lines.append(
-            "| {tool} | {mode} | {ok} | {completed} | {errors} | {rps} | {mbps} | "
+            "| {tool} | {mode} | {workers} | {ok} | {completed} | {errors} | {rps} | {mbps} | "
             "{avg} | {p50} | {p95} | {p99} | {cpu} | {ua} |".format(
                 tool=item.get("tool"),
-                mode=item.get("mode"),
+                mode=item.get("label", item.get("mode")),
+                workers=item.get("nfqueue_workers", "-") if item.get("mode") == "NFQUEUE" else "-",
                 ok="yes" if item.get("ok") else "no",
                 completed=summary.get("completed", 0),
                 errors=summary.get("errors", 0),
@@ -899,7 +939,7 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
     if failures:
         lines.extend(["", "## Failures", ""])
         for item in failures:
-            lines.append(f"### {item.get('tool')} {item.get('mode')}")
+            lines.append(f"### {item.get('tool')} {item.get('label', item.get('mode'))}")
             if item.get("error"):
                 lines.append(f"- Error: `{item['error']}`")
             samples = item.get("summary", {}).get("error_samples") or []
@@ -915,7 +955,7 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
     if profiled:
         lines.extend(["", "## Profiles", ""])
         for item in profiled:
-            lines.append(f"- `{item.get('tool')} {item.get('mode')}`: `{item['profile_path']}`")
+            lines.append(f"- `{item.get('tool')} {item.get('label', item.get('mode'))}`: `{item['profile_path']}`")
 
     lines.extend([
         "",
@@ -924,7 +964,7 @@ def markdown_report(results: list[dict[str, Any]], args: argparse.Namespace, ns:
     ])
     for item in results:
         agents = item.get("server", {}).get("user_agents", {})
-        lines.append(f"- `{item.get('tool')} {item.get('mode')}`: `{agents}`")
+        lines.append(f"- `{item.get('tool')} {item.get('label', item.get('mode'))}`: `{agents}`")
 
     return "\n".join(lines) + "\n"
 
@@ -939,13 +979,36 @@ def parse_modes(value: str, valid: tuple[str, ...]) -> list[str]:
     return modes
 
 
+def parse_positive_int_list(value: str) -> list[int]:
+    parsed: list[int] = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            item = int(part, 10)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(f"invalid integer: {part}") from exc
+        if item < 1:
+            raise argparse.ArgumentTypeError("worker counts must be positive")
+        if item not in parsed:
+            parsed.append(item)
+    if not parsed:
+        raise argparse.ArgumentTypeError("at least one worker count is required")
+    return parsed
+
+
 def build_cases(args: argparse.Namespace, ua2f: Path | None, ua3f: Path | None) -> list[Case]:
     cases: list[Case] = []
     if not args.no_baseline:
         cases.append(Case("baseline", "DIRECT", None))
     if "ua2f" in args.tools:
         for mode in args.ua2f_modes:
-            cases.append(Case("ua2f", mode, ua2f))
+            if mode == "NFQUEUE":
+                for workers in args.ua2f_nfqueue_workers:
+                    cases.append(Case("ua2f", mode, ua2f, workers))
+            else:
+                cases.append(Case("ua2f", mode, ua2f))
     if "ua3f" in args.tools:
         for mode in args.ua3f_modes:
             cases.append(Case("ua3f", mode, ua3f))
@@ -962,6 +1025,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tools", default="ua2f,ua3f", help="Comma-separated tools to run: ua2f,ua3f")
     parser.add_argument("--ua2f-modes", default=",".join(UA2F_MODES), help="Comma-separated UA2F modes")
     parser.add_argument("--ua3f-modes", default=",".join(UA3F_MODES), help="Comma-separated UA3F modes")
+    parser.add_argument(
+        "--ua2f-nfqueue-workers",
+        default="1",
+        help="Comma-separated UA2F NFQUEUE worker counts to benchmark",
+    )
     parser.add_argument("--no-baseline", action="store_true", help="Skip direct baseline")
     parser.add_argument("--requests", type=int, default=2000, help="Measured requests per case")
     parser.add_argument("--warmup", type=int, default=200, help="Warmup requests per case")
@@ -987,6 +1055,10 @@ def parse_args() -> argparse.Namespace:
         parser.error(f"invalid tool(s): {', '.join(invalid_tools)}")
     parsed.ua2f_modes = parse_modes(parsed.ua2f_modes, UA2F_MODES)
     parsed.ua3f_modes = parse_modes(parsed.ua3f_modes, UA3F_MODES)
+    try:
+        parsed.ua2f_nfqueue_workers = parse_positive_int_list(parsed.ua2f_nfqueue_workers)
+    except argparse.ArgumentTypeError as exc:
+        parser.error(f"--ua2f-nfqueue-workers: {exc}")
     if parsed.requests < 1:
         parser.error("--requests must be positive")
     if parsed.concurrency < 1:
@@ -1020,7 +1092,7 @@ def main() -> int:
     print("Benchmark plan:")
     for case in cases:
         binary = str(case.binary) if case.binary else "-"
-        print(f"  - {case.tool} {case.mode} ({binary})")
+        print(f"  - {case.tool} {case_label(case)} ({binary})")
 
     if args.dry_run:
         return 0
