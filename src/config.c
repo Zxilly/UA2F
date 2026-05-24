@@ -12,6 +12,8 @@ struct ua2f_config config = {
     .disable_connmark = false,
     .max_http_sessions = 0,
     .session_ttl = 300,
+    .mode = UA2F_MODE_NFQUEUE,
+    .listen_port = UA2F_DEFAULT_PROXY_PORT,
 };
 
 void load_config() {
@@ -50,7 +52,8 @@ void load_config() {
         if (*endptr == '\0' && val >= 0) {
             config.max_http_sessions = (int)val;
         } else {
-            syslog(LOG_WARNING, "Invalid max_http_sessions value: %s, using default %d", max_sessions_str, config.max_http_sessions);
+            syslog(LOG_WARNING, "Invalid max_http_sessions value: %s, using default %d", max_sessions_str,
+                   config.max_http_sessions);
         }
     }
 
@@ -62,6 +65,28 @@ void load_config() {
             config.session_ttl = (int)val;
         } else {
             syslog(LOG_WARNING, "Invalid session_ttl value: %s, using default %d", session_ttl_str, config.session_ttl);
+        }
+    }
+
+    const __auto_type mode_str = uci_lookup_option_string(ctx, section, "mode");
+    if (mode_str != NULL && strlen(mode_str) > 0) {
+        enum ua2f_mode parsed_mode;
+        if (ua2f_parse_mode(mode_str, &parsed_mode)) {
+            config.mode = parsed_mode;
+        } else {
+            syslog(LOG_WARNING, "Invalid mode value: %s, using default %s", mode_str, ua2f_mode_name(config.mode));
+        }
+    }
+
+    const __auto_type listen_port_str = uci_lookup_option_string(ctx, section, "listen_port");
+    if (listen_port_str != NULL) {
+        char *endptr;
+        const long val = strtol(listen_port_str, &endptr, 10);
+        if (*endptr == '\0' && val > 0 && val <= 65535) {
+            config.listen_port = (uint16_t)val;
+        } else {
+            syslog(LOG_WARNING, "Invalid listen_port value: %s, using default %u", listen_port_str,
+                   (unsigned)config.listen_port);
         }
     }
 

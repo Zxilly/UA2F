@@ -1,17 +1,36 @@
 #include "http_session.h"
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <pthread.h>
 #include <sys/syslog.h>
+#include <time.h>
 
 static struct http_session *sessions = NULL;
 static pthread_rwlock_t session_lock;
+static bool session_lock_initialized = false;
 static int max_session_count = 0;
 static int current_session_count = 0;
 
+static void session_free_all_unlocked(void) {
+    struct http_session *cur, *tmp;
+    HASH_ITER(hh, sessions, cur, tmp) {
+        HASH_DEL(sessions, cur);
+        free(cur);
+    }
+    sessions = NULL;
+    current_session_count = 0;
+}
+
 void init_http_sessions(int max_sessions) {
+    if (session_lock_initialized) {
+        pthread_rwlock_wrlock(&session_lock);
+        session_free_all_unlocked();
+        pthread_rwlock_unlock(&session_lock);
+        pthread_rwlock_destroy(&session_lock);
+        session_lock_initialized = false;
+    }
+
     max_session_count = max_sessions;
     current_session_count = 0;
     sessions = NULL;
@@ -20,6 +39,7 @@ void init_http_sessions(int max_sessions) {
         syslog(LOG_ERR, "Failed to init http_session lock");
         exit(EXIT_FAILURE);
     }
+    session_lock_initialized = true;
 }
 
 struct session_key session_key_from_connid(uint32_t conn_id) {
@@ -79,9 +99,7 @@ void session_delete_by_key(const struct session_key *key) {
     }
 }
 
-int session_count(void) {
-    return current_session_count;
-}
+int session_count(void) { return current_session_count; }
 
 int session_cleanup_expired(int ttl_seconds) {
     const time_t now = time(NULL);
@@ -98,13 +116,9 @@ int session_cleanup_expired(int ttl_seconds) {
     return deleted;
 }
 
-void session_wrlock(void) {
-    pthread_rwlock_wrlock(&session_lock);
-}
+void session_wrlock(void) { pthread_rwlock_wrlock(&session_lock); }
 
-void session_wrunlock(void) {
-    pthread_rwlock_unlock(&session_lock);
-}
+void session_wrunlock(void) { pthread_rwlock_unlock(&session_lock); }
 
 void session_reset_per_packet(struct http_session *session, const void *tcp_payload_base) {
     session->ua_entry_count = 0;
@@ -119,4 +133,5 @@ void session_reset_per_message(struct http_session *session) {
     session->field_too_long = false;
     session->last_was_value = false;
     session->in_ua_value = false;
+    session->ua_value_seen_len = 0;
 }

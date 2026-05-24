@@ -1,11 +1,13 @@
 #include "assert.h"
+#include "backtrace.h"
 #include "cli.h"
 #include "handler.h"
+#include "http_session.h"
+#include "mode.h"
+#include "proxy.h"
+#include "session_cleaner.h"
 #include "statistics.h"
 #include "util.h"
-#include "backtrace.h"
-#include "http_session.h"
-#include "session_cleaner.h"
 #ifdef UA2F_HAS_CONNTRACK_LISTENER
 #include "conntrack_listener.h"
 #endif
@@ -15,18 +17,18 @@
 #include "third/nfqueue-mnl/nfqueue-mnl.h"
 
 #include <signal.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <syslog.h>
-#include <stdbool.h>
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
-volatile int should_exit = false;
+volatile sig_atomic_t should_exit = 0;
 
 void signal_handler(int sig) {
-    syslog(LOG_INFO, "Received signal %d, preparing to exit...", sig);
-    should_exit = true;
+    (void)sig;
+    should_exit = 1;
 }
 
 int parse_packet(const struct nf_queue *queue, struct nf_buffer *buf) {
@@ -101,6 +103,19 @@ int main(const int argc, char *argv[]) {
 
     try_print_info(argc, argv);
 
+    enum ua2f_mode mode = UA2F_MODE_NFQUEUE;
+    uint16_t listen_port = UA2F_DEFAULT_PROXY_PORT;
+#ifdef UA2F_ENABLE_UCI
+    mode = config.mode;
+    listen_port = config.listen_port;
+#endif
+    if (cli_mode_set) {
+        mode = cli_mode;
+    }
+    if (cli_listen_port_set) {
+        listen_port = cli_listen_port;
+    }
+
     require_root();
 
     init_statistics();
@@ -115,6 +130,17 @@ int main(const int argc, char *argv[]) {
 #endif
 
     UA2F_INIT_BACKTRACE();
+
+    if (mode == UA2F_MODE_REDIRECT || mode == UA2F_MODE_TPROXY) {
+        syslog(LOG_INFO, "Starting in %s mode on listen port %u", ua2f_mode_name(mode), (unsigned)listen_port);
+        if (run_proxy(mode, listen_port, &should_exit) != 0) {
+            return EXIT_FAILURE;
+        }
+        syslog(LOG_INFO, "UA2F exiting gracefully");
+        return EXIT_SUCCESS;
+    }
+
+    syslog(LOG_INFO, "Starting in NFQUEUE mode on queue %d", QUEUE_NUM);
 
     struct nf_queue queue[1] = {0};
 

@@ -140,6 +140,7 @@ add_executable(ua2f
         src/cache.c
         src/handler.c
         src/handler_io.c
+        src/proxy.c
         src/cli.c
         src/config.c
         src/http_session.c

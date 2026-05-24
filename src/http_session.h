@@ -1,21 +1,23 @@
 #ifndef UA2F_HTTP_SESSION_H
 #define UA2F_HTTP_SESSION_H
 
+#include <pthread.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <time.h>
-#include <pthread.h>
 
-#include "third/nfqueue-mnl/nfqueue-mnl.h"
 #include "third/llhttp/llhttp.h"
+#include "third/nfqueue-mnl/nfqueue-mnl.h"
 #include "third/uthash/uthash.h"
 
 #define UA_MAX_ENTRIES 8
 #define FIELD_BUF_SIZE 32
 
 struct ua_mangle_entry {
-    unsigned int offset;
-    unsigned int len;
+    size_t offset;
+    size_t len;
+    size_t replacement_offset;
 };
 
 /* Uniform key for uthash — tagged union so both conn_id and tuple share same hash key field. */
@@ -39,6 +41,7 @@ struct http_session {
 
     bool last_was_value;
     bool in_ua_value;
+    size_t ua_value_seen_len;
 
     struct ua_mangle_entry ua_entries[UA_MAX_ENTRIES];
     int ua_entry_count;
