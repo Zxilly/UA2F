@@ -12,7 +12,7 @@
  
 > 可以在网页 [http://ua-check.stagoh.com](http://ua-check.stagoh.com) 上测试 UA2F 是否正常工作
 
-## Commands
+## 快速开始
 
 ```bash
 # 启用 UA2F
@@ -34,6 +34,12 @@ uci set ua2f.firewall.handle_intranet=1
 # 使用自定义 User-Agent
 uci set ua2f.main.custom_ua="Test UA/1.0"
 
+# 运行模式，默认 NFQUEUE；也可使用 REDIRECT 或 TPROXY
+uci set ua2f.main.mode="TPROXY"
+
+# REDIRECT/TPROXY 透明代理监听端口，默认 10010
+uci set ua2f.main.listen_port="10010"
+
 # 禁用 Conntrack 标记，这会降低性能，但是有助于和其他修改 Connmark 的软件共存
 uci set ua2f.main.disable_connmark=1
 
@@ -48,6 +54,66 @@ service ua2f start
 
 # 读取日志
 logread | grep UA2F
+```
+
+## 配置
+
+UA2F 的 OpenWRT 配置位于 `/etc/config/ua2f`。修改后需要执行 `uci commit ua2f`，并通过 `service ua2f restart` 重新启动服务。启用自动防火墙规则时，init 脚本会按 `main.mode` 生成对应规则。
+
+### enabled
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `enabled` | `0` | 是否启用 UA2F 服务。 |
+
+```bash
+uci set ua2f.enabled.enabled=1
+```
+
+### main
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `mode` | `NFQUEUE` | 运行模式，可选 `NFQUEUE`、`REDIRECT`、`TPROXY`。UCI 可以直接设置该值；命令行 `--mode` 会覆盖 UCI 配置。 |
+| `listen_port` | `10010` | `REDIRECT`/`TPROXY` 模式的本地透明代理监听端口。`NFQUEUE` 模式不使用该端口。 |
+| `custom_ua` | 空 | 自定义 User-Agent 替换内容。UA2F 不改变包长度，长度不足会补空格，过长会截断。 |
+| `disable_connmark` | `0` | 禁用 Conntrack 标记和缓存。会降低性能，但可避免和其他修改 Connmark 的程序冲突。 |
+| `max_http_sessions` | `0` | HTTP parser session 上限，`0` 表示不限制。 |
+| `session_ttl` | `300` | HTTP session 空闲过期时间，单位秒。 |
+
+```bash
+uci set ua2f.main.mode='TPROXY'
+uci set ua2f.main.listen_port='10010'
+uci set ua2f.main.custom_ua='Test UA/1.0'
+uci set ua2f.main.disable_connmark='0'
+uci set ua2f.main.max_http_sessions='0'
+uci set ua2f.main.session_ttl='300'
+uci commit ua2f
+service ua2f restart
+```
+
+模式选择：
+
+- `NFQUEUE`：默认模式，保持原有行为，通过 netfilter queue 改写 TCP 包。
+- `REDIRECT`：透明代理模式，防火墙将流量 REDIRECT 到本地监听端口，再由 UA2F 连接原始目标。
+- `TPROXY`：透明代理模式，适合接管转发流量；需要策略路由把 `fwmark 0x1c9` 指向 `lo`。固定监听端口的 TPROXY 不处理本机 OUTPUT 流量，本机流量请使用 `REDIRECT` 或 `NFQUEUE`。
+
+### firewall
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `handle_fw` | `1` | 是否由 init 脚本自动安装防火墙规则。关闭后需要手动配置 netfilter。 |
+| `handle_tls` | `0` | 是否处理 443 端口流量。通常 HTTPS 已加密，不需要处理。 |
+| `handle_intranet` | `1` | 是否处理内网/保留地址流量。设为 `0` 时会绕过内网/保留地址。 |
+| `handle_mmtls` | `0` | 是否处理微信 mmtls 流量。该规则仅在 iptables NFQUEUE 分支中生效，nftables 分支无效。 |
+
+```bash
+uci set ua2f.firewall.handle_fw='1'
+uci set ua2f.firewall.handle_tls='0'
+uci set ua2f.firewall.handle_intranet='1'
+uci set ua2f.firewall.handle_mmtls='0'
+uci commit ua2f
+service ua2f restart
 ```
 
 ## 自定义 User-Agent
@@ -74,6 +140,15 @@ uci commit ua2f
 自 `v4.5.0` 起，UA2F 支持在非 OpenWRT 系统上运行，但是需要手动配置防火墙规则，将需要处理的流量转发到 `netfilter-queue` 的 10010 队列中。
 
 编译时，需要添加 `-DUA2F_ENABLE_UCI=OFF` flag 至 CMake。
+
+默认模式仍为 NFQUEUE。非 OpenWRT 环境也可以使用透明代理模式：
+
+```bash
+sudo ./build/ua2f --mode REDIRECT --listen-port 10010
+sudo ./build/ua2f --mode TPROXY --listen-port 10010
+```
+
+REDIRECT/TPROXY 需要自行配置对应的 netfilter 规则。TPROXY 还需要 `fwmark 0x1c9` 指向本机 `lo` 的策略路由；UA2F 的出站连接会设置 `SO_MARK 0xc9`，防火墙规则应绕过该 mark 以避免回环。固定监听端口的 TPROXY 模式只适合接管 PREROUTING/转发流量，本机 OUTPUT 流量请使用 REDIRECT 或 NFQUEUE。
 
 ## TODO
 
