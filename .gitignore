@@ -90,6 +90,7 @@ coverage_html/
 .vscode/
 .cache/
 CLAUDE.md
+AGENTS.md
 
 # libbacktrace automake cache
 src/third/libbacktrace/autom4te.cache/
