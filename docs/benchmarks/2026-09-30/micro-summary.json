@@ -1,0 +1,2003 @@
+{
+  "binaries": {
+    "baseline": {
+      "build_metadata": {
+        "benchmark_sha256": "e27cc598a799d27c5162af3b775974551e16460fbae3caf8273839af25678f9d",
+        "build_options": "coverage=OFF,asan=,uci=OFF,no_cache=OFF,custom_ua=",
+        "build_type": "RelWithDebInfo",
+        "c_flags": "-idirafter/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/include -O2 -g -DNDEBUG",
+        "clock": "steady_clock",
+        "common_compile_options": "-fno-omit-frame-pointer -fno-strict-aliasing",
+        "compiler": "14.2.0",
+        "conntrack": false,
+        "cxx_flags": "-idirafter/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/include -O2 -g -DNDEBUG",
+        "git_commit": "4ff67c3770cb2dabc6f1427ef19277df093aafc1",
+        "git_dirty": "dirty",
+        "handler_input_allocation_timed": true,
+        "link_flags": "-L/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/lib/x86_64-linux-gnu -Wl,-rpath,/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/lib/x86_64-linux-gnu",
+        "packet_builder_sha256": "d36ce5bdc25b23872045950558bd1182914c458e117de532a530b8d5962fc0b5",
+        "pid": 1584,
+        "sizeof_session": 584,
+        "syslog_mask": "emergency_only",
+        "unit": "workload_cycle",
+        "verdict_payload_copy_timed": true,
+        "warmup_cycles": 500
+      },
+      "path": "/workspace/scratch/403b5b19345d/github-review/ua2f-perf-base/build-benchmark/ua2f_benchmark",
+      "sha256": "6a118c15bfcf4852d1accb85532b4529c5cf7c614757d45e4cad783d21457e94"
+    },
+    "candidate": {
+      "build_metadata": {
+        "benchmark_sha256": "e27cc598a799d27c5162af3b775974551e16460fbae3caf8273839af25678f9d",
+        "build_options": "coverage=OFF,asan=,uci=OFF,no_cache=OFF,custom_ua=",
+        "build_type": "RelWithDebInfo",
+        "c_flags": "-idirafter/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/include -O2 -g -DNDEBUG",
+        "clock": "steady_clock",
+        "common_compile_options": "-fno-omit-frame-pointer -fno-strict-aliasing",
+        "compiler": "14.2.0",
+        "conntrack": false,
+        "cxx_flags": "-idirafter/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/include -O2 -g -DNDEBUG",
+        "git_commit": "f12729b07c615e33f7d607df6cf03c96e7f30a06",
+        "git_dirty": "clean",
+        "handler_input_allocation_timed": true,
+        "link_flags": "-L/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/lib/x86_64-linux-gnu -Wl,-rpath,/workspace/scratch/403b5b19345d/github-review/ua2f-deps/root/usr/lib/x86_64-linux-gnu",
+        "packet_builder_sha256": "d36ce5bdc25b23872045950558bd1182914c458e117de532a530b8d5962fc0b5",
+        "pid": 1586,
+        "sizeof_session": 584,
+        "syslog_mask": "emergency_only",
+        "unit": "workload_cycle",
+        "verdict_payload_copy_timed": true,
+        "warmup_cycles": 500
+      },
+      "path": "/tmp/ua2f-perf-confirm-f12729b/build-benchmark/ua2f_benchmark",
+      "sha256": "81608dde1d302c578ff802d6616afea4832717efad2aaa3b04162643ad5619df"
+    }
+  },
+  "complete": true,
+  "finished_utc": "2026-09-30T02:45:13.845413+00:00",
+  "kind": "in_process_microbenchmark_comparison",
+  "limitations": [
+    "Synthetic in-process single-thread measurements; not NFQUEUE or end-to-end throughput",
+    "No real kernel/socket/netlink transmission, conntrack lookup, NIC, routing or network latency",
+    "Handler includes input malloc/copy and preallocated mock-verdict payload copy when supplied",
+    "Packets are synthetically sized; larger cases may represent offload/segmentation workloads",
+    "CV describes sample dispersion; speedup is baseline median divided by candidate median",
+    "CPU pinning does not isolate the host; frequency scaling and unrelated load may remain"
+  ],
+  "metadata": {
+    "affinity_during": [
+      2
+    ],
+    "allowed_affinity_before": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cpu": 2,
+    "cpu_info_after": {
+      "cpu MHz": "2596.132",
+      "governor": null,
+      "microcode": "0x1000065",
+      "model name": "AMD EPYC 9V74 80-Core Processor",
+      "processor": "2",
+      "scaling_driver": null,
+      "vendor_id": "AuthenticAMD"
+    },
+    "cpu_info_before": {
+      "cpu MHz": "2596.132",
+      "governor": null,
+      "microcode": "0x1000065",
+      "model name": "AMD EPYC 9V74 80-Core Processor",
+      "processor": "2",
+      "scaling_driver": null,
+      "vendor_id": "AuthenticAMD"
+    },
+    "iterations_per_sample": null,
+    "order": "AB on even repetitions, BA on odd repetitions, per workload/mode",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "repetitions": 9,
+    "seconds_per_sample": 0.2,
+    "warmup_cycles": 500
+  },
+  "schema_version": 1,
+  "sources": {
+    "baseline": {
+      "commit": "4ff67c3770cb2dabc6f1427ef19277df093aafc1",
+      "path": "/workspace/scratch/403b5b19345d/github-review/ua2f-perf-base",
+      "production_diff": "",
+      "production_source_sha256": "fc2b7cb9c2685650896c17ffbc858111f01bede19c410c87bb79b5d5e676e991",
+      "status": "M CMakeLists.txt\n?? test/benchmark.cc"
+    },
+    "candidate": {
+      "commit": "f12729b07c615e33f7d607df6cf03c96e7f30a06",
+      "path": "/tmp/ua2f-perf-confirm-f12729b",
+      "production_diff": "",
+      "production_source_sha256": "bdb323ae92179294ab93ad3bbed312f4b15e89c973516262af8b899b16e3446c",
+      "status": ""
+    }
+  },
+  "started_utc": "2026-09-30T02:42:34.893371+00:00",
+  "summaries": [
+    {
+      "median_ns_per_packet": {
+        "baseline": 118.118327617,
+        "candidate": 132.136150899
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.044280967926454556,
+          "max": 130.468298595,
+          "mean": 120.17060140255555,
+          "median": 118.118327617,
+          "min": 115.512640806,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.03144677613244096,
+          "max": 142.384839308,
+          "mean": 132.85965939333335,
+          "median": 132.136150899,
+          "min": 127.140241685,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.8735293164619495,
+        0.8747131817008312,
+        1.0024485043342306,
+        0.908545078057911,
+        0.8943264752749851,
+        0.830382136108201,
+        0.9589697930639484,
+        0.9052554084244158,
+        0.8993750673790769
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.05212720634162586,
+        "max": 1.0024485043342306,
+        "mean": 0.9052827734228388,
+        "median": 0.8993750673790769,
+        "min": 0.830382136108201,
+        "n": 9
+      },
+      "speedup_ratio": 0.893913791293083,
+      "time_reduction_percent": -11.867610695821007,
+      "workload": "get_single_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 94.1076194402,
+        "candidate": 98.2707345715
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.010302552050689645,
+          "max": 96.4482765771,
+          "mean": 94.32079257123333,
+          "median": 94.1076194402,
+          "min": 93.017062113,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.09787386343731926,
+          "max": 128.150831932,
+          "mean": 103.10167230588888,
+          "median": 98.2707345715,
+          "min": 96.9514118877,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9614987042032772,
+        0.8269208716481328,
+        0.9899698859211625,
+        0.9666893967555868,
+        0.7343504370704034,
+        0.9503911371716371,
+        0.9632599389868232,
+        0.9505062760739899,
+        0.9594193658648601
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.08637472354199378,
+        "max": 0.9899698859211625,
+        "mean": 0.9225562237439859,
+        "median": 0.9594193658648601,
+        "min": 0.7343504370704034,
+        "n": 9
+      },
+      "speedup_ratio": 0.957636267303253,
+      "time_reduction_percent": -4.423781151902828,
+      "workload": "get_no_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 1152.97247902,
+        "candidate": 1209.1427043
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.020467532974700667,
+          "max": 1204.53596278,
+          "mean": 1163.8862821277778,
+          "median": 1152.97247902,
+          "min": 1136.87627887,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.05697615067984447,
+          "max": 1423.86452876,
+          "mean": 1228.7323426944445,
+          "median": 1209.1427043,
+          "min": 1177.93921386,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9510451998535467,
+        0.9961900762386298,
+        0.8417809510879581,
+        0.9525959225796471,
+        0.9503996745862515,
+        0.9730970489717679,
+        0.9696442238111533,
+        0.9530043723138492,
+        0.9565113290586517
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.04274356543059691,
+        "max": 0.9961900762386298,
+        "mean": 0.949363199833495,
+        "median": 0.9530043723138492,
+        "min": 0.8417809510879581,
+        "n": 9
+      },
+      "speedup_ratio": 0.9535454127289977,
+      "time_reduction_percent": -4.871775025171754,
+      "workload": "get_34_irrelevant_headers"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 684.600896769,
+        "candidate": 703.949496762
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.024992692024445144,
+          "max": 730.405424749,
+          "mean": 690.103070471,
+          "median": 684.600896769,
+          "min": 670.546050338,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.04587605083445767,
+          "max": 786.50361333,
+          "mean": 720.8062897386667,
+          "median": 703.949496762,
+          "min": 693.163371174,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9762085787758403,
+        0.9768545231051735,
+        0.9876472491751868,
+        0.9711753008977569,
+        0.9646410967028834,
+        0.9645046521691081,
+        0.9488859954100313,
+        0.9070167157759632,
+        0.9286739594958956
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.025479731319100654,
+        "max": 0.9876472491751868,
+        "mean": 0.9584008968342044,
+        "median": 0.9646410967028834,
+        "min": 0.9070167157759632,
+        "n": 9
+      },
+      "speedup_ratio": 0.9725142214292375,
+      "time_reduction_percent": -2.8262598083520496,
+      "workload": "get_16_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 1311.29064204,
+        "candidate": 1366.62614096
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.038349469905966674,
+          "max": 1393.65014072,
+          "mean": 1304.2928347633333,
+          "median": 1311.29064204,
+          "min": 1241.99222785,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.07216116085287581,
+          "max": 1676.80188774,
+          "mean": 1408.8732896488889,
+          "median": 1366.62614096,
+          "min": 1319.73105601,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9674181480216512,
+        0.7820188250189547,
+        0.9827775086905858,
+        0.9199031659241481,
+        0.8709806575276096,
+        0.9372097823092013,
+        1.0197742447257865,
+        0.9310588272741184,
+        0.9565047811456784
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.0703325006596063,
+        "max": 1.0197742447257865,
+        "mean": 0.9297384378486371,
+        "median": 0.9372097823092013,
+        "min": 0.7820188250189547,
+        "n": 9
+      },
+      "speedup_ratio": 0.9595094098806504,
+      "time_reduction_percent": -4.21992631884518,
+      "workload": "get_32_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 5033.22588424,
+        "candidate": 5382.63516566
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.021703220121575967,
+          "max": 5296.76477754,
+          "mean": 5065.690050126666,
+          "median": 5033.22588424,
+          "min": 4912.65902178,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.023962857003320542,
+          "max": 5561.44500667,
+          "mean": 5371.099516557778,
+          "median": 5382.63516566,
+          "min": 5202.01656094,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0175780536158343,
+        0.9232855507202129,
+        0.9570989878238991,
+        0.9784364672841929,
+        0.9025593521688796,
+        0.9034080071383768,
+        0.9436605290058225,
+        0.9329903196577185,
+        0.9352906971878011
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.036638965750783764,
+        "max": 1.0175780536158343,
+        "mean": 0.9438119960669709,
+        "median": 0.9352906971878011,
+        "min": 0.9025593521688796,
+        "n": 9
+      },
+      "speedup_ratio": 0.9350858323727469,
+      "time_reduction_percent": -6.942054448898638,
+      "workload": "get_128_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 1635.84886022,
+        "candidate": 1704.75471987
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.039803758562908076,
+          "max": 1780.30323712,
+          "mean": 1676.3005367055557,
+          "median": 1635.84886022,
+          "min": 1611.61154961,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.03633716996418716,
+          "max": 1866.85646455,
+          "mean": 1725.3328966422223,
+          "median": 1704.75471987,
+          "min": 1659.52911856,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9505959660791427,
+        0.9755428185587104,
+        1.0077067437174707,
+        0.9448221246512193,
+        0.9711258040524299,
+        0.9631529630792108,
+        0.9616321745932574,
+        0.9729911975681728,
+        0.9971328326925691
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.01971429925845902,
+        "max": 1.0077067437174707,
+        "mean": 0.9716336249991314,
+        "median": 0.9711258040524299,
+        "min": 0.9448221246512193,
+        "n": 9
+      },
+      "speedup_ratio": 0.9595801913044391,
+      "time_reduction_percent": -4.2122387541800865,
+      "workload": "get_16_pipelined"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 49.840212659,
+        "candidate": 51.24646636866667
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.03548575113764047,
+          "max": 166.183728563,
+          "mean": 151.60241994266667,
+          "median": 149.520637977,
+          "min": 147.962148898,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.018503452661594796,
+          "max": 158.965253669,
+          "mean": 154.35597637222222,
+          "median": 153.739399106,
+          "min": 150.077331857,
+          "n": 9
+        }
+      },
+      "packets_per_op": 3,
+      "paired_speedup_ratios": [
+        0.9944985788074465,
+        0.9850290575741149,
+        0.9672108510354958,
+        0.9729307921656865,
+        1.1046574970778862,
+        0.9612968010733688,
+        0.9307829571743343,
+        0.9732355390796759,
+        0.9553443129596978
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.047174559698387186,
+        "max": 1.1046574970778862,
+        "mean": 0.9827762652164118,
+        "median": 0.9729307921656865,
+        "min": 0.9307829571743343,
+        "n": 9
+      },
+      "speedup_ratio": 0.9725590111999121,
+      "time_reduction_percent": -2.82152429663185,
+      "workload": "get_segmented_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 147.258378687,
+        "candidate": 160.819517259
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.020575791571066974,
+          "max": 152.037041174,
+          "mean": 146.98348768822223,
+          "median": 147.258378687,
+          "min": 141.481149267,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.018819685288422816,
+          "max": 167.736380227,
+          "mean": 160.93416116988888,
+          "median": 160.819517259,
+          "min": 156.220525426,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9064046867366884,
+        0.9510906447830868,
+        0.9002089098314509,
+        0.9164941406000369,
+        0.9046032508484041,
+        0.8968076663637917,
+        0.9225873368134176,
+        0.876135958464669,
+        0.9477332715932534
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.024900560522575783,
+        "max": 0.9510906447830868,
+        "mean": 0.9135628740038665,
+        "median": 0.9064046867366884,
+        "min": 0.876135958464669,
+        "n": 9
+      },
+      "speedup_ratio": 0.9156747961743985,
+      "time_reduction_percent": -9.209077740034344,
+      "workload": "post_16k_body"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 57.447254028,
+        "candidate": 59.52792540533333
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.01676717170347575,
+          "max": 179.897414221,
+          "mean": 173.47281202655554,
+          "median": 172.341762084,
+          "min": 169.374737594,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.03190067826160151,
+          "max": 190.335122419,
+          "mean": 180.23993446133332,
+          "median": 178.583776216,
+          "min": 172.819746101,
+          "n": 9
+        }
+      },
+      "packets_per_op": 3,
+      "paired_speedup_ratios": [
+        1.0096895752687818,
+        0.9541675138355236,
+        0.9784587564079561,
+        1.0053636867540487,
+        0.9556480864766372,
+        0.9624376421524062,
+        0.9046675945438188,
+        0.9378976547558472,
+        0.9612934649040059
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.03167861691971991,
+        "max": 1.0096895752687818,
+        "mean": 0.9632915527887806,
+        "median": 0.9612934649040059,
+        "min": 0.9046675945438188,
+        "n": 9
+      },
+      "speedup_ratio": 0.9650471377397118,
+      "time_reduction_percent": -3.6218813458328114,
+      "workload": "post_segmented_body"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 52.8383515378,
+        "candidate": 54.3338968639
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.02561438820361184,
+          "max": 55.6823697146,
+          "mean": 53.03712582384444,
+          "median": 52.8383515378,
+          "min": 51.380580926,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.026820205295448686,
+          "max": 57.6838431587,
+          "mean": 54.3027082819,
+          "median": 54.3338968639,
+          "min": 52.1367457957,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9777761574826094,
+        0.9979663300779478,
+        0.9892956430288075,
+        0.9709823682526414,
+        0.9653027028973513,
+        0.97658523474703,
+        0.9854965081122811,
+        0.9718010803951039,
+        0.9559646447651153
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.012331964903961188,
+        "max": 0.9979663300779478,
+        "mean": 0.9767967410843208,
+        "median": 0.97658523474703,
+        "min": 0.9559646447651153,
+        "n": 9
+      },
+      "speedup_ratio": 0.9724749113827383,
+      "time_reduction_percent": -2.8304163218076495,
+      "workload": "malformed_http"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 29.7962574729,
+        "candidate": 29.9417385264
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.04108509895132078,
+          "max": 33.2696116789,
+          "mean": 30.612243897433334,
+          "median": 29.7962574729,
+          "min": 29.3088317358,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.04478205909065132,
+          "max": 33.7838920608,
+          "mean": 30.619059855555555,
+          "median": 29.9417385264,
+          "min": 29.2482139723,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0007651827800166,
+        0.9898821430815419,
+        0.9961727445550979,
+        1.0726183628119643,
+        0.9415231767540398,
+        1.0020725287211523,
+        0.9756174536554307,
+        0.9772364225436511,
+        1.0495020464995004
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.03705846689306443,
+        "max": 1.0726183628119643,
+        "mean": 1.0005988957113772,
+        "median": 0.9961727445550979,
+        "min": 0.9415231767540398,
+        "n": 9
+      },
+      "speedup_ratio": 0.9951411955130217,
+      "time_reduction_percent": -0.48825277346431495,
+      "workload": "non_http_tls"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 11.0907914834,
+        "candidate": 11.1322701054
+      },
+      "mode": "parser",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.08514653845123968,
+          "max": 13.7399112815,
+          "mean": 11.445846647188889,
+          "median": 11.0907914834,
+          "min": 10.4408874309,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.08142648151207808,
+          "max": 13.7320658204,
+          "mean": 11.309726209588888,
+          "median": 11.1322701054,
+          "min": 10.6105340402,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.8991494899960956,
+        0.9058588172888363,
+        1.2240399019590056,
+        1.0519083661443547,
+        1.0320092479786087,
+        1.0041242882429362,
+        0.9699640571928086,
+        0.9706478765099232,
+        1.0849186281846201
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.09262328443119601,
+        "max": 1.2240399019590056,
+        "mean": 1.0158467414996877,
+        "median": 1.0041242882429362,
+        "min": 0.8991494899960956,
+        "n": 9
+      },
+      "speedup_ratio": 0.9962740194401248,
+      "time_reduction_percent": -0.373991541199592,
+      "workload": "empty_ack"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 387.599391123,
+        "candidate": 327.275781495
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.022072623083593597,
+          "max": 408.188444929,
+          "mean": 390.5449439762222,
+          "median": 387.599391123,
+          "min": 377.702439494,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.028203037340152042,
+          "max": 355.187569255,
+          "mean": 331.0018934593333,
+          "median": 327.275781495,
+          "min": 324.007084305,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.2077970764208197,
+        1.1962682604746326,
+        1.167697025935664,
+        1.161561335525999,
+        1.1911990911570431,
+        1.1801764841087974,
+        1.2513158812871412,
+        1.1252417302731204,
+        1.1438930875815336
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.02966588399620367,
+        "max": 1.2513158812871412,
+        "mean": 1.1805722191960835,
+        "median": 1.1801764841087974,
+        "min": 1.1252417302731204,
+        "n": 9
+      },
+      "speedup_ratio": 1.1843204203880928,
+      "time_reduction_percent": 15.563391225466871,
+      "workload": "get_single_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 261.719204055,
+        "candidate": 255.274191819
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.013417929349070552,
+          "max": 265.69620771,
+          "mean": 261.136751672,
+          "median": 261.719204055,
+          "min": 255.913175821,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.028539940208988358,
+          "max": 277.443292791,
+          "mean": 257.91692485677777,
+          "median": 255.274191819,
+          "min": 250.672678371,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9576595095782361,
+        0.9921267216614001,
+        1.0222014822508119,
+        1.0225383435321391,
+        1.0252474102065505,
+        1.0097665224462031,
+        1.0274778654519052,
+        1.0396233899275604,
+        1.020905738447666
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.022832449018267576,
+        "max": 1.0396233899275604,
+        "mean": 1.0130607759447192,
+        "median": 1.0222014822508119,
+        "min": 0.9576595095782361,
+        "n": 9
+      },
+      "speedup_ratio": 1.0252474102065505,
+      "time_reduction_percent": 2.4625675671264724,
+      "workload": "get_no_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 1911.59416093,
+        "candidate": 1936.97221577
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.02684727839015466,
+          "max": 2011.47633124,
+          "mean": 1902.5049294022222,
+          "median": 1911.59416093,
+          "min": 1842.22949506,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.03655261808320166,
+          "max": 2079.552915,
+          "mean": 1937.972769008889,
+          "median": 1936.97221577,
+          "min": 1862.38860437,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9378311427900298,
+        0.987748772921574,
+        0.9484556289871305,
+        0.9882469019075129,
+        1.0239694913589814,
+        1.024211941065465,
+        0.8861183062369923,
+        0.9783672583141299,
+        1.0756156980601463
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.05321189219360568,
+        "max": 1.0756156980601463,
+        "mean": 0.9833961268491069,
+        "median": 0.987748772921574,
+        "min": 0.8861183062369923,
+        "n": 9
+      },
+      "speedup_ratio": 0.9868980800894392,
+      "time_reduction_percent": -1.3275859153939695,
+      "workload": "get_34_irrelevant_headers"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 3760.00563401,
+        "candidate": 1153.48700415
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.027131808816256105,
+          "max": 4010.43713942,
+          "mean": 3793.6707441411113,
+          "median": 3760.00563401,
+          "min": 3658.09058845,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.02598985635824273,
+          "max": 1212.05303049,
+          "mean": 1148.80970277,
+          "median": 1153.48700415,
+          "min": 1117.0453058,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        3.096194179394003,
+        3.1554398969501447,
+        3.4767943851914267,
+        3.295244406204276,
+        3.2606254581240637,
+        3.4796752827509905,
+        3.3606522423300604,
+        3.249783219716115,
+        3.3660278723584782
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.03746242220855724,
+        "max": 3.4796752827509905,
+        "mean": 3.30449299366884,
+        "median": 3.295244406204276,
+        "min": 3.096194179394003,
+        "n": 9
+      },
+      "speedup_ratio": 3.259686169399657,
+      "time_reduction_percent": 69.3222001127743,
+      "workload": "get_16_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 12136.9379845,
+        "candidate": 2131.76603001
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.05604592547346219,
+          "max": 14176.7685067,
+          "mean": 12303.746535866667,
+          "median": 12136.9379845,
+          "min": 11743.2383544,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.013155125033163054,
+          "max": 2196.12854664,
+          "mean": 2132.970943043333,
+          "median": 2131.76603001,
+          "min": 2103.66673326,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        5.636481622840073,
+        5.572547233425282,
+        5.624734560461674,
+        5.643161011177187,
+        5.625781754671249,
+        5.743355679783631,
+        5.68701566177595,
+        5.766633435866473,
+        6.610849954630158
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.05263165940552456,
+        "max": 6.610849954630158,
+        "mean": 5.767840101625742,
+        "median": 5.643161011177187,
+        "min": 5.572547233425282,
+        "n": 9
+      },
+      "speedup_ratio": 5.693372449716288,
+      "time_reduction_percent": 82.43571786613342,
+      "workload": "get_32_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 145021.943182,
+        "candidate": 7461.17851283
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.024528720675456916,
+          "max": 151390.235119,
+          "mean": 145212.4763167778,
+          "median": 145021.943182,
+          "min": 139402.046196,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.027706137718023816,
+          "max": 8057.05066044,
+          "mean": 7525.573750871111,
+          "median": 7461.17851283,
+          "min": 7305.3254965,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        19.008448057886007,
+        19.692195627231296,
+        17.999383309584434,
+        19.433225986670692,
+        19.082249827579606,
+        19.483510663702287,
+        19.691806449373022,
+        20.290391773722376,
+        19.07856727575507
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.030944197135650924,
+        "max": 20.290391773722376,
+        "mean": 19.306642107944977,
+        "median": 19.433225986670692,
+        "min": 17.999383309584434,
+        "n": 9
+      },
+      "speedup_ratio": 19.436868174729362,
+      "time_reduction_percent": 94.85513823003575,
+      "workload": "get_128_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 7295.74402681,
+        "candidate": 2460.98943159
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.02272422880613153,
+          "max": 7517.43126502,
+          "mean": 7257.88127587,
+          "median": 7295.74402681,
+          "min": 6967.67886971,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.028367154005001956,
+          "max": 2585.11414392,
+          "mean": 2467.935141441111,
+          "median": 2460.98943159,
+          "min": 2376.57232652,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        2.9318185657377946,
+        2.9496041771574983,
+        2.845903462879228,
+        3.043148590978436,
+        2.9623108850512514,
+        3.0728577674621618,
+        2.8845396096576414,
+        2.9088598953341016,
+        2.8801893165873933
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.024136031256938445,
+        "max": 3.0728577674621618,
+        "mean": 2.942136918982834,
+        "median": 2.9318185657377946,
+        "min": 2.845903462879228,
+        "n": 9
+      },
+      "speedup_ratio": 2.964557235866045,
+      "time_reduction_percent": 66.26814999886932,
+      "workload": "get_16_pipelined"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 252.65175539666666,
+        "candidate": 221.12024605533335
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.03381415537591184,
+          "max": 829.072057361,
+          "mean": 767.7144234604444,
+          "median": 757.95526619,
+          "min": 737.505755221,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.027007187052656773,
+          "max": 703.41250633,
+          "mean": 661.8830157388888,
+          "median": 663.360738166,
+          "min": 640.098735409,
+          "n": 9
+        }
+      },
+      "packets_per_op": 3,
+      "paired_speedup_ratios": [
+        1.2819413077244375,
+        1.1590100028916615,
+        1.1882252874107067,
+        1.152174991799914,
+        1.0676397324739615,
+        1.1831030804642177,
+        1.161676374184663,
+        1.1277660146682713,
+        1.1268501438653773
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.04711457285389383,
+        "max": 1.2819413077244375,
+        "mean": 1.1609318817203567,
+        "median": 1.1590100028916615,
+        "min": 1.0676397324739615,
+        "n": 9
+      },
+      "speedup_ratio": 1.1425989248105433,
+      "time_reduction_percent": 12.48022571298918,
+      "workload": "get_segmented_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 4434.03839855,
+        "candidate": 4322.20260704
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.028835354456762472,
+          "max": 4587.82794172,
+          "mean": 4423.212430151111,
+          "median": 4434.03839855,
+          "min": 4221.78074393,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.03285978307154149,
+          "max": 4668.46916978,
+          "mean": 4355.893893714444,
+          "median": 4322.20260704,
+          "min": 4198.84647651,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.088179609281106,
+        1.0050997139087665,
+        1.0218863923559207,
+        1.001455529519733,
+        1.0301374712334241,
+        1.0614560118600989,
+        0.9702355140654065,
+        0.9601319574208801,
+        1.0079401233331813
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.037570510483340945,
+        "max": 1.088179609281106,
+        "mean": 1.016280258108724,
+        "median": 1.0079401233331813,
+        "min": 0.9601319574208801,
+        "n": 9
+      },
+      "speedup_ratio": 1.0258747221446405,
+      "time_reduction_percent": 2.5222107130730476,
+      "workload": "post_16k_body"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 569.1868059333334,
+        "candidate": 459.0064955033333
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.02233845934479261,
+          "max": 1793.9660681,
+          "mean": 1719.9151284355555,
+          "median": 1707.5604178,
+          "min": 1677.61532139,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.0504074058703426,
+          "max": 1529.51687102,
+          "mean": 1395.7696234388889,
+          "median": 1377.01948651,
+          "min": 1322.42317708,
+          "n": 9
+        }
+      },
+      "packets_per_op": 3,
+      "paired_speedup_ratios": [
+        1.2547018173036586,
+        1.2182945396378144,
+        1.156774397927464,
+        1.249426362596435,
+        1.2490413020078124,
+        1.2910885846314177,
+        1.1446942952138943,
+        1.2783924341669275,
+        1.267653612933524
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.039537527627303,
+        "max": 1.2910885846314177,
+        "mean": 1.234451927379883,
+        "median": 1.249426362596435,
+        "min": 1.1446942952138943,
+        "n": 9
+      },
+      "speedup_ratio": 1.2400408523831008,
+      "time_reduction_percent": 19.357495514909218,
+      "workload": "post_segmented_body"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 249.415523992,
+        "candidate": 256.328837557
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.026803367171747125,
+          "max": 261.251331038,
+          "mean": 247.9675738408889,
+          "median": 249.415523992,
+          "min": 239.50197468,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.05668017498636372,
+          "max": 288.892065531,
+          "mean": 256.11825484966664,
+          "median": 256.328837557,
+          "min": 242.418065414,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0318709679328193,
+        0.9892824436923088,
+        1.0206453047648552,
+        0.9879708192167117,
+        0.9273740534032199,
+        0.9730295130626391,
+        0.9343611941995614,
+        0.9043215865337292,
+        0.9626736923821332
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.04144559484505784,
+        "max": 1.0318709679328193,
+        "mean": 0.9701699527986641,
+        "median": 0.9730295130626391,
+        "min": 0.9043215865337292,
+        "n": 9
+      },
+      "speedup_ratio": 0.9730295130626391,
+      "time_reduction_percent": -2.7718056415853676,
+      "workload": "malformed_http"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 111.94886038,
+        "candidate": 112.283414774
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.022460572132817574,
+          "max": 118.580075605,
+          "mean": 113.08173645966667,
+          "median": 111.94886038,
+          "min": 110.398192695,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.012031684948124085,
+          "max": 114.829229056,
+          "mean": 112.53670639322222,
+          "median": 112.283414774,
+          "min": 110.088447177,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0000046299109464,
+        0.9814538463831384,
+        1.0029202582805001,
+        1.0393337555124011,
+        1.024521938311797,
+        0.9738469023575186,
+        1.0615885653784907,
+        0.9652232617441635,
+        0.9970204469228748
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.029592685297622875,
+        "max": 1.0615885653784907,
+        "mean": 1.0051015116446478,
+        "median": 1.0000046299109464,
+        "min": 0.9652232617441635,
+        "n": 9
+      },
+      "speedup_ratio": 0.9970204469228748,
+      "time_reduction_percent": -0.29884573444014517,
+      "workload": "non_http_tls"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 44.6936962787,
+        "candidate": 44.3932703782
+      },
+      "mode": "handler4",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.018037997136569294,
+          "max": 46.2986963772,
+          "mean": 45.123384857644446,
+          "median": 44.6936962787,
+          "min": 44.319617019,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.01919983461111074,
+          "max": 46.5800853158,
+          "mean": 44.630632591677774,
+          "median": 44.3932703782,
+          "min": 43.8615136865,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0134133190162655,
+        1.0056865366320953,
+        1.0288708164730846,
+        0.990095929438322,
+        1.042658345656146,
+        1.018972956522842,
+        0.9939590291281724,
+        1.0353427642509885,
+        0.9726344290074409
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.021387504213158055,
+        "max": 1.042658345656146,
+        "mean": 1.0112926806805953,
+        "median": 1.0134133190162655,
+        "min": 0.9726344290074409,
+        "n": 9
+      },
+      "speedup_ratio": 1.0067673748282246,
+      "time_reduction_percent": 0.6721885310774334,
+      "workload": "empty_ack"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 388.410217422,
+        "candidate": 317.843092072
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.02786238325300153,
+          "max": 414.768337342,
+          "mean": 390.61335533944447,
+          "median": 388.410217422,
+          "min": 374.063799746,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.029776398362657216,
+          "max": 343.626559923,
+          "mean": 320.95450109066667,
+          "median": 317.843092072,
+          "min": 309.485516934,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.22718884464553,
+        1.2312051726777882,
+        1.2338014665626584,
+        1.1768819555193117,
+        1.2670081025654831,
+        1.2087369145058409,
+        1.2091827772053854,
+        1.2775525038654032,
+        1.1290893715780872
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.034854270820417886,
+        "max": 1.2775525038654032,
+        "mean": 1.2178496787917208,
+        "median": 1.22718884464553,
+        "min": 1.1290893715780872,
+        "n": 9
+      },
+      "speedup_ratio": 1.222018747961383,
+      "time_reduction_percent": 18.168194909592263,
+      "workload": "get_single_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 262.596513686,
+        "candidate": 256.837367994
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.04643108573411573,
+          "max": 299.678091736,
+          "mean": 268.717870287,
+          "median": 262.596513686,
+          "min": 258.159324659,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.02615599527355325,
+          "max": 263.590948149,
+          "mean": 253.74515601088888,
+          "median": 256.837367994,
+          "min": 244.216294591,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9915816900558146,
+        1.1265665147196016,
+        1.0752620504941415,
+        1.2235825146175203,
+        1.0385376405809066,
+        1.0167650266845152,
+        1.0728678177130875,
+        0.9944617846014255,
+        1.0055384679906623
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.06730482840535139,
+        "max": 1.2235825146175203,
+        "mean": 1.0605737230508527,
+        "median": 1.0385376405809066,
+        "min": 0.9915816900558146,
+        "n": 9
+      },
+      "speedup_ratio": 1.0224233168910786,
+      "time_reduction_percent": 2.193153904124756,
+      "workload": "get_no_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 1886.83812047,
+        "candidate": 1882.5928558
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.03045387763689963,
+          "max": 2009.84872387,
+          "mean": 1891.6892537877777,
+          "median": 1886.83812047,
+          "min": 1820.00759422,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.032663371052636794,
+          "max": 2061.15127513,
+          "mean": 1920.2150184322222,
+          "median": 1882.5928558,
+          "min": 1865.78458955,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9667558169111373,
+        1.0137590671984318,
+        0.9800512331640897,
+        0.9828894961131528,
+        0.9858779191089448,
+        1.0189058592334648,
+        0.9527375218975009,
+        0.9516522769083434,
+        1.0170395207702274
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.025121059158778887,
+        "max": 1.0189058592334648,
+        "mean": 0.9855187457005881,
+        "median": 0.9828894961131528,
+        "min": 0.9516522769083434,
+        "n": 9
+      },
+      "speedup_ratio": 1.002255009444512,
+      "time_reduction_percent": 0.22499358179929319,
+      "workload": "get_34_irrelevant_headers"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 3791.82450758,
+        "candidate": 1187.08448656
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.060481937414406266,
+          "max": 4316.74585635,
+          "mean": 3832.3410884366667,
+          "median": 3791.82450758,
+          "min": 3565.68053378,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.04668456752774295,
+          "max": 1283.1927853,
+          "mean": 1186.5984207333333,
+          "median": 1187.08448656,
+          "min": 1109.77697754,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        3.038810780873469,
+        3.6490148718956945,
+        3.1680546465584936,
+        3.204291404048617,
+        3.2874796013457557,
+        3.034162077369294,
+        3.187636945895519,
+        3.3363572349170902,
+        3.181863272798813
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.05395430736163388,
+        "max": 3.6490148718956945,
+        "mean": 3.231963426189194,
+        "median": 3.187636945895519,
+        "min": 3.034162077369294,
+        "n": 9
+      },
+      "speedup_ratio": 3.194233056290847,
+      "time_reduction_percent": 68.69358051283825,
+      "workload": "get_16_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 11661.6134991,
+        "candidate": 2105.82282554
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.015329181952468657,
+          "max": 12104.8865227,
+          "mean": 11682.2623909,
+          "median": 11661.6134991,
+          "min": 11454.8341918,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.02135390693384967,
+          "max": 2208.80495804,
+          "mean": 2111.701631576667,
+          "median": 2105.82282554,
+          "min": 2032.51574691,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        5.517568117185314,
+        5.737526765452596,
+        5.583740666868382,
+        5.526927799016292,
+        5.567755702758808,
+        5.449564977590302,
+        5.400036991181986,
+        5.8007305682830514,
+        5.232126965277626
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.02904990932122033,
+        "max": 5.8007305682830514,
+        "mean": 5.535108728179373,
+        "median": 5.526927799016292,
+        "min": 5.232126965277626,
+        "n": 9
+      },
+      "speedup_ratio": 5.537794233049778,
+      "time_reduction_percent": 81.94226874606572,
+      "workload": "get_32_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 143545.759233,
+        "candidate": 7248.86725984
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.011754036974263181,
+          "max": 145451.948864,
+          "mean": 143229.84984355554,
+          "median": 143545.759233,
+          "min": 140615.128397,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.016950238040512475,
+          "max": 7513.69704026,
+          "mean": 7265.640873674444,
+          "median": 7248.86725984,
+          "min": 7069.66831264,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        19.358239769934464,
+        20.031694995364706,
+        19.70807925682514,
+        19.53025244588501,
+        19.537925875990346,
+        19.411744315545548,
+        19.665508127384612,
+        20.304454591787803,
+        19.90440230636907
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.014842795029142384,
+        "max": 20.304454591787803,
+        "mean": 19.716922409454078,
+        "median": 19.665508127384612,
+        "min": 19.358239769934464,
+        "n": 9
+      },
+      "speedup_ratio": 19.8025090110656,
+      "time_reduction_percent": 94.95013485694564,
+      "workload": "get_128_duplicate_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 7204.5234735,
+        "candidate": 2447.35121378
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.03033613492782345,
+          "max": 7549.72414704,
+          "mean": 7187.745108116666,
+          "median": 7204.5234735,
+          "min": 6859.63037966,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.09030052291459326,
+          "max": 3131.94153933,
+          "mean": 2548.4049126077775,
+          "median": 2447.35121378,
+          "min": 2354.94034947,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        2.85820607885943,
+        2.88656840586213,
+        2.83428657888701,
+        3.004013212904539,
+        2.3524174865971856,
+        2.7210532471155022,
+        2.997190758767419,
+        2.831042797216185,
+        3.0491021630916113
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.06948427036768559,
+        "max": 3.0491021630916113,
+        "mean": 2.8370978588112234,
+        "median": 2.85820607885943,
+        "min": 2.3524174865971856,
+        "n": 9
+      },
+      "speedup_ratio": 2.9438044825501035,
+      "time_reduction_percent": 66.03035269741355,
+      "workload": "get_16_pipelined"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 257.1138776633333,
+        "candidate": 219.53715753433335
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.041869903667008046,
+          "max": 815.198862154,
+          "mean": 767.4019497168889,
+          "median": 771.34163299,
+          "min": 709.925499063,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.04265149861189893,
+          "max": 704.244655532,
+          "mean": 656.9245719588889,
+          "median": 658.611472603,
+          "min": 621.252304462,
+          "n": 9
+        }
+      },
+      "packets_per_op": 3,
+      "paired_speedup_ratios": [
+        1.1717811884133262,
+        1.0779124394192434,
+        1.2344557388124213,
+        1.2688888992832414,
+        1.230854126631355,
+        1.1173399424615797,
+        1.0721793488200946,
+        1.2111453007117425,
+        1.1466729627010417
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.05746901793753073,
+        "max": 1.2688888992832414,
+        "mean": 1.170136660806005,
+        "median": 1.1717811884133262,
+        "min": 1.0721793488200946,
+        "n": 9
+      },
+      "speedup_ratio": 1.171163371845713,
+      "time_reduction_percent": 14.614815999237196,
+      "workload": "get_segmented_ua"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 4409.67674542,
+        "candidate": 4318.48849706
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.04635942481154918,
+          "max": 4876.98496002,
+          "mean": 4409.927954383334,
+          "median": 4409.67674542,
+          "min": 4159.14893617,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.030705669803052064,
+          "max": 4639.32353487,
+          "mean": 4352.927666813333,
+          "median": 4318.48849706,
+          "min": 4169.84710417,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        0.9974343980168237,
+        1.0512276031976846,
+        1.0533299316435871,
+        1.0252724085115201,
+        0.9868888410007217,
+        0.9811128496822408,
+        1.061905206530905,
+        0.9628422139356012,
+        0.9976178167293462
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.033431137559687525,
+        "max": 1.061905206530905,
+        "mean": 1.0130701410276033,
+        "median": 0.9976178167293462,
+        "min": 0.9628422139356012,
+        "n": 9
+      },
+      "speedup_ratio": 1.0211157789171097,
+      "time_reduction_percent": 2.067912312500242,
+      "workload": "post_16k_body"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 545.6966671033333,
+        "candidate": 441.48724179000004
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.024334290173440725,
+          "max": 1757.32866955,
+          "mean": 1648.4649878155556,
+          "median": 1637.09000131,
+          "min": 1615.33198482,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.044521550676922005,
+          "max": 1458.0752609,
+          "mean": 1364.7369682066667,
+          "median": 1324.46172537,
+          "min": 1296.57344592,
+          "n": 9
+        }
+      },
+      "packets_per_op": 3,
+      "paired_speedup_ratios": [
+        1.2407997317877053,
+        1.2462582075815625,
+        1.1234243447000931,
+        1.1383473066635963,
+        1.1592892625935804,
+        1.2405530791812285,
+        1.2380616897549483,
+        1.355363766765303,
+        1.1541486141213537
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.057377802859973945,
+        "max": 1.355363766765303,
+        "mean": 1.21069400034993,
+        "median": 1.2380616897549483,
+        "min": 1.1234243447000931,
+        "n": 9
+      },
+      "speedup_ratio": 1.2360417594194082,
+      "time_reduction_percent": 19.09658453046775,
+      "workload": "post_segmented_body"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 246.907181896,
+        "candidate": 245.137766709
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.048910026731832944,
+          "max": 275.153208366,
+          "mean": 253.05201940633333,
+          "median": 246.907181896,
+          "min": 237.399511689,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.029937096087818277,
+          "max": 265.950486927,
+          "mean": 248.99755104855555,
+          "median": 245.137766709,
+          "min": 240.005350732,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0638837640832775,
+        1.0360200401861448,
+        0.9227607690199926,
+        0.9492113210083922,
+        0.9840924694251033,
+        1.0932968155780973,
+        1.0081185610207024,
+        1.013551908602729,
+        1.0824332278335944
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.05416534063373622,
+        "max": 1.0932968155780973,
+        "mean": 1.0170409863064482,
+        "median": 1.013551908602729,
+        "min": 0.9227607690199926,
+        "n": 9
+      },
+      "speedup_ratio": 1.0072180440033969,
+      "time_reduction_percent": 0.7166317210429707,
+      "workload": "malformed_http"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 116.296786615,
+        "candidate": 115.836569381
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.019439968751227735,
+          "max": 121.030342273,
+          "mean": 116.84293851244445,
+          "median": 116.296786615,
+          "min": 113.82065111,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.034106550946035534,
+          "max": 127.76757533,
+          "mean": 117.9903523348889,
+          "median": 115.836569381,
+          "min": 114.753828076,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0039729874292658,
+        1.0085878630102514,
+        1.0319272035873592,
+        0.9924402534857614,
+        0.9918680101427033,
+        0.9320446579848234,
+        1.0114767472918595,
+        0.9525848618317247,
+        0.9947909614032469
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.029206080430677264,
+        "max": 1.0319272035873592,
+        "mean": 0.9910770606852217,
+        "median": 0.9947909614032469,
+        "min": 0.9320446579848234,
+        "n": 9
+      },
+      "speedup_ratio": 1.0039729874292658,
+      "time_reduction_percent": 0.39572652641173267,
+      "workload": "non_http_tls"
+    },
+    {
+      "median_ns_per_packet": {
+        "baseline": 45.2466302613,
+        "candidate": 45.203807119
+      },
+      "mode": "handler6",
+      "ns_per_op": {
+        "baseline": {
+          "cv": 0.03440282414726272,
+          "max": 49.1877441062,
+          "mean": 45.6187746876,
+          "median": 45.2466302613,
+          "min": 44.0451971018,
+          "n": 9
+        },
+        "candidate": {
+          "cv": 0.04997487070438508,
+          "max": 50.7130631106,
+          "mean": 46.159045242699996,
+          "median": 45.203807119,
+          "min": 43.8830133719,
+          "n": 9
+        }
+      },
+      "packets_per_op": 1,
+      "paired_speedup_ratios": [
+        1.0004898605325585,
+        1.0186831328864092,
+        0.9912729396006038,
+        0.8981517065073436,
+        0.9743691938568375,
+        0.9907909157512126,
+        0.9669186526013469,
+        1.0182520726375677,
+        1.0489082001277132
+      ],
+      "paired_speedup_summary": {
+        "cv": 0.040436327553123416,
+        "max": 1.0489082001277132,
+        "mean": 0.989759630500177,
+        "median": 0.9912729396006038,
+        "min": 0.8981517065073436,
+        "n": 9
+      },
+      "speedup_ratio": 1.0009473348602533,
+      "time_reduction_percent": 0.09464382662907056,
+      "workload": "empty_ack"
+    }
+  ],
+  "raw_file": "micro-raw.json.gz",
+  "raw_json_sha256": "23a16844c1d241c136709dc0cc9ff6968921f5507c004100a2c55dcf627bc2b5"
+}

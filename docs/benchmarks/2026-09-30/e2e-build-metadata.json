@@ -1,0 +1,17 @@
+{
+  "base_sha": "4ff67c3770cb2dabc6f1427ef19277df093aafc1",
+  "candidate_sha": "f056be200811cf811fb86bce784a40d810b0cfb3",
+  "build_type": "RelWithDebInfo",
+  "uci": false,
+  "backtrace": false,
+  "asan": false,
+  "coverage": false,
+  "cache": true,
+  "compiler": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "packages": "cmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\ngcc\t4:13.2.0-7ubuntu1\nlibmnl-dev:amd64\t1.0.5-2build1\nlibnetfilter-conntrack-dev:amd64\t1.0.9-6build1\nlibnetfilter-queue-dev:amd64\t1.0.5-4build1\n",
+  "runner_image": "ubuntu24",
+  "runner_image_version": "20260920.314.1",
+  "github_run_id": "36661195647",
+  "github_run_attempt": "1",
+  "github_repository": "Zxilly/UA2F"
+}

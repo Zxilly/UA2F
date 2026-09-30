@@ -1,0 +1,15 @@
+diff --git a/src/handler.c b/src/handler.c
+index 071cc6a..d0f9b67 100644
+--- a/src/handler.c
++++ b/src/handler.c
+@@ -556,7 +556,9 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
+         count_user_agent_packet();
+     }
+ 
+-    SEND_VERDICT(NF_ACCEPT, (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, pkt_buff);
++    // An unchanged payload is already queued in the kernel. Returning it again
++    // adds an unnecessary userspace/netlink copy, especially for upload bodies.
++    SEND_VERDICT(NF_ACCEPT, (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, ua_count > 0 ? pkt_buff : NULL);
+ 
+ end:
+     if (ua_entries_copy != ua_entries_inline) {

@@ -3,6 +3,16 @@ name: Same-runner performance
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'CMakeLists.txt'
+      - 'scripts/bench_client.go'
+      - 'scripts/bench_server.go'
+      - 'scripts/benchmark.py'
+      - 'scripts/benchmark_compare.py'
+      - 'scripts/profile_routed.py'
+      - '.github/workflows/performance.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +27,7 @@ jobs:
     # PR branch filters match the target, so filter the source branch here.
     if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/')
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       BASE_SHA: 4ff67c3770cb2dabc6f1427ef19277df093aafc1
       CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -34,13 +44,43 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Check latest pushed paths
+        id: relevant
+        shell: bash
+        env:
+          EVENT_ACTION: ${{ github.event.action }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          relevant=true
+          # pull_request path filters inspect the cumulative PR diff. For a
+          # synchronize event also inspect this push, so docs/results-only
+          # follow-ups do not repeat all measurements. Missing history runs safe.
+          if [[ "$EVENT_ACTION" == synchronize && -n "$BEFORE_SHA" ]] && \
+             git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+            relevant=false
+            while IFS= read -r path; do
+              case "$path" in
+                src/*|test/*|CMakeLists.txt|scripts/bench_client.go|scripts/bench_server.go|\
+                scripts/benchmark.py|scripts/benchmark_compare.py|scripts/profile_routed.py|\
+                .github/workflows/performance.yml) relevant=true ;;
+              esac
+            done < <(git diff --name-only "$BEFORE_SHA" "$CANDIDATE_SHA")
+          fi
+          echo "run=$relevant" >> "$GITHUB_OUTPUT"
+          if [[ "$relevant" == false ]]; then
+            echo 'Skipped: this push changes only documentation/results or other non-benchmark inputs.' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Install benchmark dependencies
+        if: steps.relevant.outputs.run == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake golang-go iproute2 iptables kmod \
+          sudo apt-get install -y build-essential cmake golang-go iproute2 iptables kmod strace \
             libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Build base and candidate identically
+        if: steps.relevant.outputs.run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -80,6 +120,7 @@ jobs:
           PY
 
       - name: Run six counterbalanced pairs per workload
+        if: steps.relevant.outputs.run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -101,18 +142,44 @@ jobs:
             --build-metadata "$RESULTS/build-metadata.json" --output-dir "$RESULTS" \
             2>&1 | tee "$RESULTS/runner.log"
 
+      - name: Profile routed workload bottlenecks separately
+        if: steps.relevant.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="ua2f-profile-${GITHUB_RUN_ID}"
+          cleanup() {
+            sudo ip netns pids "$namespace" 2>/dev/null | xargs -r sudo kill || true
+            sudo ip netns delete "$namespace" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          mkdir -p "$RESULTS/profile"
+          sudo ip netns add "$namespace"
+          sudo ip netns exec "$namespace" ip link set lo up
+          # Read-only process/cgroup counters; tracing never enters A/B timings.
+          # No perf_event_paranoid, ptrace, sysctl, or host-network changes.
+          sudo timeout --signal=TERM --kill-after=15s 8m \
+            ip netns exec "$namespace" python3 scripts/profile_routed.py \
+            --candidate "$BUILD_ROOT/candidate/ua2f" --candidate-sha "$CANDIDATE_SHA" \
+            --profile-requests 50000 --warmup 5000 --trace-requests 2000 --trace-warmup 200 \
+            --concurrency 128 --body-sizes 1024 65536 --nfqueue-workers 1 --proxy-workers 1 \
+            --output-dir "$RESULTS/profile" 2>&1 | tee "$RESULTS/profile/runner.log"
+
       - name: Publish job summary
-        if: always()
+        if: always() && steps.relevant.outputs.run == 'true'
         shell: bash
         run: |
           if [[ -f "$RESULTS/summary.md" ]]; then
-            cat "$RESULTS/summary.md" >> "$GITHUB_STEP_SUMMARY"
+            cat "$RESULTS/summary.md" | tee -a "$GITHUB_STEP_SUMMARY"
           else
             echo 'Benchmark did not complete. See build/runner logs; no performance claim is available.' >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [[ -f "$RESULTS/profile/summary.md" ]]; then
+            cat "$RESULTS/profile/summary.md" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Preserve raw measurements and build metadata
-        if: always()
+        if: always() && steps.relevant.outputs.run == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ua2f-performance-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}

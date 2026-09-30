@@ -1,0 +1,38 @@
+{
+  "benchmark-increment-01-02.json.gz": {
+    "uncompressed_sha256": "11417aa86e7cdf81426b41e4c1b5e61427f2c367ea650b6c28edf4fe92a36ba1",
+    "uncompressed_bytes": 1041043
+  },
+  "benchmark-increment-02-final.json.gz": {
+    "uncompressed_sha256": "491931f337180b278ac345dbffe0fdcb7a973bbe343298553a0b252dbc9915b2",
+    "uncompressed_bytes": 1041048
+  },
+  "benchmark-increment-base-01.json.gz": {
+    "uncompressed_sha256": "5f9f0ab0919b03d559f9699fa7c61cdd8a8ef6df4670bb7f454527a8bc196685",
+    "uncompressed_bytes": 1040670
+  },
+  "e2e-per-run.json.gz": {
+    "uncompressed_sha256": "f47868aea019218abaf7331fd306c389c02ed95461156139c03cf5afd2f2441e",
+    "uncompressed_bytes": 195368
+  },
+  "micro-raw.json.gz": {
+    "uncompressed_sha256": "23a16844c1d241c136709dc0cc9ff6968921f5507c004100a2c55dcf627bc2b5",
+    "uncompressed_bytes": 1992859
+  },
+  "profile-call-counts.json.gz": {
+    "uncompressed_sha256": "704388d1f87cd30e49f1b5333c4fc0507cc5eef3625e32e92dffdedd114e801e",
+    "uncompressed_bytes": 90196
+  },
+  "ua2f-lock-contention.json.gz": {
+    "uncompressed_sha256": "fc9e6ea4bf6450eed5e63a8f4daede612e8ae6f44b71ab3b027593e72290298f",
+    "uncompressed_bytes": 118061
+  },
+  "ua2f-lock-micro.json.gz": {
+    "uncompressed_sha256": "ca480408542050adabe2ee854bebe8c5101341d9a2b71b44f3b548719b834182",
+    "uncompressed_bytes": 1332361
+  },
+  "ua2f-lock-profile.json.gz": {
+    "uncompressed_sha256": "94aad8ac2a76abb5e5f575296c13380b3831168ac364f9159c691b245f582836",
+    "uncompressed_bytes": 59714
+  }
+}

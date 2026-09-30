@@ -1,0 +1,124 @@
+diff --git a/src/handler.c b/src/handler.c
+index 071cc6a..553c6ba 100644
+--- a/src/handler.c
++++ b/src/handler.c
+@@ -25,6 +25,7 @@
+ #include <stdlib.h>
+ 
+ static char *replacement_user_agent_string = NULL;
++static size_t replacement_user_agent_string_length = 0;
+ static bool replacement_user_agent_cleanup_registered = false;
+ 
+ static const struct mark_op MARK_NONE = {false, 0};
+@@ -40,13 +41,17 @@ bool use_conntrack = false;
+ static void destroy_handler(void) {
+     free(replacement_user_agent_string);
+     replacement_user_agent_string = NULL;
++    replacement_user_agent_string_length = 0;
+ }
+ 
+ void init_handler() {
+     init_not_http_cache(60);
+ 
+     destroy_handler();
+-    replacement_user_agent_string = malloc(UA2F_MAX_USER_AGENT_LENGTH);
++    // libmnl may implement MNL_SOCKET_BUFFER_SIZE with sysconf(_SC_PAGESIZE).
++    // Capacity is fixed for this allocation; do not query it again per UA.
++    replacement_user_agent_string_length = UA2F_MAX_USER_AGENT_LENGTH;
++    replacement_user_agent_string = malloc(replacement_user_agent_string_length);
+     assert(replacement_user_agent_string != NULL && "Failed to allocate user agent string");
+     if (!replacement_user_agent_cleanup_registered) {
+         atexit(destroy_handler);
+@@ -56,12 +61,12 @@ void init_handler() {
+ 
+ #ifdef UA2F_ENABLE_UCI
+     if (config.use_custom_ua) {
+-        memset(replacement_user_agent_string, ' ', UA2F_MAX_USER_AGENT_LENGTH);
++        memset(replacement_user_agent_string, ' ', replacement_user_agent_string_length);
+         size_t custom_ua_len = strlen(config.custom_ua);
+-        if (custom_ua_len > UA2F_MAX_USER_AGENT_LENGTH) {
++        if (custom_ua_len > replacement_user_agent_string_length) {
+             syslog(LOG_WARNING, "Config user agent string is too long, truncating to %zu bytes",
+-                   (size_t)UA2F_MAX_USER_AGENT_LENGTH);
+-            custom_ua_len = UA2F_MAX_USER_AGENT_LENGTH;
++                   (size_t)replacement_user_agent_string_length);
++            custom_ua_len = replacement_user_agent_string_length;
+         }
+         memcpy(replacement_user_agent_string, config.custom_ua, custom_ua_len);
+         syslog(LOG_INFO, "Using config user agent string: %.*s", (int)custom_ua_len, replacement_user_agent_string);
+@@ -76,12 +81,12 @@ void init_handler() {
+ 
+ #ifdef UA2F_USE_CUSTOM_UA
+     if (!ua_set) {
+-        memset(replacement_user_agent_string, ' ', UA2F_MAX_USER_AGENT_LENGTH);
++        memset(replacement_user_agent_string, ' ', replacement_user_agent_string_length);
+         size_t custom_ua_len = strlen(UA2F_CUSTOM_UA);
+-        if (custom_ua_len > UA2F_MAX_USER_AGENT_LENGTH) {
++        if (custom_ua_len > replacement_user_agent_string_length) {
+             syslog(LOG_WARNING, "Embed user agent string is too long, truncating to %zu bytes",
+-                   (size_t)UA2F_MAX_USER_AGENT_LENGTH);
+-            custom_ua_len = UA2F_MAX_USER_AGENT_LENGTH;
++                   (size_t)replacement_user_agent_string_length);
++            custom_ua_len = replacement_user_agent_string_length;
+         }
+         memcpy(replacement_user_agent_string, UA2F_CUSTOM_UA, custom_ua_len);
+         syslog(LOG_INFO, "Using embed user agent string: %.*s", (int)custom_ua_len, replacement_user_agent_string);
+@@ -90,7 +95,7 @@ void init_handler() {
+ #endif
+ 
+     if (!ua_set) {
+-        memset(replacement_user_agent_string, 'F', UA2F_MAX_USER_AGENT_LENGTH);
++        memset(replacement_user_agent_string, 'F', replacement_user_agent_string_length);
+         syslog(LOG_INFO, "Custom user agent string not set, using default F-string.");
+     }
+ 
+@@ -99,12 +104,12 @@ void init_handler() {
+ 
+ const char *get_replacement_user_agent_string() { return replacement_user_agent_string; }
+ 
+-size_t get_replacement_user_agent_string_length() { return UA2F_MAX_USER_AGENT_LENGTH; }
++size_t get_replacement_user_agent_string_length() { return replacement_user_agent_string_length; }
+ 
+ static const char *replacement_chunk(size_t replacement_offset, size_t ua_len, char **owned) {
+     *owned = NULL;
+ 
+-    if (replacement_offset <= UA2F_MAX_USER_AGENT_LENGTH && ua_len <= UA2F_MAX_USER_AGENT_LENGTH - replacement_offset) {
++    if (replacement_offset <= replacement_user_agent_string_length && ua_len <= replacement_user_agent_string_length - replacement_offset) {
+         return replacement_user_agent_string + replacement_offset;
+     }
+ 
+@@ -114,8 +119,8 @@ static const char *replacement_chunk(size_t replacement_offset, size_t ua_len, c
+     }
+     memset(buf, ' ', ua_len);
+ 
+-    if (replacement_offset < UA2F_MAX_USER_AGENT_LENGTH) {
+-        size_t available = UA2F_MAX_USER_AGENT_LENGTH - replacement_offset;
++    if (replacement_offset < replacement_user_agent_string_length) {
++        size_t available = replacement_user_agent_string_length - replacement_offset;
+         if (available > ua_len) {
+             available = ua_len;
+         }
+@@ -556,7 +561,9 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
+         count_user_agent_packet();
+     }
+ 
+-    SEND_VERDICT(NF_ACCEPT, (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, pkt_buff);
++    // An unchanged payload is already queued in the kernel. Returning it again
++    // adds an unnecessary userspace/netlink copy, especially for upload bodies.
++    SEND_VERDICT(NF_ACCEPT, (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, ua_count > 0 ? pkt_buff : NULL);
+ 
+ end:
+     if (ua_entries_copy != ua_entries_inline) {
+diff --git a/src/proxy.c b/src/proxy.c
+index 83f9aea..3861869 100644
+--- a/src/proxy.c
++++ b/src/proxy.c
+@@ -515,7 +515,7 @@ static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct ht
+     if (replacement == NULL) {
+         return;
+     }
+-    const size_t replacement_len = UA2F_MAX_USER_AGENT_LENGTH;
++    const size_t replacement_len = get_replacement_user_agent_string_length();
+ 
+     for (size_t i = 0; i < session->ua_entry_count; i++) {
+         const struct ua_mangle_entry *entry = session_ua_entry_const(session, i);
