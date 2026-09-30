@@ -2,9 +2,6 @@ name: Same-runner performance
 
 # Expensive measurements are opt-in, never a permanent PR/merge gate.
 on:
-  # Temporary, explicitly approved one-shot registration. Removed after this run.
-  push:
-    branches: [perf/nfqueue-transport-20260930]
   workflow_dispatch:
     inputs:
       base_sha:
@@ -37,14 +34,10 @@ concurrency:
 
 jobs:
   compare:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/perf/nfqueue-transport-20260930' &&
-       github.event.head_commit.message == 'bench: run approved empty-ACK experiment once')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      BASE_SHA: ${{ inputs.base_sha || 'f7965c1b5d4b0f31b8a97bc332b93db55e6c63ab' }}
+      BASE_SHA: ${{ inputs.base_sha }}
       CANDIDATE_SHA: ${{ github.sha }}
     steps:
       - name: Initialize runner-local paths
@@ -111,7 +104,7 @@ jobs:
           PY
 
       - name: Verify candidate rules on IPv4 and IPv6 before timing
-        if: inputs.candidate_empty_ack || github.event_name == 'push'
+        if: inputs.candidate_empty_ack
         shell: bash
         run: |
           set -euo pipefail
@@ -143,10 +136,10 @@ jobs:
           sudo ip netns add "$namespace"
           sudo ip netns exec "$namespace" ip link set lo up
           extra=()
-          if [[ "${{ inputs.kernel_iteration }}" == "true" || "${{ github.event_name }}" == "push" ]]; then
+          if [[ "${{ inputs.kernel_iteration }}" == "true" ]]; then
             extra+=(--modes NFQUEUE --include-direct)
           fi
-          if [[ "${{ inputs.candidate_empty_ack }}" == "true" || "${{ github.event_name }}" == "push" ]]; then
+          if [[ "${{ inputs.candidate_empty_ack }}" == "true" ]]; then
             extra+=(--candidate-firewall-helper "$GITHUB_WORKSPACE/openwrt/files/ua2f.firewall")
           fi
           sudo timeout --signal=TERM --kill-after=15s 18m \
