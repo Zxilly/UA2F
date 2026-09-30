@@ -170,6 +170,11 @@ def cleanup_firewall(chain_suffix: str, ns: Netns, server_port: int) -> None:
     for _ in range(8):
         run_ignore([
             "iptables", "-t", "mangle", "-D", "PREROUTING",
+            "-i", ns.host_if, "-p", "tcp", "--dport", str(server_port),
+            "-m", "conntrack", "--ctdir", "ORIGINAL", "-j", mangle_chain,
+        ])
+        run_ignore([
+            "iptables", "-t", "mangle", "-D", "PREROUTING",
             "-i", ns.host_if, "-p", "tcp", "--dport", str(server_port), "-j", mangle_chain,
         ])
         run_ignore([
@@ -201,7 +206,8 @@ def setup_firewall(
         run_cmd(["iptables", "-t", "mangle", "-N", mangle_chain])
         run_cmd([
             "iptables", "-t", "mangle", "-I", "PREROUTING", "1",
-            "-i", ns.host_if, "-p", "tcp", "--dport", str(server_port), "-j", mangle_chain,
+            "-i", ns.host_if, "-p", "tcp", "--dport", str(server_port),
+            "-m", "conntrack", "--ctdir", "ORIGINAL", "-j", mangle_chain,
         ])
         nfqueue_target = ["-j", "NFQUEUE"]
         if queue_count > 1:

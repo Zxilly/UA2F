@@ -27,7 +27,8 @@ import benchmark as bench
 
 
 METRICS = ("rps", "mbps", "avg_ms", "p95_ms", "p99_ms", "process_cpu_sec",
-           "process_cpu_pct", "process_rss_kib", "process_hwm_kib")
+           "process_cpu_pct", "process_rss_kib", "process_hwm_kib",
+           "process_user_us_per_request", "process_system_us_per_request")
 
 
 def utc_now() -> str:
@@ -49,10 +50,73 @@ def sha256(path: Path) -> str:
 
 
 def cpu_seconds(pid: int) -> float:
+    user, system = cpu_breakdown(pid)
+    return user + system
+
+
+def cpu_breakdown(pid: int) -> tuple[float, float]:
     # /proc comm may contain spaces and parentheses. The tail starts at field 3.
     raw = Path(f"/proc/{pid}/stat").read_text()
     fields = raw[raw.rfind(")") + 2:].split()
-    return (int(fields[11]) + int(fields[12])) / float(os.sysconf("SC_CLK_TCK"))
+    ticks = float(os.sysconf("SC_CLK_TCK"))
+    return int(fields[11]) / ticks, int(fields[12]) / ticks
+
+
+def parse_queue_counters(raw: str, first_queue: int, workers: int) -> dict[int, dict[str, int]]:
+    """Parse the documented nfnetlink_queue /proc fields, not receive calls.
+
+    The kernel assigns id_sequence before delivery to the userspace socket.
+    A delta counts successful queued packet messages only when drop counters
+    are unchanged. The snapshot also preserves in-flight queue_total.
+    """
+    names = ("queue_num", "peer_portid", "queue_total", "copy_mode", "copy_range",
+             "queue_dropped", "queue_user_dropped", "id_sequence")
+    wanted = set(range(first_queue, first_queue + workers))
+    queues = {}
+    for line in raw.splitlines():
+        fields = line.split()
+        if not fields:
+            continue
+        if len(fields) < len(names):
+            raise bench.BenchmarkError("truncated nfnetlink_queue counter line")
+        try:
+            values = dict(zip(names, map(int, fields[:len(names)])))
+        except ValueError as exc:
+            raise bench.BenchmarkError("non-numeric nfnetlink_queue counters") from exc
+        number = values["queue_num"]
+        if number in wanted:
+            if number in queues:
+                raise bench.BenchmarkError("duplicate NFQUEUE counter entry")
+            if not 0 <= values["id_sequence"] <= 0xffffffff:
+                raise bench.BenchmarkError("invalid NFQUEUE packet sequence")
+            queues[number] = values
+    if set(queues) != wanted:
+        raise bench.BenchmarkError("missing expected NFQUEUE counter entry")
+    return queues
+
+
+def queue_snapshot(workers: int) -> dict[int, dict[str, int]]:
+    return parse_queue_counters(Path("/proc/net/netfilter/nfnetlink_queue").read_text(),
+                                bench.UA2F_QUEUE, workers)
+
+
+def queue_delta(before: dict[int, dict[str, int]], after: dict[int, dict[str, int]]) -> dict[str, Any]:
+    if set(before) != set(after):
+        raise bench.BenchmarkError("NFQUEUE identities changed during load")
+    packets = 0
+    for queue, old in before.items():
+        new = after[queue]
+        if any(new[key] != old[key] for key in ("peer_portid", "copy_mode", "copy_range")):
+            raise bench.BenchmarkError("NFQUEUE was replaced or reconfigured during load")
+        if any(new[key] != old[key] for key in ("queue_dropped", "queue_user_dropped")):
+            raise bench.BenchmarkError("NFQUEUE reported kernel/userspace drops during load")
+        # One uint32 wrap is unambiguous for these bounded (<2^32 packet) runs.
+        delta = (new["id_sequence"] - old["id_sequence"]) & 0xffffffff
+        if delta > 0x7fffffff:
+            raise bench.BenchmarkError("NFQUEUE sequence reset or ambiguous counter interval")
+        packets += delta
+    return {"packets": packets, "before": before, "after": after,
+            "scope": "NFQUEUE packet IDs allocated in the measured window, with unchanged drop counters"}
 
 
 def distribution(values: list[float]) -> dict[str, float | int]:
@@ -64,9 +128,10 @@ def distribution(values: list[float]) -> dict[str, float | int]:
             "cv_pct": statistics.pstdev(values) / mean * 100 if mean else 0.0}
 
 
-def make_plan(pairs: int, body_sizes: list[int]) -> list[dict[str, Any]]:
+def make_plan(pairs: int, body_sizes: list[int], modes: list[str] | None = None,
+              include_direct: bool = False) -> list[dict[str, Any]]:
     plan = []
-    modes = list(bench.UA2F_MODES)
+    modes = list(bench.UA2F_MODES) if modes is None else modes
     for pair in range(pairs):
         # Adjacent A/B pairs, with the first variant reversed each round. Six
         # rounds give equal A-first and B-first counts for every workload.
@@ -74,14 +139,19 @@ def make_plan(pairs: int, body_sizes: list[int]) -> list[dict[str, Any]]:
         sizes = body_sizes if pair % 2 == 0 else list(reversed(body_sizes))
         ordered_modes = modes[pair % len(modes):] + modes[:pair % len(modes)]
         for size in sizes:
+            if include_direct and pair % 2 == 0:
+                plan.append({"pair": pair + 1, "body_bytes": size, "mode": "DIRECT", "variant": "direct"})
             for mode in ordered_modes:
                 for variant in variants:
                     plan.append({"pair": pair + 1, "body_bytes": size,
                                  "mode": mode, "variant": variant})
+            if include_direct and pair % 2 != 0:
+                plan.append({"pair": pair + 1, "body_bytes": size, "mode": "DIRECT", "variant": "direct"})
     return plan
 
 
-def validate_client(client: dict[str, Any], server: dict[str, Any], requests: int) -> None:
+def validate_client(client: dict[str, Any], server: dict[str, Any], requests: int,
+                    direct: bool = False) -> None:
     if client.get("requests") != requests or client.get("completed") != requests:
         raise bench.BenchmarkError("client did not complete exactly the requested load")
     if client.get("errors") != 0 or client.get("status_counts") != {"200": requests}:
@@ -94,6 +164,14 @@ def validate_client(client: dict[str, Any], server: dict[str, Any], requests: in
         raise bench.BenchmarkError("invalid latency samples")
     if server.get("requests") != requests:
         raise bench.BenchmarkError("origin did not receive exactly the requested load")
+    if direct:
+        # DIRECT is a workload-ceiling reference, not paired optimization evidence.
+        # Its original unique UAs have different origin map bookkeeping. Preserve
+        # this caveat rather than silently changing the shared Go workload.
+        agents = server.get("user_agents", {})
+        if not agents or not all(ua.startswith("UA-BENCH/") and count == 1 for ua, count in agents.items()):
+            raise bench.BenchmarkError("DIRECT origin UA sample was modified")
+        return
     valid, detail = bench.ua_check("ua2f", server)
     if not valid:
         raise bench.BenchmarkError(detail)
@@ -147,6 +225,19 @@ def start_target(binary: Path, mode: str, args: argparse.Namespace,
         raise
 
 
+def install_empty_ack_candidate(helper: Path, chain: str) -> list[str]:
+    """Apply the explicitly requested candidate only inside this disposable netns."""
+    generated = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_u32 4', "sh", str(helper)])
+    expressions = generated.stdout.splitlines()
+    if len(expressions) != 11 or any(not expr.strip() for expr in expressions):
+        raise bench.BenchmarkError("empty-ACK helper did not emit eleven complete IPv4 cases")
+    for index, expression in enumerate(expressions, 1):
+        bench.run_cmd(["iptables", "-t", "mangle", "-I", chain, str(index),
+                       "-p", "tcp", "-m", "conntrack", "--ctdir", "ORIGINAL",
+                       "-m", "u32", "--u32", expression, "-j", "RETURN"])
+    return expressions
+
+
 def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
              server_bin: Path, output: Path, index: int) -> dict[str, Any]:
     directory = output / "runs" / f"{index:03d}-{item['body_bytes']}-{item['mode'].lower()}-{item['variant']}"
@@ -156,16 +247,22 @@ def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
     ns = bench.Netns(f"uac-{suffix}", f"uac{suffix}h", f"uac{suffix}c",
                      "10.250.0.1", "10.250.0.2", 24)
     target = server = None
-    binary = Path(getattr(args, item["variant"])).resolve()
+    direct = item["mode"] == "DIRECT"
+    binary = None if direct else Path(getattr(args, item["variant"])).resolve()
     args.body_bytes = item["body_bytes"]
     args.server_ip = ns.server_ip
     control = bench.server_control_addr(args)
     try:
         bench.setup_netns(ns)
         server = bench.start_bench_server(server_bin, args, directory)
-        target = start_target(binary, item["mode"], args, directory)
-        bench.setup_firewall(item["mode"], bench.UA2F_QUEUE, args.proxy_port, suffix,
-                             ns, args.server_port, queue_count=args.nfqueue_workers)
+        if not direct:
+            target = start_target(binary, item["mode"], args, directory)
+            bench.setup_firewall(item["mode"], bench.UA2F_QUEUE, args.proxy_port, suffix,
+                                 ns, args.server_port, queue_count=args.nfqueue_workers)
+            if (item["mode"] == "NFQUEUE" and item["variant"] == "candidate"
+                    and args.candidate_firewall_helper):
+                result["candidate_empty_ack_u32"] = install_empty_ack_candidate(
+                    args.candidate_firewall_helper, f"UA_BENCH_M_{suffix}")
         # Preserve actual TPROXY routing state; request and UA checks below
         # reject a missing/bypassed transparent route rather than timing it.
         if item["mode"] == "TPROXY":
@@ -175,28 +272,36 @@ def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
         warmup = run_client(client_bin, ns, args, args.warmup, directory, "warmup")
         warmup_server = bench.server_snapshot(control)
         write_json(directory / "warmup-server.json", warmup_server)
-        validate_client(warmup, warmup_server, args.warmup)
+        validate_client(warmup, warmup_server, args.warmup, direct=direct)
         bench.server_reset(control)
 
         # Exclude warmup and startup from process CPU. CPU % uses this same
         # wall-clock sampling window, with 100% meaning one fully used core.
-        before = cpu_seconds(target.proc.pid)
+        before = (0.0, 0.0) if direct else cpu_breakdown(target.proc.pid)
+        queues_before = queue_snapshot(args.nfqueue_workers) if item["mode"] == "NFQUEUE" else None
         sample_start = time.monotonic()
         client = run_client(client_bin, ns, args, args.requests, directory, "client")
-        after = cpu_seconds(target.proc.pid)
+        after = (0.0, 0.0) if direct else cpu_breakdown(target.proc.pid)
         sample_seconds = time.monotonic() - sample_start
-        memory = bench.read_proc_memory(target.proc.pid)
+        queues_after = queue_snapshot(args.nfqueue_workers) if queues_before is not None else None
+        memory = {"VmRSS": 0, "VmHWM": 0} if direct else bench.read_proc_memory(target.proc.pid)
         snapshot = bench.server_snapshot(control)
         write_json(directory / "server.json", snapshot)
-        validate_client(client, snapshot, args.requests)
-        if target.proc.poll() is not None:
+        validate_client(client, snapshot, args.requests, direct=direct)
+        if not direct and target.proc.poll() is not None:
             raise bench.BenchmarkError("UA2F exited during the measured load")
         if any(key not in memory for key in ("VmRSS", "VmHWM")):
             raise bench.BenchmarkError("could not sample process RSS/HWM")
         summary = bench.summarize_client(client)
-        summary.update(process_cpu_sec=after - before,
-                       process_cpu_pct=(after - before) / sample_seconds * 100,
+        user, system = after[0] - before[0], after[1] - before[1]
+        summary.update(process_cpu_sec=user + system,
+                       process_cpu_pct=(user + system) / sample_seconds * 100,
+                       process_user_us_per_request=user / args.requests * 1e6,
+                       process_system_us_per_request=system / args.requests * 1e6,
                        process_rss_kib=memory["VmRSS"], process_hwm_kib=memory["VmHWM"])
+        if queues_before is not None:
+            result["queue_accounting"] = queue_delta(queues_before, queues_after)
+            summary["queued_packets_per_request"] = result["queue_accounting"]["packets"] / args.requests
         result.update(ok=True, summary=summary, cpu_sample_wall_sec=sample_seconds,
                       server=snapshot, ua_ok=True)
     except (Exception, KeyboardInterrupt) as exc:
@@ -214,7 +319,7 @@ def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
 def aggregate(results: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
     aggregates = []
     for size in args.body_sizes:
-        for mode in bench.UA2F_MODES:
+        for mode in args.modes:
             selected = [item for item in results if item["body_bytes"] == size and item["mode"] == mode]
             variants = {name: [item for item in selected if item["variant"] == name and item["ok"]]
                         for name in ("base", "candidate")}
@@ -226,6 +331,9 @@ def aggregate(results: list[dict[str, Any]], args: argparse.Namespace) -> list[d
                 for name, items in variants.items():
                     row[name] = {metric: distribution([item["summary"][metric] for item in items])
                                  for metric in METRICS}
+                    if mode == "NFQUEUE":
+                        row[name]["queued_packets_per_request"] = distribution(
+                            [item["summary"]["queued_packets_per_request"] for item in items])
                 ratios = []
                 for pair in range(1, args.pairs + 1):
                     base = next(item for item in variants["base"] if item["pair"] == pair)
@@ -235,6 +343,19 @@ def aggregate(results: list[dict[str, Any]], args: argparse.Namespace) -> list[d
                 row["rps_ratio_of_medians"] = row["candidate"]["rps"]["median"] / row["base"]["rps"]["median"]
             aggregates.append(row)
     return aggregates
+
+
+def direct_aggregates(results: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    rows = []
+    if not args.include_direct:
+        return rows
+    for size in args.body_sizes:
+        selected = [r for r in results if r["mode"] == "DIRECT" and r["body_bytes"] == size and r["ok"]]
+        row = {"body_bytes": size, "complete": len(selected) == args.pairs}
+        if row["complete"]:
+            row["rps"] = distribution([r["summary"]["rps"] for r in selected])
+        rows.append(row)
+    return rows
 
 
 def markdown(payload: dict[str, Any]) -> str:
@@ -248,12 +369,13 @@ def markdown(payload: dict[str, Any]) -> str:
              f"- {args['pairs']} adjacent pairs per workload; alternating base/candidate first",
              f"- {args['requests']} measured + {args['warmup']} warmup requests; concurrency {args['concurrency']}",
              f"- Workers: NFQUEUE={args['nfqueue_workers']}, proxy={args['proxy_workers']}",
-             "- Every measured AND warmup run must have zero errors, all HTTP 200, and all origin UAs rewritten",
+             "- Every measured AND warmup run must have zero errors and all HTTP 200; routed cases account for every rewritten UA",
              "- Req/s and latency are end-to-end Go client measurements, including origin and kernel work",
              "- Mbps estimates HTTP request+response bytes, not Ethernet/IP/TCP wire bandwidth",
              "- CPU excludes warmup; 100% = one core. RSS is sampled at load end; HWM includes startup/warmup",
              "- CV is population standard deviation / mean. Shared-runner noise is not statistical significance",
              "- UA3F is not run; older README UA3F measurements remain historical data", "",
+             "- NFQUEUE original-direction conntrack matching is identical in both variants; candidate per-rule matching is preserved", "",
              "| Body | Mode | Build | Req/s median | Req/s min–max | CV | Mbps median | P95 ms median | CPU % median | RSS KiB median | HWM KiB median |",
              "| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for row in payload["aggregates"]:
@@ -277,6 +399,23 @@ def markdown(payload: dict[str, Any]) -> str:
                          f"CV {ratio['cv_pct']:.2f}%")
     if payload.get("error"):
         lines.extend(["", f"Error: {payload['error']}"])
+    if payload.get("direct_aggregates"):
+        lines.extend(["", "## DIRECT diagnostic references", "",
+                      "Same Go workload; unique-UA origin map bookkeeping differs. These are not paired speedups."])
+        for row in payload["direct_aggregates"]:
+            if row["complete"]:
+                lines.append(f"- {row['body_bytes']} bytes: {row['rps']['median']:.0f} req/s median")
+    if any(row["mode"] == "NFQUEUE" and row["complete"] for row in payload["aggregates"]):
+        lines.extend(["", "## NFQUEUE accounting", "",
+                      "Counts use /proc NFQUEUE packet-ID deltas with unchanged drop counters, not recv syscall counts."])
+        for row in payload["aggregates"]:
+            if row["mode"] == "NFQUEUE" and row["complete"]:
+                for variant in ("base", "candidate"):
+                    stats = row[variant]
+                    lines.append(f"- {row['body_bytes']} bytes / {variant}: "
+                                 f"{stats['queued_packets_per_request']['median']:.3f} queued packets/request; "
+                                 f"UA2F user/system {stats['process_user_us_per_request']['median']:.2f}/"
+                                 f"{stats['process_system_us_per_request']['median']:.2f} µs/request")
     for result in payload["results"]:
         if not result["ok"]:
             lines.append(f"- Failed: {result['raw_directory']}: {result.get('error', 'validation failed')}")
@@ -315,6 +454,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=10000)
     parser.add_argument("--concurrency", type=int, default=128)
     parser.add_argument("--body-sizes", type=int, nargs="+", default=[1024, 65536])
+    parser.add_argument("--modes", nargs="+", choices=bench.UA2F_MODES, default=list(bench.UA2F_MODES))
+    parser.add_argument("--include-direct", action="store_true", help="Add same-runner diagnostic references")
+    parser.add_argument("--candidate-firewall-helper", type=Path,
+                        help="Explicitly enable candidate empty-ACK returns in NFQUEUE cases, using this source helper")
     parser.add_argument("--nfqueue-workers", type=int, choices=range(1, 17), default=1)
     parser.add_argument("--proxy-workers", type=int, choices=range(1, 17), default=1)
     parser.add_argument("--timeout", type=float, default=5, help="HTTP request timeout seconds")
@@ -326,6 +469,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("at least five pairs and positive requests, warmup and concurrency are required")
     if len(set(args.body_sizes)) != len(args.body_sizes) or any(size < 1 for size in args.body_sizes):
         parser.error("body sizes must be positive and unique")
+    if len(set(args.modes)) != len(args.modes):
+        parser.error("modes must be unique")
     if not (math.isfinite(args.timeout) and math.isfinite(args.case_timeout)
             and args.case_timeout >= args.timeout > 0):
         parser.error("timeouts must be finite and case-timeout >= timeout > 0")
@@ -334,6 +479,10 @@ def parse_args() -> argparse.Namespace:
         if len(value) != 40 or any(char not in "0123456789abcdef" for char in value):
             parser.error(f"{name.replace('_', '-')} must be a full lowercase Git SHA")
     args.server_port, args.server_control_port, args.proxy_port = 18080, 18081, 10010
+    if args.candidate_firewall_helper:
+        args.candidate_firewall_helper = args.candidate_firewall_helper.resolve()
+        if not args.candidate_firewall_helper.is_file():
+            parser.error("candidate firewall helper must be an existing file")
     return args
 
 
@@ -343,7 +492,7 @@ def interrupted(_signum: int, _frame: Any) -> None:
 
 def main() -> int:
     args = parse_args()
-    plan = make_plan(args.pairs, args.body_sizes)
+    plan = make_plan(args.pairs, args.body_sizes, args.modes, args.include_direct)
     if args.dry_run:
         print(json.dumps(plan, indent=2))
         return 0
@@ -358,6 +507,7 @@ def main() -> int:
         raise SystemExit("Use a fresh output directory; prior measurements must not be overwritten")
     parameters = vars(args).copy()
     parameters["build_metadata"] = str(args.build_metadata) if args.build_metadata else None
+    parameters["candidate_firewall_helper"] = str(args.candidate_firewall_helper) if args.candidate_firewall_helper else None
     payload: dict[str, Any] = {"schema_version": 1, "started_at": utc_now(), "parameters": parameters,
                                "plan": plan, "results": [], "status": "failed", "environment": {}}
     previous_handler = signal.signal(signal.SIGTERM, interrupted)
@@ -386,6 +536,7 @@ def main() -> int:
         signal.signal(signal.SIGTERM, previous_handler)
         payload["finished_at"] = utc_now()
         payload["aggregates"] = aggregate(payload["results"], args)
+        payload["direct_aggregates"] = direct_aggregates(payload["results"], args)
         write_json(output / "summary.json", payload)
         if payload["environment"]:
             (output / "summary.md").write_text(markdown(payload))

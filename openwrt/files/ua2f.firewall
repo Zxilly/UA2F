@@ -1,0 +1,45 @@
+#!/bin/sh
+# Pure rule generators: sourcing this file does not read or change the firewall.
+# Experimental empty-ACK bypass. Keep SYN/FIN/RST queued, never change a mark,
+# and leave IP options, fragments and IPv6 extension headers on the slow path.
+# Doff is in 32-bit words. Enumerating it avoids dynamic-length arithmetic and
+# nft >= 1.0.3 integer-concatenation requirements on older OpenWrt installations.
+
+# Print one complete u32 expression for each legal TCP header length.
+# The caller must select the IP family and TCP ORIGINAL direction externally.
+ua2f_empty_ack_u32() {
+	case "${1:-}" in
+		4|6) ;;
+		*) return 1 ;;
+	esac
+	for ua2f_doff in 5 6 7 8 9 10 11 12 13 14 15; do
+		if [ "$1" = 4 ]; then
+			printf '%s\n' "0&0xFFFF=$((20 + 4 * ua2f_doff)) && 0>>24&0xF=5 && 4&0x3FFF=0 && 6&0xFF=6 && 32>>28=$ua2f_doff && 33>>24&0x17=0x10 && $((16 + 4 * ua2f_doff))&0=0"
+		else
+			printf '%s\n' "4>>16=$((4 * ua2f_doff)) && 4>>8&0xFF=6 && 52>>28=$ua2f_doff && 53>>24&0x17=0x10 && $((36 + 4 * ua2f_doff))&0=0"
+		fi
+	done
+}
+
+# Print rules for the existing inet postrouting base chain, immediately before
+# its queue statement. Exact skb length also excludes truncated/GRO oddities.
+ua2f_empty_ack_nft() {
+	for ua2f_doff in 5 6 7 8 9 10 11 12 13 14 15; do
+		printf '%s\n' "meta length $((20 + 4 * ua2f_doff)) ct direction original ip protocol tcp ip hdrlength 5 ip frag-off & 0x3fff == 0 tcp flags & 0x17 == 0x10 tcp doff $ua2f_doff ip length $((20 + 4 * ua2f_doff)) counter return comment \"!ua2f: empty ACK\";"
+		printf '%s\n' "meta length $((40 + 4 * ua2f_doff)) ct direction original ip6 nexthdr tcp tcp flags & 0x17 == 0x10 tcp doff $ua2f_doff ip6 length $((4 * ua2f_doff)) counter return comment \"!ua2f: empty ACK\";"
+	done
+}
+
+# Explicit command prefix, e.g. 4 iptables -t mangle -A ua2f. Never uses eval.
+# No calls occur unless the init script's opt-in config enables this function.
+ua2f_add_empty_ack_iptables() {
+	[ "$#" -ge 2 ] || return 1
+	ua2f_family="$1"
+	shift
+	ua2f_rules="$(ua2f_empty_ack_u32 "$ua2f_family")" || return 1
+	while IFS= read -r ua2f_expr; do
+		"$@" -p tcp -m conntrack --ctdir ORIGINAL -m u32 --u32 "$ua2f_expr" -j RETURN || return 1
+	done <<EOF_RULES
+$ua2f_rules
+EOF_RULES
+}

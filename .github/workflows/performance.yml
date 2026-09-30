@@ -14,6 +14,16 @@ on:
         required: false
         type: boolean
         default: false
+      kernel_iteration:
+        description: Focus on NFQUEUE with same-runner DIRECT references
+        required: false
+        type: boolean
+        default: false
+      candidate_empty_ack:
+        description: Test opt-in empty-ACK rules in isolated namespaces (explicit approval required)
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -46,7 +56,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake golang-go iproute2 iptables kmod strace \
-            libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+            libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev nftables
+
+      - name: Check benchmark accounting and firewall rule semantics
+        run: |
+          python3 test/benchmark_compare_test.py
+          python3 scripts/test_firewall_rules.py
 
       - name: Build base and candidate identically
         shell: bash
@@ -88,6 +103,25 @@ jobs:
           pathlib.Path(os.environ["RESULTS"], "build-metadata.json").write_text(json.dumps(metadata, indent=2))
           PY
 
+      - name: Verify candidate rules on IPv4 and IPv6 before timing
+        if: inputs.candidate_empty_ack
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="ua2f-empty-ack-${GITHUB_RUN_ID}"
+          cleanup() {
+            sudo ip netns pids "$namespace" 2>/dev/null | xargs -r sudo kill || true
+            sudo ip netns delete "$namespace" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          sudo ip netns add "$namespace"
+          sudo ip netns exec "$namespace" ip link set lo up
+          sudo timeout --signal=TERM --kill-after=15s 3m \
+            ip netns exec "$namespace" python3 scripts/test_empty_ack_netns.py \
+            --binary "$BUILD_ROOT/candidate/ua2f" --helper "$GITHUB_WORKSPACE/openwrt/files/ua2f.firewall" \
+            --output-dir "$RESULTS/empty-ack-correctness" \
+            2>&1 | tee "$RESULTS/empty-ack-correctness.log"
+
       - name: Run six counterbalanced pairs per workload
         shell: bash
         run: |
@@ -101,13 +135,20 @@ jobs:
           # No host firewall, routes, sysctls, or external network traffic are changed.
           sudo ip netns add "$namespace"
           sudo ip netns exec "$namespace" ip link set lo up
+          extra=()
+          if [[ "${{ inputs.kernel_iteration }}" == "true" ]]; then
+            extra+=(--modes NFQUEUE --include-direct)
+          fi
+          if [[ "${{ inputs.candidate_empty_ack }}" == "true" ]]; then
+            extra+=(--candidate-firewall-helper "$GITHUB_WORKSPACE/openwrt/files/ua2f.firewall")
+          fi
           sudo timeout --signal=TERM --kill-after=15s 18m \
             ip netns exec "$namespace" python3 scripts/benchmark_compare.py \
             --base "$BUILD_ROOT/base/ua2f" --base-sha "$BASE_SHA" \
             --candidate "$BUILD_ROOT/candidate/ua2f" --candidate-sha "$CANDIDATE_SHA" \
             --pairs 6 --requests 100000 --warmup 10000 --concurrency 128 \
             --body-sizes 1024 65536 --nfqueue-workers 1 --proxy-workers 1 \
-            --build-metadata "$RESULTS/build-metadata.json" --output-dir "$RESULTS" \
+            --build-metadata "$RESULTS/build-metadata.json" --output-dir "$RESULTS" "${extra[@]}" \
             2>&1 | tee "$RESULTS/runner.log"
 
       - name: Profile routed workload bottlenecks separately
