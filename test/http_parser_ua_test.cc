@@ -44,9 +44,9 @@ TEST_F(HttpParserUATest, SinglePacketWithUA) {
     ASSERT_EQ(session->ua_entry_count, 1);
 
     // Verify offset points to "Mozilla/5.0"
-    const char *ua_start = req + session->ua_entries[0].offset;
+    const char *ua_start = req + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua_start, "Mozilla/5.0", 11), 0);
-    EXPECT_EQ(session->ua_entries[0].len, 11u);
+    EXPECT_EQ(session_ua_entry(session, 0)->len, 11u);
 }
 
 // 2. Single packet with no User-Agent
@@ -64,9 +64,9 @@ TEST_F(HttpParserUATest, CaseInsensitiveUA) {
     EXPECT_EQ(ret, 0);
     ASSERT_EQ(session->ua_entry_count, 1);
 
-    const char *ua_start = req + session->ua_entries[0].offset;
+    const char *ua_start = req + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua_start, "TestAgent", 9), 0);
-    EXPECT_EQ(session->ua_entries[0].len, 9u);
+    EXPECT_EQ(session_ua_entry(session, 0)->len, 9u);
 }
 
 // 4. Non-HTTP data should cause a parse error
@@ -93,9 +93,9 @@ TEST_F(HttpParserUATest, CrossPacketUAFieldName) {
 
     // The UA value appears in the second packet
     ASSERT_EQ(session->ua_entry_count, 1);
-    const char *ua_start = pkt2 + session->ua_entries[0].offset;
+    const char *ua_start = pkt2 + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua_start, "Mozilla/5.0", 11), 0);
-    EXPECT_EQ(session->ua_entries[0].len, 11u);
+    EXPECT_EQ(session_ua_entry(session, 0)->len, 11u);
 }
 
 // 6. Cross-packet UA value split
@@ -107,7 +107,7 @@ TEST_F(HttpParserUATest, CrossPacketUAValue) {
     EXPECT_EQ(ret1, 0);
     // First packet should have found the partial UA
     EXPECT_EQ(session->ua_entry_count, 1);
-    EXPECT_EQ(session->ua_entries[0].replacement_offset, 0u);
+    EXPECT_EQ(session_ua_entry(session, 0)->replacement_offset, 0u);
 
     // Second packet has the rest of the UA value
     const char *pkt2 = "0 (Windows)\r\n\r\n";
@@ -118,9 +118,9 @@ TEST_F(HttpParserUATest, CrossPacketUAValue) {
     // Second packet should also have recorded its portion
     EXPECT_EQ(session->ua_entry_count, 1);
     // The second packet's entry offset should point to "0 (Windows)"
-    const char *ua_start2 = pkt2 + session->ua_entries[0].offset;
+    const char *ua_start2 = pkt2 + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua_start2, "0 (Windows)", 11), 0);
-    EXPECT_EQ(session->ua_entries[0].replacement_offset, 10u);
+    EXPECT_EQ(session_ua_entry(session, 0)->replacement_offset, 10u);
 }
 
 TEST_F(HttpParserUATest, UaValueSeenLengthSaturatesOnOverflow) {
@@ -137,7 +137,7 @@ TEST_F(HttpParserUATest, UaValueSeenLengthSaturatesOnOverflow) {
     int ret2 = http_parser_feed(session, pkt2, strlen(pkt2));
     EXPECT_EQ(ret2, 0);
     ASSERT_EQ(session->ua_entry_count, 1);
-    EXPECT_EQ(session->ua_entries[0].replacement_offset, std::numeric_limits<size_t>::max() - 1);
+    EXPECT_EQ(session_ua_entry(session, 0)->replacement_offset, std::numeric_limits<size_t>::max() - 1);
     EXPECT_EQ(session->ua_value_seen_len, std::numeric_limits<size_t>::max());
 }
 
@@ -147,14 +147,14 @@ TEST_F(HttpParserUATest, KeepAliveMultipleRequests) {
     int ret1 = feed(req1);
     EXPECT_EQ(ret1, 0);
     EXPECT_EQ(session->ua_entry_count, 1);
-    const char *ua1 = req1 + session->ua_entries[0].offset;
+    const char *ua1 = req1 + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua1, "AgentOne", 8), 0);
 
     const char *req2 = "GET /second HTTP/1.1\r\nHost: example.com\r\nUser-Agent: AgentTwo\r\n\r\n";
     int ret2 = feed(req2);
     EXPECT_EQ(ret2, 0);
     EXPECT_EQ(session->ua_entry_count, 1);
-    const char *ua2 = req2 + session->ua_entries[0].offset;
+    const char *ua2 = req2 + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua2, "AgentTwo", 8), 0);
 }
 
@@ -167,11 +167,11 @@ TEST_F(HttpParserUATest, PipelinedRequestsSinglePacket) {
     EXPECT_EQ(session->ua_entry_count, 2);
 
     // First entry points into req
-    const char *ua1 = req + session->ua_entries[0].offset;
+    const char *ua1 = req + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua1, "AgentOne", 8), 0);
 
     // Second entry points into req
-    const char *ua2 = req + session->ua_entries[1].offset;
+    const char *ua2 = req + session_ua_entry(session, 1)->offset;
     EXPECT_EQ(strncmp(ua2, "AgentTwo", 8), 0);
 }
 
@@ -185,9 +185,9 @@ TEST_F(HttpParserUATest, LongFieldNameIgnored) {
     int ret = feed(req);
     EXPECT_EQ(ret, 0);
     ASSERT_EQ(session->ua_entry_count, 1);
-    const char *ua_start = req + session->ua_entries[0].offset;
+    const char *ua_start = req + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua_start, "BrowserAgent", 12), 0);
-    EXPECT_EQ(session->ua_entries[0].len, 12u);
+    EXPECT_EQ(session_ua_entry(session, 0)->len, 12u);
 }
 
 // 10. Multiple non-UA headers before User-Agent — verify field_buf resets correctly
@@ -201,9 +201,9 @@ TEST_F(HttpParserUATest, MultipleNonUAHeadersThenUA) {
     int ret = feed(req);
     EXPECT_EQ(ret, 0);
     ASSERT_EQ(session->ua_entry_count, 1);
-    const char *ua_start = req + session->ua_entries[0].offset;
+    const char *ua_start = req + session_ua_entry(session, 0)->offset;
     EXPECT_EQ(strncmp(ua_start, "TargetAgent", 11), 0);
-    EXPECT_EQ(session->ua_entries[0].len, 11u);
+    EXPECT_EQ(session_ua_entry(session, 0)->len, 11u);
 }
 
 TEST_F(HttpParserUATest, RecordsAllPipelinedRequestsBeyondInlineCapacity) {
@@ -215,7 +215,7 @@ TEST_F(HttpParserUATest, RecordsAllPipelinedRequestsBeyondInlineCapacity) {
         ASSERT_EQ(feed(requests.c_str()), 0);
         ASSERT_EQ(session->ua_entry_count, count);
         for (size_t i = 0; i < count; ++i) {
-            const auto &entry = session->ua_entries[i];
+            const auto &entry = *session_ua_entry(session, i);
             EXPECT_EQ(requests.substr(entry.offset, entry.len), "Original" + std::to_string(i));
             EXPECT_EQ(entry.replacement_offset, 0u);
         }
@@ -231,15 +231,15 @@ TEST_F(HttpParserUATest, RecordsAllDuplicateUaHeadersBeyondInlineCapacity) {
     ASSERT_EQ(feed(request.c_str()), 0);
     ASSERT_EQ(session->ua_entry_count, 1000u);
     for (size_t i = 0; i < session->ua_entry_count; ++i) {
-        const auto &entry = session->ua_entries[i];
+        const auto &entry = *session_ua_entry(session, i);
         EXPECT_EQ(request.substr(entry.offset, entry.len), "X");
         EXPECT_EQ(entry.replacement_offset, 0u);
     }
 
     // Storage can be reused without carrying entries into the next payload.
-    const auto *entries = session->ua_entries;
+    const auto *entries = session->ua_entries_overflow.d;
     ASSERT_EQ(feed("GET / HTTP/1.1\r\nUser-Agent: Next\r\n\r\n"), 0);
-    EXPECT_EQ(session->ua_entries, entries);
+    EXPECT_EQ(session->ua_entries_overflow.d, entries);
     EXPECT_EQ(session->ua_entry_count, 1u);
 }
 
@@ -251,24 +251,27 @@ TEST_F(HttpParserUATest, ContinuesSplitUaAfterGrowingEntries) {
     request += "User-Agent: Ninth";
     ASSERT_EQ(feed(request.c_str()), 0);
     ASSERT_EQ(session->ua_entry_count, 9u);
-    EXPECT_EQ(session->ua_entries[8].len, 5u);
+    EXPECT_EQ(session_ua_entry(session, 8)->len, 5u);
 
     ASSERT_EQ(feed("Agent\r\nUser-Agent: Tenth\r\n\r\n"), 0);
     ASSERT_EQ(session->ua_entry_count, 2u);
-    EXPECT_EQ(session->ua_entries[0].offset, 0u);
-    EXPECT_EQ(session->ua_entries[0].len, 5u);
-    EXPECT_EQ(session->ua_entries[0].replacement_offset, 5u);
-    EXPECT_EQ(session->ua_entries[1].replacement_offset, 0u);
+    EXPECT_EQ(session_ua_entry(session, 0)->offset, 0u);
+    EXPECT_EQ(session_ua_entry(session, 0)->len, 5u);
+    EXPECT_EQ(session_ua_entry(session, 0)->replacement_offset, 5u);
+    EXPECT_EQ(session_ua_entry(session, 1)->replacement_offset, 0u);
 }
 
 TEST_F(HttpParserUATest, EntryCapacityOverflowIsNotAParseErrorOrSuccess) {
     const char *request = "GET / HTTP/1.1\r\nUser-Agent: Original\r\n\r\n";
     session_reset_per_packet(session, request);
     // Exercise the allocation size guard without attempting an enormous allocation.
-    session->ua_entry_capacity = std::numeric_limits<size_t>::max();
-    session->ua_entry_count = session->ua_entry_capacity;
+    session->ua_entries_overflow.n = std::numeric_limits<unsigned>::max();
+    session->ua_entries_overflow.i = session->ua_entries_overflow.n;
+    session->ua_entry_count = UA_INLINE_ENTRIES;
     EXPECT_EQ(http_parser_feed(session, request, strlen(request)), HTTP_PARSER_NO_MEMORY);
     EXPECT_TRUE(session->ua_allocation_failed);
+    session->ua_entries_overflow.n = 0;
+    session->ua_entries_overflow.i = 0;
 }
 
 TEST(HttpParserStandaloneTest, ReleasesGrownEntriesWithoutStateMutex) {
@@ -282,9 +285,9 @@ TEST(HttpParserStandaloneTest, ReleasesGrownEntriesWithoutStateMutex) {
     session_reset_per_packet(&session, request.data());
     EXPECT_EQ(http_parser_feed(&session, request.data(), request.size()), 0);
     EXPECT_FALSE(session.state_lock_initialized);
-    EXPECT_NE(session.ua_entries, session.ua_entries_inline);
+    EXPECT_NE(session.ua_entries_overflow.d, nullptr);
     session_state_destroy(&session);
-    EXPECT_EQ(session.ua_entries, nullptr);
+    EXPECT_EQ(session.ua_entries_overflow.d, nullptr);
     EXPECT_EQ(session.ua_entry_count, 0u);
     session_state_destroy(&session); // repeated destruction is harmless
 }
@@ -292,10 +295,12 @@ TEST(HttpParserStandaloneTest, ReleasesGrownEntriesWithoutStateMutex) {
 TEST_F(HttpParserUATest, AllocationFailurePersistsAcrossPayloads) {
     const char *request = "GET / HTTP/1.1\r\nUser-Agent: Original\r\n\r\n";
     session_reset_per_packet(session, request);
-    session->ua_entry_capacity = std::numeric_limits<size_t>::max();
-    session->ua_entry_count = session->ua_entry_capacity;
+    session->ua_entries_overflow.n = std::numeric_limits<unsigned>::max();
+    session->ua_entries_overflow.i = session->ua_entries_overflow.n;
+    session->ua_entry_count = UA_INLINE_ENTRIES;
     ASSERT_EQ(http_parser_feed(session, request, strlen(request)), HTTP_PARSER_NO_MEMORY);
-    session->ua_entry_capacity = UA_INLINE_ENTRIES;
+    session->ua_entries_overflow.n = 0;
+    session->ua_entries_overflow.i = 0;
 
     const auto stale_time = time(nullptr) - 301;
     session->last_active = stale_time;

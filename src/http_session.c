@@ -191,12 +191,9 @@ void session_state_destroy(struct http_session *session) {
     if (session == NULL) {
         return;
     }
-    if (session->ua_entries != session->ua_entries_inline) {
-        free(session->ua_entries);
-    }
-    session->ua_entries = NULL;
+    utarray_done(&session->ua_entries_overflow);
+    memset(&session->ua_entries_overflow, 0, sizeof(session->ua_entries_overflow));
     session->ua_entry_count = 0;
-    session->ua_entry_capacity = 0;
     if (session->state_lock_initialized) {
         pthread_mutex_destroy(&session->state_lock);
         session->state_lock_initialized = false;
@@ -217,6 +214,7 @@ void session_state_unlock(struct http_session *session) {
 
 void session_reset_per_packet(struct http_session *session, const void *tcp_payload_base) {
     session->ua_entry_count = 0;
+    utarray_clear(&session->ua_entries_overflow);
     session->tcp_payload_base = tcp_payload_base;
 }
 

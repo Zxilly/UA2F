@@ -518,9 +518,10 @@ static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct ht
     const size_t replacement_len = UA2F_MAX_USER_AGENT_LENGTH;
 
     for (size_t i = 0; i < session->ua_entry_count; i++) {
-        const size_t offset = session->ua_entries[i].offset;
-        const size_t ua_len = session->ua_entries[i].len;
-        const size_t replacement_offset = session->ua_entries[i].replacement_offset;
+        const struct ua_mangle_entry *entry = session_ua_entry_const(session, i);
+        const size_t offset = entry->offset;
+        const size_t ua_len = entry->len;
+        const size_t replacement_offset = entry->replacement_offset;
         if (offset > len || ua_len > len - offset) {
             continue;
         }

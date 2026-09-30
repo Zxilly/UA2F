@@ -10,6 +10,7 @@
 #include "third/llhttp/llhttp.h"
 #include "third/nfqueue-mnl/nfqueue-mnl.h"
 #include "third/uthash/uthash.h"
+#include "third/uthash/utarray.h"
 
 #define UA_INLINE_ENTRIES 8
 #define FIELD_BUF_SIZE 32
@@ -52,9 +53,8 @@ struct http_session {
 
     // Keep the common case allocation-free; grow for large batches of headers.
     struct ua_mangle_entry ua_entries_inline[UA_INLINE_ENTRIES];
-    struct ua_mangle_entry *ua_entries;
+    UT_array ua_entries_overflow;
     size_t ua_entry_count;
-    size_t ua_entry_capacity;
     bool ua_allocation_failed; // fail closed until this session is destroyed/reinitialized
 
     const void *tcp_payload_base;
@@ -62,6 +62,21 @@ struct http_session {
     time_t last_active;
     UT_hash_handle hh;
 };
+
+// Entry storage is split: the first eight slots are inline, the rest are utarray-owned.
+static inline struct ua_mangle_entry *session_ua_entry(struct http_session *session, size_t index) {
+    if (index < UA_INLINE_ENTRIES) {
+        return &session->ua_entries_inline[index];
+    }
+    return (struct ua_mangle_entry *)utarray_eltptr(&session->ua_entries_overflow, index - UA_INLINE_ENTRIES);
+}
+
+static inline const struct ua_mangle_entry *session_ua_entry_const(const struct http_session *session, size_t index) {
+    if (index < UA_INLINE_ENTRIES) {
+        return &session->ua_entries_inline[index];
+    }
+    return (const struct ua_mangle_entry *)utarray_eltptr(&session->ua_entries_overflow, index - UA_INLINE_ENTRIES);
+}
 
 void init_http_sessions(int max_sessions);
 struct session_key session_key_from_connid(uint32_t conn_id);

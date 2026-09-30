@@ -483,7 +483,9 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
         }
     }
     if (parse_ret == 0 && ua_count > 0) {
-        memcpy(ua_entries_copy, session->ua_entries, ua_count * sizeof(struct ua_mangle_entry));
+        for (size_t i = 0; i < ua_count; i++) {
+            ua_entries_copy[i] = *session_ua_entry_const(session, i);
+        }
     }
     session_state_unlock(session);
 
