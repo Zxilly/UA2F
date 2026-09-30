@@ -486,3 +486,37 @@ TEST_F(HandlerTest, RewritesAllDuplicateUaHeadersBeyondInlineCapacityIpv6) {
     const auto payload = extract_tcp_payload(mock_ctx.verdicts[0].mangled_data, IPV6);
     EXPECT_EQ(std::string(payload.begin(), payload.end()), expected);
 }
+
+TEST_F(HandlerTest, AllocationFailureKeepsSessionClosedForRetransmittedFragments) {
+    use_conntrack = true;
+    auto first = make_http_packet_ct("GET / HTTP/1.1\r\nUser-Agent: First");
+    handle_packet(&mock_packet_io, &mock_ctx, &first);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    ASSERT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+
+    const auto key = session_key_from_connid(100);
+    session_wrlock();
+    auto *session = session_find(&key);
+    session_wrunlock();
+    ASSERT_NE(session, nullptr);
+    session_state_lock(session);
+    // Model the persistent state left by an entry/copy allocation failure.
+    session->ua_allocation_failed = true;
+    const auto stale_time = time(nullptr) - 301;
+    session->last_active = stale_time;
+    session_state_unlock(session);
+
+    for (uint32_t packet_id = 2; packet_id <= 3; ++packet_id) {
+        mock_ctx.verdicts.clear();
+        auto continuation = make_http_packet_ct("Original\r\n\r\n", packet_id);
+        handle_packet(&mock_packet_io, &mock_ctx, &continuation);
+        ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+        EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_DROP);
+        EXPECT_FALSE(mock_ctx.verdicts[0].mark.should_set);
+        EXPECT_TRUE(mock_ctx.verdicts[0].mangled_data.empty());
+        session_wrlock();
+        EXPECT_EQ(session_find(&key), session);
+        EXPECT_EQ(session_cleanup_expired(300), 0);
+        session_wrunlock();
+    }
+}

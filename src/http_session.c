@@ -217,7 +217,6 @@ void session_state_unlock(struct http_session *session) {
 
 void session_reset_per_packet(struct http_session *session, const void *tcp_payload_base) {
     session->ua_entry_count = 0;
-    session->ua_allocation_failed = false;
     session->tcp_payload_base = tcp_payload_base;
 }
 

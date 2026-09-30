@@ -288,3 +288,24 @@ TEST(HttpParserStandaloneTest, ReleasesGrownEntriesWithoutStateMutex) {
     EXPECT_EQ(session.ua_entry_count, 0u);
     session_state_destroy(&session); // repeated destruction is harmless
 }
+
+TEST_F(HttpParserUATest, AllocationFailurePersistsAcrossPayloads) {
+    const char *request = "GET / HTTP/1.1\r\nUser-Agent: Original\r\n\r\n";
+    session_reset_per_packet(session, request);
+    session->ua_entry_capacity = std::numeric_limits<size_t>::max();
+    session->ua_entry_count = session->ua_entry_capacity;
+    ASSERT_EQ(http_parser_feed(session, request, strlen(request)), HTTP_PARSER_NO_MEMORY);
+    session->ua_entry_capacity = UA_INLINE_ENTRIES;
+
+    const auto stale_time = time(nullptr) - 301;
+    session->last_active = stale_time;
+    EXPECT_EQ(feed("Original\r\n\r\n"), HTTP_PARSER_NO_MEMORY);
+    EXPECT_TRUE(session->ua_allocation_failed);
+    EXPECT_GT(session->last_active, stale_time);
+    EXPECT_EQ(feed(request), HTTP_PARSER_NO_MEMORY);
+
+    http_parser_init_session(session);
+    EXPECT_EQ(feed(request), 0);
+    EXPECT_FALSE(session->ua_allocation_failed);
+    EXPECT_EQ(session->ua_entry_count, 1u);
+}

@@ -167,6 +167,7 @@ void http_parser_init_session(struct http_session *session) {
 
     llhttp_init(&session->parser, HTTP_REQUEST, &shared_settings);
     session->parser.data = session;
+    session->ua_allocation_failed = false;
 
     if (session->ua_entries == NULL) {
         session->ua_entries = session->ua_entries_inline;
@@ -177,15 +178,22 @@ void http_parser_init_session(struct http_session *session) {
 }
 
 int http_parser_feed(struct http_session *session, const char *data, size_t len) {
+    // TTL measures idle time, including unfinished headers/bodies and retries
+    // on a session whose rewriting failed. Empty feeds are not activity.
+    if (len > 0) {
+        session->last_active = time(NULL);
+    }
+    // A failed allocation may leave llhttp partway through a payload. Keep
+    // rejecting this stream until it is idle or closed, rather than allowing
+    // later fragments to be reclassified as non-HTTP traffic.
+    if (session->ua_allocation_failed) {
+        return HTTP_PARSER_NO_MEMORY;
+    }
     llhttp_errno_t err = llhttp_execute(&session->parser, data, len);
     if (err != HPE_OK) {
         syslog(LOG_DEBUG, "llhttp parse error: %s (%s)", llhttp_errno_name(err),
                llhttp_get_error_reason(&session->parser));
         return session->ua_allocation_failed ? HTTP_PARSER_NO_MEMORY : -1;
-    }
-    // TTL measures idle time, including progress in unfinished headers/bodies.
-    if (len > 0) {
-        session->last_active = time(NULL);
     }
     return 0;
 }

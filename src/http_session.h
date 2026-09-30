@@ -55,7 +55,7 @@ struct http_session {
     struct ua_mangle_entry *ua_entries;
     size_t ua_entry_count;
     size_t ua_entry_capacity;
-    bool ua_allocation_failed;
+    bool ua_allocation_failed; // fail closed until this session is destroyed/reinitialized
 
     const void *tcp_payload_base;
 

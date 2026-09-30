@@ -478,6 +478,7 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
     if (parse_ret == 0 && ua_count > UA_INLINE_ENTRIES) {
         ua_entries_copy = malloc(ua_count * sizeof(*ua_entries_copy));
         if (ua_entries_copy == NULL) {
+            session->ua_allocation_failed = true;
             parse_ret = HTTP_PARSER_NO_MEMORY;
         }
     }
@@ -486,6 +487,16 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
     }
     session_state_unlock(session);
 
+    if (parse_ret == HTTP_PARSER_NO_MEMORY) {
+        // Keep the failed session so a retransmitted continuation cannot be
+        // mistaken for a new, non-HTTP stream and bypass rewriting.
+        session_release(session);
+        session = NULL;
+        syslog(LOG_ERR, "Failed to allocate User-Agent entries, dropping packet");
+        SEND_VERDICT(NF_DROP, MARK_NONE, NULL);
+        goto end;
+    }
+
     if (parse_ret != 0) {
         session_wrlock();
         session_delete(session);
@@ -493,10 +504,7 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
         session_release(session);
         session = NULL;
 
-        if (parse_ret == HTTP_PARSER_NO_MEMORY) {
-            syslog(LOG_ERR, "Failed to allocate User-Agent entries, dropping packet");
-            SEND_VERDICT(NF_DROP, MARK_NONE, NULL);
-        } else if (ct_ok) {
+        if (ct_ok) {
             add_to_cache(pkt);
             SEND_VERDICT(NF_ACCEPT, MARK_NOT_HTTP, NULL);
         } else {
