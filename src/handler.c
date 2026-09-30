@@ -18,13 +18,13 @@
 #include <libnetfilter_queue/pktbuff.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
-#include <limits.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <stdlib.h>
 
 static char *replacement_user_agent_string = NULL;
+static size_t replacement_user_agent_string_length = 0;
 static bool replacement_user_agent_cleanup_registered = false;
 
 static const struct mark_op MARK_NONE = {false, 0};
@@ -40,13 +40,17 @@ bool use_conntrack = false;
 static void destroy_handler(void) {
     free(replacement_user_agent_string);
     replacement_user_agent_string = NULL;
+    replacement_user_agent_string_length = 0;
 }
 
 void init_handler() {
     init_not_http_cache(60);
 
     destroy_handler();
-    replacement_user_agent_string = malloc(UA2F_MAX_USER_AGENT_LENGTH);
+    // libmnl may implement MNL_SOCKET_BUFFER_SIZE with sysconf(_SC_PAGESIZE).
+    // Capacity is fixed for this allocation; do not query it again per UA.
+    replacement_user_agent_string_length = UA2F_MAX_USER_AGENT_LENGTH;
+    replacement_user_agent_string = malloc(replacement_user_agent_string_length);
     assert(replacement_user_agent_string != NULL && "Failed to allocate user agent string");
     if (!replacement_user_agent_cleanup_registered) {
         atexit(destroy_handler);
@@ -56,12 +60,12 @@ void init_handler() {
 
 #ifdef UA2F_ENABLE_UCI
     if (config.use_custom_ua) {
-        memset(replacement_user_agent_string, ' ', UA2F_MAX_USER_AGENT_LENGTH);
+        memset(replacement_user_agent_string, ' ', replacement_user_agent_string_length);
         size_t custom_ua_len = strlen(config.custom_ua);
-        if (custom_ua_len > UA2F_MAX_USER_AGENT_LENGTH) {
+        if (custom_ua_len > replacement_user_agent_string_length) {
             syslog(LOG_WARNING, "Config user agent string is too long, truncating to %zu bytes",
-                   (size_t)UA2F_MAX_USER_AGENT_LENGTH);
-            custom_ua_len = UA2F_MAX_USER_AGENT_LENGTH;
+                   (size_t)replacement_user_agent_string_length);
+            custom_ua_len = replacement_user_agent_string_length;
         }
         memcpy(replacement_user_agent_string, config.custom_ua, custom_ua_len);
         syslog(LOG_INFO, "Using config user agent string: %.*s", (int)custom_ua_len, replacement_user_agent_string);
@@ -76,12 +80,12 @@ void init_handler() {
 
 #ifdef UA2F_USE_CUSTOM_UA
     if (!ua_set) {
-        memset(replacement_user_agent_string, ' ', UA2F_MAX_USER_AGENT_LENGTH);
+        memset(replacement_user_agent_string, ' ', replacement_user_agent_string_length);
         size_t custom_ua_len = strlen(UA2F_CUSTOM_UA);
-        if (custom_ua_len > UA2F_MAX_USER_AGENT_LENGTH) {
+        if (custom_ua_len > replacement_user_agent_string_length) {
             syslog(LOG_WARNING, "Embed user agent string is too long, truncating to %zu bytes",
-                   (size_t)UA2F_MAX_USER_AGENT_LENGTH);
-            custom_ua_len = UA2F_MAX_USER_AGENT_LENGTH;
+                   (size_t)replacement_user_agent_string_length);
+            custom_ua_len = replacement_user_agent_string_length;
         }
         memcpy(replacement_user_agent_string, UA2F_CUSTOM_UA, custom_ua_len);
         syslog(LOG_INFO, "Using embed user agent string: %.*s", (int)custom_ua_len, replacement_user_agent_string);
@@ -90,7 +94,7 @@ void init_handler() {
 #endif
 
     if (!ua_set) {
-        memset(replacement_user_agent_string, 'F', UA2F_MAX_USER_AGENT_LENGTH);
+        memset(replacement_user_agent_string, 'F', replacement_user_agent_string_length);
         syslog(LOG_INFO, "Custom user agent string not set, using default F-string.");
     }
 
@@ -99,32 +103,7 @@ void init_handler() {
 
 const char *get_replacement_user_agent_string() { return replacement_user_agent_string; }
 
-size_t get_replacement_user_agent_string_length() { return UA2F_MAX_USER_AGENT_LENGTH; }
-
-static const char *replacement_chunk(size_t replacement_offset, size_t ua_len, char **owned) {
-    *owned = NULL;
-
-    if (replacement_offset <= UA2F_MAX_USER_AGENT_LENGTH && ua_len <= UA2F_MAX_USER_AGENT_LENGTH - replacement_offset) {
-        return replacement_user_agent_string + replacement_offset;
-    }
-
-    char *buf = malloc(ua_len);
-    if (buf == NULL) {
-        return NULL;
-    }
-    memset(buf, ' ', ua_len);
-
-    if (replacement_offset < UA2F_MAX_USER_AGENT_LENGTH) {
-        size_t available = UA2F_MAX_USER_AGENT_LENGTH - replacement_offset;
-        if (available > ua_len) {
-            available = ua_len;
-        }
-        memcpy(buf, replacement_user_agent_string + replacement_offset, available);
-    }
-
-    *owned = buf;
-    return buf;
-}
+size_t get_replacement_user_agent_string_length() { return replacement_user_agent_string_length; }
 
 void add_to_cache(const struct nf_packet *pkt) {
     const struct addr_port target = {
@@ -485,6 +464,14 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
     if (parse_ret == 0 && ua_count > 0) {
         for (size_t i = 0; i < ua_count; i++) {
             ua_entries_copy[i] = *session_ua_entry_const(session, i);
+            // Validate every span before changing any bytes. Keep a failed
+            // stream closed even if the same continuation is retransmitted.
+            if (ua_entries_copy[i].offset > tcp_payload_len ||
+                ua_entries_copy[i].len > tcp_payload_len - ua_entries_copy[i].offset) {
+                session->ua_allocation_failed = true;
+                parse_ret = HTTP_PARSER_NO_MEMORY;
+                break;
+            }
         }
     }
     session_state_unlock(session);
@@ -494,7 +481,7 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
         // mistaken for a new, non-HTTP stream and bypass rewriting.
         session_release(session);
         session = NULL;
-        syslog(LOG_ERR, "Failed to allocate User-Agent entries, dropping packet");
+        syslog(LOG_ERR, "Failed to allocate or validate User-Agent entries, dropping packet");
         SEND_VERDICT(NF_DROP, MARK_NONE, NULL);
         goto end;
     }
@@ -518,45 +505,44 @@ void handle_packet(const struct packet_io *io, void *io_ctx, const struct nf_pac
     session_release(session);
     session = NULL;
 
-    // Mangle UA entries (using copied data, session lock released)
+    // Replacements have exactly the original length. Copy each span directly,
+    // then checksum once per packet rather than rescanning the entire packet
+    // once per User-Agent (quadratic for large pipelined/duplicate batches).
     for (size_t i = 0; i < ua_count; i++) {
-        const size_t ua_offset = ua_entries_copy[i].offset;
-        const size_t ua_len = ua_entries_copy[i].len;
-        const size_t replacement_offset = ua_entries_copy[i].replacement_offset;
-        if (ua_offset > UINT_MAX || ua_len > UINT_MAX) {
-            syslog(LOG_WARNING, "Skipping too-large user agent mangle entry");
-            continue;
-        }
-        char *owned_replacement = NULL;
-        const char *replacement = replacement_chunk(replacement_offset, ua_len, &owned_replacement);
-        if (replacement == NULL) {
-            syslog(LOG_ERR, "Failed to allocate replacement chunk");
-            goto end;
-        }
-
-        if (type == IPV4) {
-            if (!nfq_tcp_mangle_ipv4(pkt_buff, (unsigned int)ua_offset, (unsigned int)ua_len, replacement,
-                                     (unsigned int)ua_len)) {
-                free(owned_replacement);
-                syslog(LOG_ERR, "Failed to mangle ipv4 packet");
-                goto end;
+        const struct ua_mangle_entry *entry = &ua_entries_copy[i];
+        size_t available = 0;
+        if (entry->replacement_offset < replacement_user_agent_string_length) {
+            available = replacement_user_agent_string_length - entry->replacement_offset;
+            if (available > entry->len) {
+                available = entry->len;
             }
-        } else {
-            if (!nfq_tcp_mangle_ipv6(pkt_buff, (unsigned int)ua_offset, (unsigned int)ua_len, replacement,
-                                     (unsigned int)ua_len)) {
-                free(owned_replacement);
-                syslog(LOG_ERR, "Failed to mangle ipv6 packet");
-                goto end;
-            }
+            memcpy((char *)tcp_payload + entry->offset,
+                   replacement_user_agent_string + entry->replacement_offset, available);
         }
-        free(owned_replacement);
+        if (available < entry->len) {
+            memset((char *)tcp_payload + entry->offset + available, ' ', entry->len - available);
+        }
     }
 
     if (ua_count > 0) {
+        // Preserve the length normalization performed by nfq_tcp_mangle_*.
+        // The verdict API uses the explicit packet pointer, not pktb_mangled.
+        if (type == IPV4) {
+            struct iphdr *ip_hdr = nfq_ip_get_hdr(pkt_buff);
+            ip_hdr->tot_len = htons((uint16_t)pktb_len(pkt_buff));
+            nfq_ip_set_checksum(ip_hdr);
+            nfq_tcp_compute_checksum_ipv4(tcp_hdr, ip_hdr);
+        } else {
+            struct ip6_hdr *ip_hdr = nfq_ip6_get_hdr(pkt_buff);
+            ip_hdr->ip6_plen = htons((uint16_t)(pktb_len(pkt_buff) - sizeof(*ip_hdr)));
+            nfq_tcp_compute_checksum_ipv6(tcp_hdr, ip_hdr);
+        }
         count_user_agent_packet();
     }
 
-    SEND_VERDICT(NF_ACCEPT, (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, pkt_buff);
+    // An unchanged payload is already queued in the kernel. Returning it again
+    // adds an unnecessary userspace/netlink copy, especially for upload bodies.
+    SEND_VERDICT(NF_ACCEPT, (ct_ok && new_session) ? MARK_HTTP : MARK_NONE, ua_count > 0 ? pkt_buff : NULL);
 
 end:
     if (ua_entries_copy != ua_entries_inline) {

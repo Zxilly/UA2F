@@ -31,6 +31,7 @@ define Package/ua2f
     +(PACKAGE_nftables-json||PACKAGE_nftables-nojson):kmod-nft-tproxy \
     +PACKAGE_firewall:iptables-mod-conntrack-extra \
     +PACKAGE_firewall:iptables-mod-filter \
+    +PACKAGE_firewall:iptables-mod-u32 \
     +PACKAGE_firewall:iptables-mod-nfqueue \
     +PACKAGE_firewall:iptables-mod-tproxy
 endef
@@ -91,6 +92,8 @@ define Package/ua2f/install
 	$(INSTALL_DIR) $(1)/etc/config $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/ua2f.config $(1)/etc/config/ua2f
 	$(INSTALL_BIN) ./files/ua2f.init $(1)/etc/init.d/ua2f
+	$(INSTALL_DIR) $(1)/usr/share/ua2f
+	$(INSTALL_DATA) ./files/ua2f.firewall $(1)/usr/share/ua2f/firewall.sh
 
 	$(if $(UA2F_COVERAGE_BUILD),rm -rf $(UA2F_COVERAGE_DIR))
 	$(if $(UA2F_COVERAGE_BUILD),$(INSTALL_DIR) $(UA2F_COVERAGE_DIR)/objects/CMakeFiles/ua2f.dir)
