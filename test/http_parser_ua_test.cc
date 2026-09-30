@@ -1,5 +1,6 @@
 #include <cstring>
 #include <limits>
+#include <string>
 #include <gtest/gtest.h>
 
 extern "C" {
@@ -203,4 +204,87 @@ TEST_F(HttpParserUATest, MultipleNonUAHeadersThenUA) {
     const char *ua_start = req + session->ua_entries[0].offset;
     EXPECT_EQ(strncmp(ua_start, "TargetAgent", 11), 0);
     EXPECT_EQ(session->ua_entries[0].len, 11u);
+}
+
+TEST_F(HttpParserUATest, RecordsAllPipelinedRequestsBeyondInlineCapacity) {
+    for (const size_t count : {9u, 32u, 257u}) {
+        std::string requests;
+        for (size_t i = 0; i < count; ++i) {
+            requests += "GET / HTTP/1.1\r\nUser-Agent: Original" + std::to_string(i) + "\r\n\r\n";
+        }
+        ASSERT_EQ(feed(requests.c_str()), 0);
+        ASSERT_EQ(session->ua_entry_count, count);
+        for (size_t i = 0; i < count; ++i) {
+            const auto &entry = session->ua_entries[i];
+            EXPECT_EQ(requests.substr(entry.offset, entry.len), "Original" + std::to_string(i));
+            EXPECT_EQ(entry.replacement_offset, 0u);
+        }
+    }
+}
+
+TEST_F(HttpParserUATest, RecordsAllDuplicateUaHeadersBeyondInlineCapacity) {
+    std::string request = "GET / HTTP/1.1\r\n";
+    for (size_t i = 0; i < 1000; ++i) {
+        request += "User-Agent: X\r\n";
+    }
+    request += "\r\n";
+    ASSERT_EQ(feed(request.c_str()), 0);
+    ASSERT_EQ(session->ua_entry_count, 1000u);
+    for (size_t i = 0; i < session->ua_entry_count; ++i) {
+        const auto &entry = session->ua_entries[i];
+        EXPECT_EQ(request.substr(entry.offset, entry.len), "X");
+        EXPECT_EQ(entry.replacement_offset, 0u);
+    }
+
+    // Storage can be reused without carrying entries into the next payload.
+    const auto *entries = session->ua_entries;
+    ASSERT_EQ(feed("GET / HTTP/1.1\r\nUser-Agent: Next\r\n\r\n"), 0);
+    EXPECT_EQ(session->ua_entries, entries);
+    EXPECT_EQ(session->ua_entry_count, 1u);
+}
+
+TEST_F(HttpParserUATest, ContinuesSplitUaAfterGrowingEntries) {
+    std::string request = "GET / HTTP/1.1\r\n";
+    for (size_t i = 0; i < 8; ++i) {
+        request += "User-Agent: First\r\n";
+    }
+    request += "User-Agent: Ninth";
+    ASSERT_EQ(feed(request.c_str()), 0);
+    ASSERT_EQ(session->ua_entry_count, 9u);
+    EXPECT_EQ(session->ua_entries[8].len, 5u);
+
+    ASSERT_EQ(feed("Agent\r\nUser-Agent: Tenth\r\n\r\n"), 0);
+    ASSERT_EQ(session->ua_entry_count, 2u);
+    EXPECT_EQ(session->ua_entries[0].offset, 0u);
+    EXPECT_EQ(session->ua_entries[0].len, 5u);
+    EXPECT_EQ(session->ua_entries[0].replacement_offset, 5u);
+    EXPECT_EQ(session->ua_entries[1].replacement_offset, 0u);
+}
+
+TEST_F(HttpParserUATest, EntryCapacityOverflowIsNotAParseErrorOrSuccess) {
+    const char *request = "GET / HTTP/1.1\r\nUser-Agent: Original\r\n\r\n";
+    session_reset_per_packet(session, request);
+    // Exercise the allocation size guard without attempting an enormous allocation.
+    session->ua_entry_capacity = std::numeric_limits<size_t>::max();
+    session->ua_entry_count = session->ua_entry_capacity;
+    EXPECT_EQ(http_parser_feed(session, request, strlen(request)), HTTP_PARSER_NO_MEMORY);
+    EXPECT_TRUE(session->ua_allocation_failed);
+}
+
+TEST(HttpParserStandaloneTest, ReleasesGrownEntriesWithoutStateMutex) {
+    struct http_session session{};
+    http_parser_init_session(&session);
+    std::string request = "GET / HTTP/1.1\r\n";
+    for (size_t i = 0; i < 33; ++i) {
+        request += "User-Agent: Original\r\n";
+    }
+    request += "\r\n";
+    session_reset_per_packet(&session, request.data());
+    EXPECT_EQ(http_parser_feed(&session, request.data(), request.size()), 0);
+    EXPECT_FALSE(session.state_lock_initialized);
+    EXPECT_NE(session.ua_entries, session.ua_entries_inline);
+    session_state_destroy(&session);
+    EXPECT_EQ(session.ua_entries, nullptr);
+    EXPECT_EQ(session.ua_entry_count, 0u);
+    session_state_destroy(&session); // repeated destruction is harmless
 }

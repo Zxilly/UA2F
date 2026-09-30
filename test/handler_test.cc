@@ -450,3 +450,39 @@ TEST_F(HandlerTest, MalformedIpv4StillSendsVerdict) {
     EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
     EXPECT_TRUE(mock_ctx.verdicts[0].mangled_data.empty());
 }
+
+TEST_F(HandlerTest, RewritesAllPipelinedRequestsBeyondInlineCapacity) {
+    std::string request;
+    std::string expected;
+    for (size_t i = 0; i < 33; ++i) {
+        request += "GET / HTTP/1.1\r\nUser-Agent: Original\r\n\r\n";
+        expected += "GET / HTTP/1.1\r\nUser-Agent: FFFFFFFF\r\n\r\n";
+    }
+    auto pkt = make_http_packet(request.c_str());
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    const auto payload = extract_tcp_payload(mock_ctx.verdicts[0].mangled_data, IPV4);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()), expected);
+}
+
+TEST_F(HandlerTest, RewritesAllDuplicateUaHeadersBeyondInlineCapacityIpv6) {
+    std::string request = "GET / HTTP/1.1\r\n";
+    std::string expected = request;
+    for (size_t i = 0; i < 33; ++i) {
+        request += "User-Agent: Original\r\n";
+        expected += "User-Agent: FFFFFFFF\r\n";
+    }
+    request += "\r\n";
+    expected += "\r\n";
+    struct in6_addr src = IN6ADDR_LOOPBACK_INIT;
+    struct in6_addr dst = IN6ADDR_LOOPBACK_INIT;
+    dst.s6_addr[15] = 2;
+    const auto raw = build_ipv6_tcp_packet(src, dst, 12345, 80, request.data(), request.size());
+    auto pkt = make_nf_packet(raw, 1, IPV6);
+    handle_packet(&mock_packet_io, &mock_ctx, &pkt);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    const auto payload = extract_tcp_payload(mock_ctx.verdicts[0].mangled_data, IPV6);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()), expected);
+}

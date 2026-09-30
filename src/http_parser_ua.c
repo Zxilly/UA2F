@@ -1,6 +1,7 @@
 #include "http_parser_ua.h"
 
 #include <pthread.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/syslog.h>
@@ -8,6 +9,32 @@
 
 #include "statistics.h"
 #include "third/llhttp/llhttp.h"
+
+static bool reserve_ua_entry(struct http_session *session) {
+    if (session->ua_entry_count < session->ua_entry_capacity) {
+        return true;
+    }
+
+    if (session->ua_entry_capacity > SIZE_MAX / sizeof(struct ua_mangle_entry) / 2) {
+        return false;
+    }
+    const size_t capacity = session->ua_entry_capacity * 2;
+    struct ua_mangle_entry *entries;
+    if (session->ua_entries == session->ua_entries_inline) {
+        entries = malloc(capacity * sizeof(*entries));
+        if (entries != NULL) {
+            memcpy(entries, session->ua_entries, session->ua_entry_count * sizeof(*entries));
+        }
+    } else {
+        entries = realloc(session->ua_entries, capacity * sizeof(*entries));
+    }
+    if (entries == NULL) {
+        return false;
+    }
+    session->ua_entries = entries;
+    session->ua_entry_capacity = capacity;
+    return true;
+}
 
 static int on_header_field(llhttp_t *parser, const char *data, size_t len) {
     struct http_session *session = (struct http_session *)parser->data;
@@ -90,12 +117,15 @@ static int on_header_value(llhttp_t *parser, const char *data, size_t len) {
         }
     } else {
         // New UA entry
-        if (session->ua_entry_count < UA_MAX_ENTRIES) {
-            session->ua_entries[session->ua_entry_count].offset = offset;
-            session->ua_entries[session->ua_entry_count].len = len;
-            session->ua_entries[session->ua_entry_count].replacement_offset = session->ua_value_seen_len;
-            session->ua_entry_count++;
+        if (!reserve_ua_entry(session)) {
+            session->ua_allocation_failed = true;
+            llhttp_set_error_reason(parser, "Failed to allocate User-Agent entries");
+            return HPE_USER;
         }
+        session->ua_entries[session->ua_entry_count].offset = offset;
+        session->ua_entries[session->ua_entry_count].len = len;
+        session->ua_entries[session->ua_entry_count].replacement_offset = session->ua_value_seen_len;
+        session->ua_entry_count++;
         session->in_ua_value = true;
     }
 
@@ -118,7 +148,6 @@ static int on_headers_complete(llhttp_t *parser) {
 static int on_message_complete(llhttp_t *parser) {
     struct http_session *session = (struct http_session *)parser->data;
     session_reset_per_message(session);
-    session->last_active = time(NULL);
     return 0;
 }
 
@@ -139,6 +168,11 @@ void http_parser_init_session(struct http_session *session) {
     llhttp_init(&session->parser, HTTP_REQUEST, &shared_settings);
     session->parser.data = session;
 
+    if (session->ua_entries == NULL) {
+        session->ua_entries = session->ua_entries_inline;
+        session->ua_entry_capacity = UA_INLINE_ENTRIES;
+    }
+
     session_reset_per_message(session);
 }
 
@@ -147,7 +181,11 @@ int http_parser_feed(struct http_session *session, const char *data, size_t len)
     if (err != HPE_OK) {
         syslog(LOG_DEBUG, "llhttp parse error: %s (%s)", llhttp_errno_name(err),
                llhttp_get_error_reason(&session->parser));
-        return -1;
+        return session->ua_allocation_failed ? HTTP_PARSER_NO_MEMORY : -1;
+    }
+    // TTL measures idle time, including progress in unfinished headers/bodies.
+    if (len > 0) {
+        session->last_active = time(NULL);
     }
     return 0;
 }

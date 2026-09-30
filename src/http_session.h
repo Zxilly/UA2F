@@ -11,7 +11,7 @@
 #include "third/nfqueue-mnl/nfqueue-mnl.h"
 #include "third/uthash/uthash.h"
 
-#define UA_MAX_ENTRIES 8
+#define UA_INLINE_ENTRIES 8
 #define FIELD_BUF_SIZE 32
 
 struct ua_mangle_entry {
@@ -50,8 +50,12 @@ struct http_session {
     bool in_ua_value;
     size_t ua_value_seen_len;
 
-    struct ua_mangle_entry ua_entries[UA_MAX_ENTRIES];
-    int ua_entry_count;
+    // Keep the common case allocation-free; grow for large batches of headers.
+    struct ua_mangle_entry ua_entries_inline[UA_INLINE_ENTRIES];
+    struct ua_mangle_entry *ua_entries;
+    size_t ua_entry_count;
+    size_t ua_entry_capacity;
+    bool ua_allocation_failed;
 
     const void *tcp_payload_base;
 
@@ -73,6 +77,7 @@ int session_cleanup_expired(int ttl_seconds);
 void session_wrlock(void);
 void session_wrunlock(void);
 bool session_state_init(struct http_session *session);
+// Release parser entry storage and, if initialized, the state mutex.
 void session_state_destroy(struct http_session *session);
 void session_state_lock(struct http_session *session);
 void session_state_unlock(struct http_session *session);
