@@ -21,9 +21,13 @@ jobs:
     env:
       BASE_SHA: 4ff67c3770cb2dabc6f1427ef19277df093aafc1
       CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      RESULTS: ${{ runner.temp }}/ua2f-performance
-      BUILD_ROOT: ${{ runner.temp }}/ua2f-performance-build
     steps:
+      - name: Initialize runner-local paths
+        shell: bash
+        run: |
+          echo "RESULTS=$RUNNER_TEMP/ua2f-performance" >> "$GITHUB_ENV"
+          echo "BUILD_ROOT=$RUNNER_TEMP/ua2f-performance-build" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -112,7 +116,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ua2f-performance-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/ua2f-performance/
+          path: ${{ env.RESULTS }}/
           if-no-files-found: warn
           retention-days: 14
           compression-level: 6
