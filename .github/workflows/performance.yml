@@ -1,36 +1,34 @@
 name: Same-runner performance
 
+# Expensive measurements are opt-in, never a permanent PR/merge gate.
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'CMakeLists.txt'
-      - 'scripts/bench_client.go'
-      - 'scripts/bench_server.go'
-      - 'scripts/benchmark.py'
-      - 'scripts/benchmark_compare.py'
-      - 'scripts/profile_routed.py'
-      - '.github/workflows/performance.yml'
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Full baseline commit SHA
+        required: true
+        type: string
+        default: 4ff67c3770cb2dabc6f1427ef19277df093aafc1
+      run_diagnostics:
+        description: Also collect separate CPU/syscall diagnostics
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: performance-${{ github.event.pull_request.number || github.ref }}
+  group: performance-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   compare:
-    # PR branch filters match the target, so filter the source branch here.
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      BASE_SHA: 4ff67c3770cb2dabc6f1427ef19277df093aafc1
-      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      BASE_SHA: ${{ inputs.base_sha }}
+      CANDIDATE_SHA: ${{ github.sha }}
     steps:
       - name: Initialize runner-local paths
         shell: bash
@@ -40,50 +38,21 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check latest pushed paths
-        id: relevant
-        shell: bash
-        env:
-          EVENT_ACTION: ${{ github.event.action }}
-          BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          relevant=true
-          # pull_request path filters inspect the cumulative PR diff. For a
-          # synchronize event also inspect this push, so docs/results-only
-          # follow-ups do not repeat all measurements. Missing history runs safe.
-          if [[ "$EVENT_ACTION" == synchronize && -n "$BEFORE_SHA" ]] && \
-             git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
-            relevant=false
-            while IFS= read -r path; do
-              case "$path" in
-                src/*|test/*|CMakeLists.txt|scripts/bench_client.go|scripts/bench_server.go|\
-                scripts/benchmark.py|scripts/benchmark_compare.py|scripts/profile_routed.py|\
-                .github/workflows/performance.yml) relevant=true ;;
-              esac
-            done < <(git diff --name-only "$BEFORE_SHA" "$CANDIDATE_SHA")
-          fi
-          echo "run=$relevant" >> "$GITHUB_OUTPUT"
-          if [[ "$relevant" == false ]]; then
-            echo 'Skipped: this push changes only documentation/results or other non-benchmark inputs.' | tee -a "$GITHUB_STEP_SUMMARY"
-          fi
-
       - name: Install benchmark dependencies
-        if: steps.relevant.outputs.run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake golang-go iproute2 iptables kmod strace \
             libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
 
       - name: Build base and candidate identically
-        if: steps.relevant.outputs.run == 'true'
         shell: bash
         run: |
           set -euo pipefail
+          [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "base_sha must be a full lowercase commit SHA" >&2; exit 1; }
           mkdir -p "$RESULTS" "$BUILD_ROOT"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
           git worktree add --detach "$BUILD_ROOT/base-source" "$BASE_SHA"
@@ -120,7 +89,6 @@ jobs:
           PY
 
       - name: Run six counterbalanced pairs per workload
-        if: steps.relevant.outputs.run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -143,7 +111,7 @@ jobs:
             2>&1 | tee "$RESULTS/runner.log"
 
       - name: Profile routed workload bottlenecks separately
-        if: steps.relevant.outputs.run == 'true'
+        if: inputs.run_diagnostics
         shell: bash
         run: |
           set -euo pipefail
@@ -166,7 +134,7 @@ jobs:
             --output-dir "$RESULTS/profile" 2>&1 | tee "$RESULTS/profile/runner.log"
 
       - name: Publish job summary
-        if: always() && steps.relevant.outputs.run == 'true'
+        if: always()
         shell: bash
         run: |
           if [[ -f "$RESULTS/summary.md" ]]; then
@@ -179,10 +147,10 @@ jobs:
           fi
 
       - name: Preserve raw measurements and build metadata
-        if: always() && steps.relevant.outputs.run == 'true'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ua2f-performance-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          name: ua2f-performance-${{ github.sha }}-${{ github.run_attempt }}
           path: ${{ env.RESULTS }}/
           if-no-files-found: warn
           retention-days: 14

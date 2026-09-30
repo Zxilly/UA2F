@@ -1,0 +1,4666 @@
+{
+  "aggregates": [
+    {
+      "base": {
+        "avg_ms": {
+          "cv_pct": 2.600123276625031,
+          "max": 2.7410411544700004,
+          "mean": 2.5997468490916664,
+          "median": 2.58277132061,
+          "min": 2.53176277373,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 2.457591113698377,
+          "max": 520.965788721407,
+          "mean": 508.82434366738363,
+          "median": 512.0078700827564,
+          "min": 482.54748316775846,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 2.344997836877868,
+          "max": 6.017493499999996,
+          "mean": 5.749353741666663,
+          "median": 5.744826674999995,
+          "min": 5.599442,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 2.185572941676105,
+          "max": 7.99232301,
+          "mean": 7.733038883333328,
+          "median": 7.663060759999991,
+          "min": 7.5377708099999925,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 1.7458099230818793,
+          "max": 42.999272057201196,
+          "mean": 42.203144904964795,
+          "median": 42.473617781820934,
+          "min": 40.993478956279354,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 2.115049663240327,
+          "max": 0.93,
+          "mean": 0.895,
+          "median": 0.895,
+          "min": 0.87,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 0.07955449482895784,
+          "max": 2516,
+          "mean": 2514.0,
+          "median": 2514.0,
+          "min": 2512,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.07955449482895784,
+          "max": 2516,
+          "mean": 2514.0,
+          "median": 2514.0,
+          "min": 2512,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 2.4575911136983786,
+          "max": 49680.97841615556,
+          "mean": 48523.131043585694,
+          "median": 48826.722393638775,
+          "min": 46017.28484871334,
+          "n": 6
+        }
+      },
+      "body_bytes": 1024,
+      "candidate": {
+        "avg_ms": {
+          "cv_pct": 1.6592829821206179,
+          "max": 2.66465351571,
+          "mean": 2.6088142506633334,
+          "median": 2.609002529245,
+          "min": 2.53582923657,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 1.729662335907222,
+          "max": 522.3441895994954,
+          "mean": 506.7425737496908,
+          "median": 506.64563460281374,
+          "min": 496.06113695265753,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 1.8932688098119221,
+          "max": 5.9221093499999995,
+          "mean": 5.733000516666665,
+          "median": 5.706888749999999,
+          "min": 5.565682949999999,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 2.850874716119588,
+          "max": 8.018907959999996,
+          "mean": 7.7389347533333295,
+          "median": 7.748999129999998,
+          "min": 7.414581779999994,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 2.2658732259372734,
+          "max": 43.45560487493875,
+          "mean": 41.78257843864453,
+          "median": 41.613324171237466,
+          "min": 40.540264409578505,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 1.2515565246624163,
+          "max": 0.9,
+          "mean": 0.8833333333333333,
+          "median": 0.885,
+          "min": 0.87,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 0.05926498747680333,
+          "max": 2516,
+          "mean": 2515.3333333333335,
+          "median": 2516.0,
+          "min": 2512,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.05926498747680333,
+          "max": 2516,
+          "mean": 2515.3333333333335,
+          "median": 2516.0,
+          "min": 2512,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 1.7296623359072238,
+          "max": 49812.42717105593,
+          "mean": 48324.60674777322,
+          "median": 48315.36231797008,
+          "min": 47305.99047304752,
+          "n": 6
+        }
+      },
+      "complete": true,
+      "mode": "NFQUEUE",
+      "paired_rps_ratio_candidate_over_base": {
+        "cv_pct": 1.8457207626229648,
+        "max": 1.032558677079369,
+        "mean": 0.9962358124007626,
+        "median": 0.9914962734393564,
+        "min": 0.976931244626196,
+        "n": 6
+      },
+      "rps_ratio_of_medians": 0.9895270448107056,
+      "successful_runs": {
+        "base": 6,
+        "candidate": 6
+      }
+    },
+    {
+      "base": {
+        "avg_ms": {
+          "cv_pct": 3.2957429660622846,
+          "max": 3.46489827399,
+          "mean": 3.2319489454583334,
+          "median": 3.1923404287199997,
+          "min": 3.15177197667,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 3.0889936878754716,
+          "max": 420.76618566795406,
+          "mean": 410.9554897004836,
+          "median": 415.3256296404388,
+          "min": 383.19380854817354,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 4.440799434311508,
+          "max": 6.576717549999994,
+          "mean": 6.117188983333329,
+          "median": 6.033250349999996,
+          "min": 5.8413407,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 7.159557047042833,
+          "max": 9.178178879999992,
+          "mean": 8.339496599999991,
+          "median": 8.234288719999988,
+          "min": 7.585440679999992,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 1.6543736610363717,
+          "max": 81.07295461555692,
+          "mean": 79.33568259127462,
+          "median": 79.23648838212495,
+          "min": 77.27833889741879,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 2.40234824190943,
+          "max": 2.17,
+          "mean": 2.0766666666666667,
+          "median": 2.06,
+          "min": 2.02,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 20.346399999464364,
+          "max": 4740,
+          "mean": 3623.3333333333335,
+          "median": 3136.0,
+          "min": 3072,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.06586356340205565,
+          "max": 2264,
+          "mean": 2263.3333333333335,
+          "median": 2264.0,
+          "min": 2260,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 3.088993687875474,
+          "max": 40125.62099273749,
+          "mean": 39190.041372809676,
+          "median": 39606.79201696493,
+          "min": 36542.597889986915,
+          "n": 6
+        }
+      },
+      "body_bytes": 1024,
+      "candidate": {
+        "avg_ms": {
+          "cv_pct": 2.564104208413807,
+          "max": 3.4086864450500003,
+          "mean": 3.242988865816667,
+          "median": 3.2180535527250003,
+          "min": 3.15758114595,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 2.5282591396544847,
+          "max": 420.22069383306365,
+          "mean": 409.1880423089787,
+          "median": 412.0898962561471,
+          "min": 389.11863091379104,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 3.784982149983947,
+          "max": 6.446370999999996,
+          "mean": 6.09022963333333,
+          "median": 5.9511860999999975,
+          "min": 5.89878725,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 6.83776819418054,
+          "max": 9.253354429999991,
+          "mean": 8.220649581666661,
+          "median": 7.97727176,
+          "min": 7.638028389999988,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 0.5864324748187701,
+          "max": 80.30205169403615,
+          "mean": 79.79728673868557,
+          "median": 79.92700633159342,
+          "min": 79.05441036494618,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 2.475254911077146,
+          "max": 2.19,
+          "mean": 2.0916666666666663,
+          "median": 2.0649999999999995,
+          "min": 2.05,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 2.6343214056833886,
+          "max": 3200,
+          "mean": 3124.6666666666665,
+          "median": 3146.0,
+          "min": 2984,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.06586356340205565,
+          "max": 2264,
+          "mean": 2263.3333333333335,
+          "median": 2264.0,
+          "min": 2260,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 2.5282591396544865,
+          "max": 40073.60113142972,
+          "mean": 39021.491887200355,
+          "median": 39298.222041919216,
+          "min": 37107.60806616032,
+          "n": 6
+        }
+      },
+      "complete": true,
+      "mode": "REDIRECT",
+      "paired_rps_ratio_candidate_over_base": {
+        "cv_pct": 1.6157871118568257,
+        "max": 1.0154616860540235,
+        "mean": 0.9959980615358797,
+        "median": 0.9982507295899777,
+        "min": 0.9690671119482474,
+        "n": 6
+      },
+      "rps_ratio_of_medians": 0.9922091651625423,
+      "successful_runs": {
+        "base": 6,
+        "candidate": 6
+      }
+    },
+    {
+      "base": {
+        "avg_ms": {
+          "cv_pct": 3.2345188559086773,
+          "max": 3.3052028598099996,
+          "mean": 3.1637632784350003,
+          "median": 3.174018144725,
+          "min": 3.02959879886,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 3.2547370405319227,
+          "max": 437.08208309292866,
+          "mean": 419.1552560992363,
+          "median": 417.5661148237773,
+          "min": 400.98621918214474,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 3.879405910842198,
+          "max": 6.683875549999997,
+          "mean": 6.269030733333331,
+          "median": 6.253867249999997,
+          "min": 5.909718299999994,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 5.315401787285161,
+          "max": 9.317562109999995,
+          "mean": 8.425975163333328,
+          "median": 8.409120694999991,
+          "min": 7.881075899999996,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 1.2214415882370873,
+          "max": 77.92469207375512,
+          "mean": 76.77245678176828,
+          "median": 76.83329559419275,
+          "min": 75.58443095082485,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 2.9197480030633582,
+          "max": 2.0599999999999996,
+          "mean": 1.9649999999999999,
+          "median": 1.955,
+          "min": 1.9,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 1.192006405319292,
+          "max": 3336,
+          "mean": 3307.3333333333335,
+          "median": 3334.0,
+          "min": 3244,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.0965468677574625,
+          "max": 2396,
+          "mean": 2392.0,
+          "median": 2392.0,
+          "min": 2388,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 3.254737040531921,
+          "max": 41681.55761153117,
+          "mean": 39971.99755168614,
+          "median": 39820.451912576,
+          "min": 38239.33957209841,
+          "n": 6
+        }
+      },
+      "body_bytes": 1024,
+      "candidate": {
+        "avg_ms": {
+          "cv_pct": 3.155877173672575,
+          "max": 3.36476489727,
+          "mean": 3.173024060685,
+          "median": 3.138340159485,
+          "min": 3.0761134236599994,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 3.0289122295616795,
+          "max": 431.60155715295826,
+          "mean": 418.2853179035016,
+          "median": 422.78019865911483,
+          "min": 394.9664895894605,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 4.387273032462052,
+          "max": 6.620535099999986,
+          "mean": 6.304189174999995,
+          "median": 6.349266024999999,
+          "min": 5.894158349999999,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 5.647201484727721,
+          "max": 9.32792745,
+          "mean": 8.57430499666666,
+          "median": 8.49148457499999,
+          "min": 7.911767009999983,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 1.3472452396247918,
+          "max": 78.25591427157225,
+          "mean": 76.50497603947174,
+          "median": 76.41795635568101,
+          "min": 75.22451025664077,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 2.233941233771349,
+          "max": 2.05,
+          "mean": 1.9583333333333333,
+          "median": 1.9449999999999998,
+          "min": 1.92,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 1.7131883551040714,
+          "max": 3380,
+          "mean": 3311.3333333333335,
+          "median": 3336.0,
+          "min": 3204,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.06233810921382185,
+          "max": 2392,
+          "mean": 2391.3333333333335,
+          "median": 2392.0,
+          "min": 2388,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 3.0289122295616813,
+          "max": 41158.91697595106,
+          "mean": 39889.037438639636,
+          "median": 40317.68376943015,
+          "min": 37665.27873655059,
+          "n": 6
+        }
+      },
+      "complete": true,
+      "mode": "TPROXY",
+      "paired_rps_ratio_candidate_over_base": {
+        "cv_pct": 3.338420585814181,
+        "max": 1.034366526611231,
+        "mean": 0.9985526996584205,
+        "median": 1.003369125235916,
+        "min": 0.9362531244932365,
+        "n": 6
+      },
+      "rps_ratio_of_medians": 1.012486846154981,
+      "successful_runs": {
+        "base": 6,
+        "candidate": 6
+      }
+    },
+    {
+      "base": {
+        "avg_ms": {
+          "cv_pct": 0.6689449759345732,
+          "max": 4.619197559730001,
+          "mean": 4.581569310356667,
+          "median": 4.589695607615,
+          "min": 4.52460935787,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 0.672004486304607,
+          "max": 14698.829065153144,
+          "mean": 14519.58562753827,
+          "median": 14503.216109173558,
+          "min": 14379.340587869023,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 0.8687471518659682,
+          "max": 9.737701299999998,
+          "mean": 9.639270699999997,
+          "median": 9.648118899999997,
+          "min": 9.506976749999998,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 1.0787399024649722,
+          "max": 13.157694709999998,
+          "mean": 12.972619573333327,
+          "median": 12.967342734999995,
+          "min": 12.759126929999988,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 0.8465281611842832,
+          "max": 58.87513251943963,
+          "mean": 58.45056752269849,
+          "median": 58.70767873812602,
+          "min": 57.630177294059095,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 0.21891850810729047,
+          "max": 2.16,
+          "mean": 2.1533333333333333,
+          "median": 2.15,
+          "min": 2.15,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 0.07955449482895784,
+          "max": 2516,
+          "mean": 2514.0,
+          "median": 2514.0,
+          "min": 2512,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.07955449482895784,
+          "max": 2516,
+          "mean": 2514.0,
+          "median": 2514.0,
+          "min": 2512,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 0.6720044863046079,
+          "max": 27913.22064082659,
+          "mean": 27572.835593800934,
+          "median": 27541.74971778503,
+          "min": 27306.508887182525,
+          "n": 6
+        }
+      },
+      "body_bytes": 65536,
+      "candidate": {
+        "avg_ms": {
+          "cv_pct": 1.1222985541048054,
+          "max": 4.68364721448,
+          "mean": 4.6359326543,
+          "median": 4.661219439785,
+          "min": 4.56254815837,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 1.1063854180956405,
+          "max": 14573.936770535269,
+          "mean": 14346.186605478157,
+          "median": 14263.209610291948,
+          "min": 14203.287465435422,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 1.901694072876743,
+          "max": 10.183802799999999,
+          "mean": 9.905212416666663,
+          "median": 9.846439674999996,
+          "min": 9.72077455,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 2.8210986123236346,
+          "max": 13.929635919999994,
+          "mean": 13.426282924999981,
+          "median": 13.332899459999979,
+          "min": 12.995024849999982,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 0.58229118827087,
+          "max": 58.195962437061446,
+          "mean": 57.580097954764064,
+          "median": 57.514628950016686,
+          "min": 57.2475949800336,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 0.8756740324291619,
+          "max": 2.1799999999999997,
+          "mean": 2.1533333333333333,
+          "median": 2.16,
+          "min": 2.1199999999999997,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 0.05932788478375669,
+          "max": 2516,
+          "mean": 2512.6666666666665,
+          "median": 2512.0,
+          "min": 2512,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.05932788478375669,
+          "max": 2516,
+          "mean": 2512.6666666666665,
+          "median": 2512.0,
+          "min": 2512,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 1.106385418095635,
+          "max": 27676.048947724,
+          "mean": 27243.549149267605,
+          "median": 27085.97502111909,
+          "min": 26972.182279994082,
+          "n": 6
+        }
+      },
+      "complete": true,
+      "mode": "NFQUEUE",
+      "paired_rps_ratio_candidate_over_base": {
+        "cv_pct": 1.4827064683965951,
+        "max": 1.0073204342304438,
+        "mean": 0.9881282812825914,
+        "median": 0.9872007605923492,
+        "min": 0.9671106100152135,
+        "n": 6
+      },
+      "rps_ratio_of_medians": 0.9834514981315212,
+      "successful_runs": {
+        "base": 6,
+        "candidate": 6
+      }
+    },
+    {
+      "base": {
+        "avg_ms": {
+          "cv_pct": 1.0898117300347858,
+          "max": 5.16573157549,
+          "mean": 5.063183341635,
+          "median": 5.04501647836,
+          "min": 5.01063337575,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 1.0709414382813702,
+          "max": 13293.880604281174,
+          "mean": 13163.326555592146,
+          "median": 13222.879089392958,
+          "min": 12903.153746762868,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 2.741054622972725,
+          "max": 9.736042249999995,
+          "mean": 9.41111383333333,
+          "median": 9.466777749999995,
+          "min": 9.027650799999991,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 3.593060032000462,
+          "max": 13.255720659999996,
+          "mean": 12.682290079999989,
+          "median": 12.702848289999983,
+          "min": 11.962611419999993,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 0.6636373963739889,
+          "max": 82.82966027775535,
+          "mean": 82.35161647773809,
+          "median": 82.52899941506732,
+          "min": 81.25800532970945,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 1.4205191274950144,
+          "max": 3.41,
+          "mean": 3.3433333333333333,
+          "median": 3.3150000000000004,
+          "min": 3.3,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 16.94962382025358,
+          "max": 4736,
+          "mean": 3438.0,
+          "median": 3200.0,
+          "min": 3068,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.0,
+          "max": 2264,
+          "mean": 2264.0,
+          "median": 2264.0,
+          "min": 2264,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 1.0709414382813727,
+          "max": 25245.209726251032,
+          "mean": 24997.286306606034,
+          "median": 25110.37715270909,
+          "min": 24503.215589448562,
+          "n": 6
+        }
+      },
+      "body_bytes": 65536,
+      "candidate": {
+        "avg_ms": {
+          "cv_pct": 1.6126675261227703,
+          "max": 5.274237427949999,
+          "mean": 5.104518923523333,
+          "median": 5.08047152439,
+          "min": 5.01591473571,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 1.5496703674591483,
+          "max": 13294.111915227275,
+          "mean": 13060.132601654295,
+          "median": 13111.836893090098,
+          "min": 12646.475546106984,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 2.6752680607762045,
+          "max": 9.850954049999995,
+          "mean": 9.409411691666659,
+          "median": 9.390637949999991,
+          "min": 9.01523125,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 5.194662995905356,
+          "max": 13.754461119999977,
+          "mean": 12.71446824833332,
+          "median": 12.633588759999984,
+          "min": 11.684598789999988,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 0.8231312099687885,
+          "max": 83.03038211918732,
+          "mean": 81.82989287698368,
+          "median": 81.8133110121253,
+          "min": 80.78630038225567,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 2.0391941822805215,
+          "max": 3.47,
+          "mean": 3.35,
+          "median": 3.35,
+          "min": 3.2399999999999998,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 14.862294358132178,
+          "max": 4444,
+          "mean": 3338.6666666666665,
+          "median": 3122.0,
+          "min": 3072,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.08333609678097202,
+          "max": 2264,
+          "mean": 2262.6666666666665,
+          "median": 2264.0,
+          "min": 2260,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 1.5496703674591537,
+          "max": 25245.648988007637,
+          "mean": 24801.319975390215,
+          "median": 24899.50693222385,
+          "min": 24015.781167506506,
+          "n": 6
+        }
+      },
+      "complete": true,
+      "mode": "REDIRECT",
+      "paired_rps_ratio_candidate_over_base": {
+        "cv_pct": 1.2106758779859486,
+        "max": 1.009114266395733,
+        "mean": 0.9921696273741163,
+        "median": 0.9882810311063719,
+        "min": 0.9795437246695912,
+        "n": 6
+      },
+      "rps_ratio_of_medians": 0.9916022678909667,
+      "successful_runs": {
+        "base": 6,
+        "candidate": 6
+      }
+    },
+    {
+      "base": {
+        "avg_ms": {
+          "cv_pct": 1.3242687296870204,
+          "max": 4.94098698101,
+          "mean": 4.85494002632,
+          "median": 4.857122205815001,
+          "min": 4.76266292454,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 1.3388180239465937,
+          "max": 13993.22531857285,
+          "mean": 13724.535245755802,
+          "median": 13722.206644735077,
+          "min": 13488.040896433768,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 1.9069528351227822,
+          "max": 9.389947299999985,
+          "mean": 9.185428999999994,
+          "median": 9.258124024999997,
+          "min": 8.859416699999995,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 2.693984925190989,
+          "max": 12.973032899999996,
+          "mean": 12.429882148333325,
+          "median": 12.439039104999985,
+          "min": 11.861383919999996,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 0.7526251356478972,
+          "max": 78.16417918005799,
+          "mean": 77.42172407484782,
+          "median": 77.38463294612926,
+          "min": 76.63496109678685,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 0.9301346014398989,
+          "max": 3.06,
+          "mean": 3.025,
+          "median": 3.0300000000000002,
+          "min": 2.98,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 1.163993996613943,
+          "max": 3328,
+          "mean": 3248.0,
+          "median": 3236.0,
+          "min": 3208,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.06230337078572833,
+          "max": 2396,
+          "mean": 2392.6666666666665,
+          "median": 2392.0,
+          "min": 2392,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 1.3388180239465963,
+          "max": 26573.272201669442,
+          "mean": 26063.02711661553,
+          "median": 26058.605080425583,
+          "min": 25613.922026429496,
+          "n": 6
+        }
+      },
+      "body_bytes": 65536,
+      "candidate": {
+        "avg_ms": {
+          "cv_pct": 0.9622846853857601,
+          "max": 4.93320241556,
+          "mean": 4.844306433601667,
+          "median": 4.837478339595,
+          "min": 4.78088603858,
+          "n": 6
+        },
+        "mbps": {
+          "cv_pct": 0.9284889484813411,
+          "max": 13911.491954341733,
+          "mean": 13754.70892630721,
+          "median": 13782.952333559315,
+          "min": 13501.689107925187,
+          "n": 6
+        },
+        "p95_ms": {
+          "cv_pct": 1.3630820123243232,
+          "max": 9.558815299999997,
+          "mean": 9.316150558333327,
+          "median": 9.279845149999995,
+          "min": 9.151104099999998,
+          "n": 6
+        },
+        "p99_ms": {
+          "cv_pct": 2.4422727753539255,
+          "max": 12.883003089999999,
+          "mean": 12.570066719999993,
+          "median": 12.64310226,
+          "min": 11.946675519999989,
+          "n": 6
+        },
+        "process_cpu_pct": {
+          "cv_pct": 1.1772083426642594,
+          "max": 79.00614736548893,
+          "mean": 77.53894211265887,
+          "median": 77.23124537474757,
+          "min": 76.66443807348237,
+          "n": 6
+        },
+        "process_cpu_sec": {
+          "cv_pct": 0.8908572097567439,
+          "max": 3.05,
+          "mean": 3.016666666666667,
+          "median": 3.02,
+          "min": 2.97,
+          "n": 6
+        },
+        "process_hwm_kib": {
+          "cv_pct": 14.494692705924786,
+          "max": 4604,
+          "mean": 3482.6666666666665,
+          "median": 3272.0,
+          "min": 3204,
+          "n": 6
+        },
+        "process_rss_kib": {
+          "cv_pct": 0.06233810921382185,
+          "max": 2392,
+          "mean": 2391.3333333333335,
+          "median": 2392.0,
+          "min": 2388,
+          "n": 6
+        },
+        "rps": {
+          "cv_pct": 0.9284889484813412,
+          "max": 26418.059740908953,
+          "mean": 26120.3272320903,
+          "median": 26173.961739627084,
+          "min": 25639.84011398763,
+          "n": 6
+        }
+      },
+      "complete": true,
+      "mode": "TPROXY",
+      "paired_rps_ratio_candidate_over_base": {
+        "cv_pct": 1.1867189175176827,
+        "max": 1.0177943469523507,
+        "mean": 1.0023153529459818,
+        "median": 1.0014460157757532,
+        "min": 0.9877005292168692,
+        "n": 6
+      },
+      "rps_ratio_of_medians": 1.0044268163566497,
+      "successful_runs": {
+        "base": 6,
+        "candidate": 6
+      }
+    }
+  ],
+  "build": {
+    "asan": false,
+    "backtrace": false,
+    "base_sha": "4ff67c3770cb2dabc6f1427ef19277df093aafc1",
+    "build_type": "RelWithDebInfo",
+    "cache": true,
+    "candidate_sha": "c192712beeff892344ef8be57619c3c380617cf8",
+    "compiler": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "coverage": false,
+    "github_repository": "Zxilly/UA2F",
+    "github_run_attempt": "1",
+    "github_run_id": "36663584403",
+    "packages": "cmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\ngcc\t4:13.2.0-7ubuntu1\nlibmnl-dev:amd64\t1.0.5-2build1\nlibnetfilter-conntrack-dev:amd64\t1.0.9-6build1\nlibnetfilter-queue-dev:amd64\t1.0.5-4build1\n",
+    "runner_image": "ubuntu24",
+    "runner_image_version": "20260927.320.1",
+    "uci": false
+  },
+  "environment": {
+    "binaries": {
+      "base": {
+        "sha256": "cbe2dfaeb54e12769b3ea2fe4fc0bb4070508406f6924d2082fea30f621ca51d",
+        "version": "UA2F version: unknown\nGit commit: 4ff67c3770cb2dabc6f1427ef19277df093aafc1\nGit branch: unknown\nGit tag: v5.2.0\nGit dirty: clean\nEmbed UA: not set\nSupported modes: NFQUEUE, REDIRECT, TPROXY\nDefault mode: NFQUEUE\nDefault listen port: 10010\nUCI support disabled\nConntrack cache: auto"
+      },
+      "candidate": {
+        "sha256": "1354c09d5568c55c045be7f62bb9dbcbea8f371a2b06caf9228fe4183af6d97b",
+        "version": "UA2F version: unknown\nGit commit: c192712beeff892344ef8be57619c3c380617cf8\nGit branch: unknown\nGit tag: v5.2.0\nGit dirty: clean\nEmbed UA: not set\nSupported modes: NFQUEUE, REDIRECT, TPROXY\nDefault mode: NFQUEUE\nDefault listen port: 10010\nUCI support disabled\nConntrack cache: auto"
+      }
+    },
+    "cc": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+    "clock_ticks_per_second": 100,
+    "cmake": "cmake version 3.31.6\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cpu_count": 4,
+    "cpu_topology": {
+      "Architecture": "x86_64",
+      "CPU(s)": "4",
+      "Core(s) per socket": "2",
+      "Model name": "AMD EPYC 9V74 80-Core Processor",
+      "Socket(s)": "1",
+      "Thread(s) per core": "2"
+    },
+    "go": "go version go1.22.2 linux/amd64",
+    "iptables": "iptables v1.8.10 (nf_tables)",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "source_sha256": {
+      "bench_client.go": "4c75391b709fcfa6011b047255a42a52b8cfa1d0f852ef0f80774398bf30fcc4",
+      "bench_server.go": "cfdbc66042d99537f47446a2e69dccdb9eeeeb1efb99c99f2d946bc92d7cff1f",
+      "benchmark.py": "6175c000a06bb8d45f2adfa4c3f4f8ad219944409d92cd743fefa295d936ea89",
+      "benchmark_compare.py": "7b331c3d24d7ff2164b2335d9f84d1eaaf680c30deaba3616feef903123e0f46"
+    }
+  },
+  "finished_at": "2026-09-30T03:21:09.460403+00:00",
+  "parameters": {
+    "base_sha": "4ff67c3770cb2dabc6f1427ef19277df093aafc1",
+    "body_sizes": [
+      1024,
+      65536
+    ],
+    "candidate_sha": "c192712beeff892344ef8be57619c3c380617cf8",
+    "case_timeout": 90,
+    "concurrency": 128,
+    "dry_run": false,
+    "nfqueue_workers": 1,
+    "pairs": 6,
+    "proxy_port": 10010,
+    "proxy_workers": 1,
+    "requests": 100000,
+    "server_control_port": 18081,
+    "server_port": 18080,
+    "timeout": 5,
+    "warmup": 10000
+  },
+  "plan": [
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 1,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 1,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 1,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 1,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 1,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 1,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 1,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 1,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 1,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 1,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 1,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 1,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 2,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 2,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 2,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 2,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 2,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 2,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 2,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 2,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 2,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 2,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 2,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 2,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 3,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 3,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 3,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 3,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 3,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 3,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 3,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 3,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 3,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 3,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 3,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 3,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 4,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 4,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 4,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 4,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 4,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 4,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 4,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 4,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 4,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 4,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 4,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 4,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 5,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 5,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 5,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 5,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 5,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 5,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 5,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 5,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 5,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 5,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 5,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 5,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 6,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "TPROXY",
+      "pair": 6,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 6,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "NFQUEUE",
+      "pair": 6,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 6,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "mode": "REDIRECT",
+      "pair": 6,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 6,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "TPROXY",
+      "pair": 6,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 6,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "NFQUEUE",
+      "pair": 6,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 6,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "mode": "REDIRECT",
+      "pair": 6,
+      "variant": "base"
+    }
+  ],
+  "publication_note": {
+    "omitted": "Temporary paths, hostname/namespace identifiers, memory addresses and unnecessary raw environment dumps. All performance/result metrics are unchanged.",
+    "original_artifact_sha256": "7af14e9897783e923216d8516841d056af9db4486da8764bc75188a70d9fe724",
+    "original_json_sha256": "4dee659233b244d6e0aa964aa6598a645dc3be550b04c06053f1810b9480af28"
+  },
+  "results": [
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.2447257000000036,
+      "finished_at": "2026-09-30T03:16:26.167628+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/001-1024-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:22.898724+00:00",
+      "summary": {
+        "avg_ms": 2.7410411544700004,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.173096486,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.678980000000003,
+        "mbps": 482.54748316775846,
+        "p50_ms": 2.4280905,
+        "p95_ms": 6.017493499999996,
+        "p99_ms": 7.934236759999996,
+        "process_cpu_pct": 41.430451836498264,
+        "process_cpu_sec": 0.93,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 46017.28484871334,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.1460146169999916,
+      "finished_at": "2026-09-30T03:16:29.302017+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/002-1024-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:26.167991+00:00",
+      "summary": {
+        "avg_ms": 2.6492648206500005,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.10457433,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 17.458492999999997,
+        "mbps": 498.25859084767984,
+        "p50_ms": 2.3611524999999998,
+        "p95_ms": 5.798474049999992,
+        "p99_ms": 7.924633899999996,
+        "process_cpu_pct": 40.540264409578505,
+        "process_cpu_sec": 0.87,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 47515.546766171945,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.808031372000002,
+      "finished_at": "2026-09-30T03:16:32.696908+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/003-1024-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:29.303358+00:00",
+      "summary": {
+        "avg_ms": 3.46489827399,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.736532315,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.430736999999997,
+        "mbps": 383.19380854817354,
+        "p50_ms": 3.187137,
+        "p95_ms": 6.576717549999994,
+        "p99_ms": 9.178178879999992,
+        "process_cpu_pct": 77.27833889741879,
+        "process_cpu_sec": 2.17,
+        "process_hwm_kib": 3072,
+        "process_rss_kib": 2264,
+        "rps": 36542.597889986915,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.7590966449999996,
+      "finished_at": "2026-09-30T03:16:36.093819+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/004-1024-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:32.697274+00:00",
+      "summary": {
+        "avg_ms": 3.4086864450500003,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.694865156,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 17.161118,
+        "mbps": 389.11863091379104,
+        "p50_ms": 3.1569465,
+        "p95_ms": 6.446370999999996,
+        "p99_ms": 8.669131569999996,
+        "process_cpu_pct": 79.37380533475297,
+        "process_cpu_sec": 2.19,
+        "process_hwm_kib": 3072,
+        "process_rss_kib": 2264,
+        "rps": 37107.60806616032,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.7028060979999964,
+      "finished_at": "2026-09-30T03:16:39.459355+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 1,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/005-1024-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:36.094171+00:00",
+      "summary": {
+        "avg_ms": 3.3052028598099996,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.615107926,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.759035,
+        "mbps": 400.98621918214474,
+        "p50_ms": 3.0200240000000003,
+        "p95_ms": 6.391291099999998,
+        "p99_ms": 8.444796459999994,
+        "process_cpu_pct": 76.21708421940974,
+        "process_cpu_sec": 2.0599999999999996,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 38239.33957209841,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.7018618500000002,
+      "finished_at": "2026-09-30T03:16:42.769449+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 1,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/006-1024-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:39.460810+00:00",
+      "summary": {
+        "avg_ms": 3.36476489727,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.654965086,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.534923,
+        "mbps": 394.9664895894605,
+        "p50_ms": 3.090926,
+        "p95_ms": 6.54120275,
+        "p99_ms": 8.72029637999999,
+        "process_cpu_pct": 75.87360545469782,
+        "process_cpu_sec": 2.05,
+        "process_hwm_kib": 3276,
+        "process_rss_kib": 2392,
+        "rps": 37665.27873655059,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.654640084999997,
+      "finished_at": "2026-09-30T03:16:47.579664+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/007-65536-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:42.769789+00:00",
+      "summary": {
+        "avg_ms": 4.52460935787,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.582531779,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.152533,
+        "mbps": 14698.829065153144,
+        "p50_ms": 4.0634015,
+        "p95_ms": 9.576140499999998,
+        "p99_ms": 12.859404259999996,
+        "process_cpu_pct": 58.82932245022978,
+        "process_cpu_sec": 2.15,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 27913.22064082659,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.773084267999991,
+      "finished_at": "2026-09-30T03:16:52.517868+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/008-65536-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:47.580013+00:00",
+      "summary": {
+        "avg_ms": 4.68364721448,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.704366121,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 29.011502,
+        "mbps": 14215.393543709606,
+        "p50_ms": 4.182230000000001,
+        "p95_ms": 10.111492,
+        "p99_ms": 13.907599539999982,
+        "process_cpu_pct": 57.2475949800336,
+        "process_cpu_sec": 2.16,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 26995.17184143905,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.073444809000009,
+      "finished_at": "2026-09-30T03:16:57.344045+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/009-65536-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:52.518209+00:00",
+      "summary": {
+        "avg_ms": 5.05999502077,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.991540812,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.928147,
+        "mbps": 13192.65534795188,
+        "p50_ms": 4.7847740000000005,
+        "p95_ms": 9.027650799999991,
+        "p99_ms": 11.962611419999993,
+        "process_cpu_pct": 81.25800532970945,
+        "process_cpu_sec": 3.31,
+        "process_hwm_kib": 3068,
+        "process_rss_kib": 2264,
+        "rps": 25052.981971113564,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.010580982999997,
+      "finished_at": "2026-09-30T03:17:02.139230+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 1,
+      "raw_directory": "runs/010-65536-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:16:57.345210+00:00",
+      "summary": {
+        "avg_ms": 5.01591473571,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.9610786019999997,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.291729,
+        "mbps": 13294.111915227275,
+        "p50_ms": 4.7439445,
+        "p95_ms": 9.01523125,
+        "p99_ms": 11.684598789999988,
+        "process_cpu_pct": 80.78630038225567,
+        "process_cpu_sec": 3.2399999999999998,
+        "process_hwm_kib": 3132,
+        "process_rss_kib": 2264,
+        "rps": 25245.648988007637,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.9081629940000084,
+      "finished_at": "2026-09-30T03:17:06.812022+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 1,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/011-65536-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:02.139553+00:00",
+      "summary": {
+        "avg_ms": 4.842763344190001,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.827407596,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 26.979018,
+        "mbps": 13758.40459088643,
+        "p50_ms": 4.549238,
+        "p95_ms": 9.063955449999998,
+        "p99_ms": 12.280125259999993,
+        "process_cpu_pct": 78.04178087460785,
+        "process_cpu_sec": 3.0500000000000003,
+        "process_hwm_kib": 3248,
+        "process_rss_kib": 2392,
+        "rps": 26127.345335393435,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.863691609,
+      "finished_at": "2026-09-30T03:17:11.434296+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 1,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/012-65536-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:06.812352+00:00",
+      "summary": {
+        "avg_ms": 4.825792062290001,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.81072883,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.400906,
+        "mbps": 13818.622260771046,
+        "p50_ms": 4.5064775,
+        "p95_ms": 9.151104099999998,
+        "p99_ms": 11.946675519999989,
+        "process_cpu_pct": 78.42240806543627,
+        "process_cpu_sec": 3.0300000000000002,
+        "process_hwm_kib": 3208,
+        "process_rss_kib": 2392,
+        "rps": 26241.699281446905,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.058755257999991,
+      "finished_at": "2026-09-30T03:17:16.261767+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/013-65536-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:11.435649+00:00",
+      "summary": {
+        "avg_ms": 5.08478086726,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 4.01642806,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.049695,
+        "mbps": 13110.908860645695,
+        "p50_ms": 4.807690999999999,
+        "p95_ms": 9.300780299999996,
+        "p99_ms": 12.418631649999982,
+        "process_cpu_pct": 83.03038211918732,
+        "process_cpu_sec": 3.37,
+        "process_hwm_kib": 3072,
+        "process_rss_kib": 2260,
+        "rps": 24897.744589504735,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.009011998000005,
+      "finished_at": "2026-09-30T03:17:21.010555+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/014-65536-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:16.262117+00:00",
+      "summary": {
+        "avg_ms": 5.01282717055,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.9648214680000002,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.142925,
+        "mbps": 13281.56202366487,
+        "p50_ms": 4.705979,
+        "p95_ms": 9.351924200000001,
+        "p99_ms": 12.617238969999967,
+        "process_cpu_pct": 82.81342140298568,
+        "process_cpu_sec": 3.3200000000000003,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2264,
+        "rps": 25221.816620772996,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.9653326580000225,
+      "finished_at": "2026-09-30T03:17:25.694706+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 2,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/015-65536-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:21.010887+00:00",
+      "summary": {
+        "avg_ms": 4.93320241556,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.900180327,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.019558,
+        "mbps": 13501.689107925187,
+        "p50_ms": 4.629762,
+        "p95_ms": 9.257286299999995,
+        "p99_ms": 12.579287169999995,
+        "process_cpu_pct": 76.66443807348237,
+        "process_cpu_sec": 3.04,
+        "process_hwm_kib": 3208,
+        "process_rss_kib": 2392,
+        "rps": 25639.84011398763,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.9716087950000087,
+      "finished_at": "2026-09-30T03:17:30.426523+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 2,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/016-65536-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:25.695052+00:00",
+      "summary": {
+        "avg_ms": 4.92090505336,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.894389495,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 27.497813,
+        "mbps": 13521.765685637974,
+        "p50_ms": 4.610899,
+        "p95_ms": 9.2343348,
+        "p99_ms": 12.378199719999984,
+        "process_cpu_pct": 77.04686332280099,
+        "process_cpu_sec": 3.06,
+        "process_hwm_kib": 3232,
+        "process_rss_kib": 2396,
+        "rps": 25677.965732084536,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.7747848209999972,
+      "finished_at": "2026-09-30T03:17:35.360088+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/017-65536-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:30.427753+00:00",
+      "summary": {
+        "avg_ms": 4.667885179940001,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.702154344,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 29.263045,
+        "mbps": 14223.886242166893,
+        "p50_ms": 4.216588000000001,
+        "p95_ms": 9.722325799999988,
+        "p99_ms": 13.059638319999976,
+        "process_cpu_pct": 57.75163627532244,
+        "process_cpu_sec": 2.1799999999999997,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 27011.299559152038,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.668781550999995,
+      "finished_at": "2026-09-30T03:17:40.176998+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/018-65536-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:35.360426+00:00",
+      "summary": {
+        "avg_ms": 4.56446646095,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.6154774830000003,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.630775,
+        "mbps": 14564.887345475965,
+        "p50_ms": 4.0812975,
+        "p95_ms": 9.695314799999993,
+        "p99_ms": 12.938754599999996,
+        "process_cpu_pct": 58.87513251943963,
+        "process_cpu_sec": 2.1599999999999997,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 27658.864000730384,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.6563761080000177,
+      "finished_at": "2026-09-30T03:17:43.439152+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/019-1024-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:40.177322+00:00",
+      "summary": {
+        "avg_ms": 3.2752076224199995,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.594169735,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.78805,
+        "mbps": 404.2226789759383,
+        "p50_ms": 2.978569,
+        "p95_ms": 6.37900429999999,
+        "p99_ms": 9.253354429999991,
+        "process_cpu_pct": 80.18442846196483,
+        "process_cpu_sec": 2.13,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2264,
+        "rps": 38547.97881989784,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.602548503999998,
+      "finished_at": "2026-09-30T03:17:46.663997+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/020-1024-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:43.443197+00:00",
+      "summary": {
+        "avg_ms": 3.17465032129,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.513924573,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.760943,
+        "mbps": 417.1255777768317,
+        "p50_ms": 2.8926645000000004,
+        "p95_ms": 6.132427249999994,
+        "p99_ms": 8.529998519999982,
+        "process_cpu_pct": 78.38470625483495,
+        "process_cpu_sec": 2.04,
+        "process_hwm_kib": 3072,
+        "process_rss_kib": 2264,
+        "rps": 39778.44087846465,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.5046030299999984,
+      "finished_at": "2026-09-30T03:17:49.780371+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 2,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/021-1024-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:46.664436+00:00",
+      "summary": {
+        "avg_ms": 3.08857881087,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.447970059,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.312511,
+        "mbps": 428.36399740459404,
+        "p50_ms": 2.7952615,
+        "p95_ms": 6.543689999999997,
+        "p99_ms": 8.984835850000001,
+        "process_cpu_pct": 78.25591427157225,
+        "process_cpu_sec": 1.96,
+        "process_hwm_kib": 3380,
+        "process_rss_kib": 2392,
+        "rps": 40850.17283293496,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.553435907000022,
+      "finished_at": "2026-09-30T03:17:52.944753+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 2,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/022-1024-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:49.780705+00:00",
+      "summary": {
+        "avg_ms": 3.18185969832,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.518889237,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.672975,
+        "mbps": 416.3034343061906,
+        "p50_ms": 2.924889,
+        "p95_ms": 6.121564949999999,
+        "p99_ms": 8.09417512,
+        "process_cpu_pct": 75.58443095082485,
+        "process_cpu_sec": 1.93,
+        "process_hwm_kib": 3260,
+        "process_rss_kib": 2396,
+        "rps": 39700.03862460428,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.1427427449999925,
+      "finished_at": "2026-09-30T03:17:56.098178+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/023-1024-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:52.945098+00:00",
+      "summary": {
+        "avg_ms": 2.62633660783,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.081828551,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.344172,
+        "mbps": 503.7024972571816,
+        "p50_ms": 2.336708,
+        "p95_ms": 5.701819499999999,
+        "p99_ms": 7.903460159999997,
+        "process_cpu_pct": 41.06885915509205,
+        "process_cpu_sec": 0.88,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 48034.695245180155,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.093058689000003,
+      "finished_at": "2026-09-30T03:17:59.191531+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 2,
+      "raw_directory": "runs/024-1024-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:56.099464+00:00",
+      "summary": {
+        "avg_ms": 2.58466840925,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.044952183,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 17.884674,
+        "mbps": 512.7857016498268,
+        "p50_ms": 2.2757415,
+        "p95_ms": 5.756293549999997,
+        "p99_ms": 7.607781199999996,
+        "process_cpu_pct": 42.999272057201196,
+        "process_cpu_sec": 0.9,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 48900.89892141014,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.652075042000007,
+      "finished_at": "2026-09-30T03:18:02.443302+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 3,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/025-1024-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:17:59.191862+00:00",
+      "summary": {
+        "avg_ms": 3.25965952616,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.583787674,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.456703,
+        "mbps": 405.84690861095885,
+        "p50_ms": 2.9405895,
+        "p95_ms": 6.683875549999997,
+        "p99_ms": 9.317562109999995,
+        "process_cpu_pct": 75.78971062916081,
+        "process_cpu_sec": 2.0100000000000002,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 38702.87059818213,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.5514372530000173,
+      "finished_at": "2026-09-30T03:18:05.584567+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 3,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/026-1024-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:02.443646+00:00",
+      "summary": {
+        "avg_ms": 3.16061188522,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.497942081,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.874287,
+        "mbps": 419.7944571958232,
+        "p50_ms": 2.9038895,
+        "p95_ms": 6.157329299999996,
+        "p99_ms": 8.23833051999999,
+        "process_cpu_pct": 75.64363958904643,
+        "process_cpu_sec": 1.93,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 40032.953830525585,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.094858509000005,
+      "finished_at": "2026-09-30T03:18:08.692445+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/027-1024-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:05.588721+00:00",
+      "summary": {
+        "avg_ms": 2.58087423197,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.051174933,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.769523,
+        "mbps": 511.23003851568615,
+        "p50_ms": 2.2586335,
+        "p95_ms": 5.759675549999996,
+        "p99_ms": 7.99232301,
+        "process_cpu_pct": 42.484969566028,
+        "process_cpu_sec": 0.89,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 48752.5458658674,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.1009348759999966,
+      "finished_at": "2026-09-30T03:18:11.798058+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/028-1024-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:08.692759+00:00",
+      "summary": {
+        "avg_ms": 2.59166845066,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.057781289,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 13.686332,
+        "mbps": 509.5887719484459,
+        "p50_ms": 2.3003535000000004,
+        "p95_ms": 5.697959249999999,
+        "p99_ms": 7.5774866199999975,
+        "process_cpu_pct": 41.41013650344112,
+        "process_cpu_sec": 0.87,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 48596.029390760006,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.6008549779999726,
+      "finished_at": "2026-09-30T03:18:15.002013+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/029-1024-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:11.798385+00:00",
+      "summary": {
+        "avg_ms": 3.2100305361499997,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.53580923,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 14.853264,
+        "mbps": 413.52568150404596,
+        "p50_ms": 2.9920615,
+        "p95_ms": 5.934073449999999,
+        "p99_ms": 7.827049209999999,
+        "process_cpu_pct": 79.2047237321981,
+        "process_cpu_sec": 2.06,
+        "process_hwm_kib": 3072,
+        "process_rss_kib": 2264,
+        "rps": 39435.14315546521,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.6058002209999813,
+      "finished_at": "2026-09-30T03:18:18.220279+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/030-1024-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:15.002321+00:00",
+      "summary": {
+        "avg_ms": 3.23436105128,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.557770457,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.519527999999998,
+        "mbps": 409.97511607430374,
+        "p50_ms": 2.9918634999999996,
+        "p95_ms": 5.9866556999999965,
+        "p99_ms": 7.995752259999999,
+        "process_cpu_pct": 79.05441036494618,
+        "process_cpu_sec": 2.0599999999999996,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2260,
+        "rps": 39096.54978081561,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.926149011999996,
+      "finished_at": "2026-09-30T03:18:22.906971+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 3,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/031-65536-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:18.221420+00:00",
+      "summary": {
+        "avg_ms": 4.87148106744,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.847653717,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.942121,
+        "mbps": 13686.008698583724,
+        "p50_ms": 4.5764755,
+        "p95_ms": 8.859416699999995,
+        "p99_ms": 11.861383919999996,
+        "process_cpu_pct": 76.9201574053757,
+        "process_cpu_sec": 3.02,
+        "process_hwm_kib": 3328,
+        "process_rss_kib": 2392,
+        "rps": 25989.86482545773,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.860459093000003,
+      "finished_at": "2026-09-30T03:18:27.531726+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 3,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/032-65536-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:22.907291+00:00",
+      "summary": {
+        "avg_ms": 4.78088603858,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.785289343,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 27.605137,
+        "mbps": 13911.491954341733,
+        "p50_ms": 4.439833500000001,
+        "p95_ms": 9.558815299999997,
+        "p99_ms": 12.804913219999992,
+        "process_cpu_pct": 79.00614736548893,
+        "process_cpu_sec": 3.05,
+        "process_hwm_kib": 4604,
+        "process_rss_kib": 2392,
+        "rps": 26418.059740908953,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.6694723089999854,
+      "finished_at": "2026-09-30T03:18:32.351982+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/033-65536-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:27.532064+00:00",
+      "summary": {
+        "avg_ms": 4.59817060456,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.632420381,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.745581,
+        "mbps": 14496.951541028147,
+        "p50_ms": 4.188918,
+        "p95_ms": 9.506976749999998,
+        "p99_ms": 12.759126929999988,
+        "process_cpu_pct": 58.8640495992365,
+        "process_cpu_sec": 2.16,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 27529.853241399924,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.772521420000004,
+      "finished_at": "2026-09-30T03:18:37.286052+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/034-65536-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:32.352301+00:00",
+      "summary": {
+        "avg_ms": 4.68222748773,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.707523513,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 23.465647,
+        "mbps": 14203.287465435422,
+        "p50_ms": 4.232223,
+        "p95_ms": 9.9422395,
+        "p99_ms": 13.470579569999996,
+        "process_cpu_pct": 57.25613613613352,
+        "process_cpu_sec": 2.1599999999999997,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 26972.182279994082,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.116882755000006,
+      "finished_at": "2026-09-30T03:18:42.166485+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/035-65536-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:37.291613+00:00",
+      "summary": {
+        "avg_ms": 5.0998749713,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 4.033441815,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 26.129213,
+        "mbps": 13055.604780058045,
+        "p50_ms": 4.7892585,
+        "p95_ms": 9.736042249999995,
+        "p99_ms": 12.788457609999998,
+        "process_cpu_pct": 82.82966027775535,
+        "process_cpu_sec": 3.4099999999999997,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2264,
+        "rps": 24792.721597745425,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.072205964999995,
+      "finished_at": "2026-09-30T03:18:47.001249+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 3,
+      "raw_directory": "runs/036-65536-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:42.166800+00:00",
+      "summary": {
+        "avg_ms": 5.054360139290001,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.997011983,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 26.799740999999997,
+        "mbps": 13174.597039980901,
+        "p50_ms": 4.764126,
+        "p95_ms": 9.32903234999999,
+        "p99_ms": 12.367116669999996,
+        "process_cpu_pct": 81.52829273703016,
+        "process_cpu_sec": 3.32,
+        "process_hwm_kib": 4444,
+        "process_rss_kib": 2264,
+        "rps": 25018.68906706252,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.7650181079999925,
+      "finished_at": "2026-09-30T03:18:51.911502+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/037-65536-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:47.001618+00:00",
+      "summary": {
+        "avg_ms": 4.65455369963,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.681796946,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 25.421782,
+        "mbps": 14302.532978417003,
+        "p50_ms": 4.114730000000001,
+        "p95_ms": 10.183802799999999,
+        "p99_ms": 13.929635919999994,
+        "process_cpu_pct": 57.37024200256528,
+        "process_cpu_sec": 2.16,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 27160.65048308615,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.730684341,
+      "finished_at": "2026-09-30T03:18:56.796032+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/038-65536-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:51.911823+00:00",
+      "summary": {
+        "avg_ms": 4.619197559730001,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.662130535,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 25.146686000000003,
+        "mbps": 14379.340587869023,
+        "p50_ms": 4.1200775,
+        "p95_ms": 9.737701299999998,
+        "p99_ms": 13.124806069999998,
+        "process_cpu_pct": 57.630177294059095,
+        "process_cpu_sec": 2.15,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 27306.508887182525,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.116239305999983,
+      "finished_at": "2026-09-30T03:19:01.723413+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/039-65536-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:18:56.796357+00:00",
+      "summary": {
+        "avg_ms": 5.12165818941,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 4.043870043,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 25.731869,
+        "mbps": 13021.937322430418,
+        "p50_ms": 4.800352500000001,
+        "p95_ms": 9.508228649999978,
+        "p99_ms": 12.848545869999988,
+        "process_cpu_pct": 81.62790717979735,
+        "process_cpu_sec": 3.3600000000000003,
+        "process_hwm_kib": 3112,
+        "process_rss_kib": 2264,
+        "rps": 24728.786765316927,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.006344331000008,
+      "finished_at": "2026-09-30T03:19:06.492642+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/040-65536-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:01.729964+00:00",
+      "summary": {
+        "avg_ms": 5.01063337575,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.9611475240000003,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 26.596724,
+        "mbps": 13293.880604281174,
+        "p50_ms": 4.685881999999999,
+        "p95_ms": 9.581631299999987,
+        "p99_ms": 13.255720659999996,
+        "process_cpu_pct": 82.36935538629301,
+        "process_cpu_sec": 3.3,
+        "process_hwm_kib": 4736,
+        "process_rss_kib": 2264,
+        "rps": 25245.209726251032,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.8733319549999976,
+      "finished_at": "2026-09-30T03:19:11.138431+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 4,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/041-65536-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:06.492981+00:00",
+      "summary": {
+        "avg_ms": 4.8491646169000004,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.830504145,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.060227,
+        "mbps": 13747.282406347585,
+        "p50_ms": 4.502980999999999,
+        "p95_ms": 9.372641849999985,
+        "p99_ms": 12.706917350000001,
+        "process_cpu_pct": 76.67816842205052,
+        "process_cpu_sec": 2.97,
+        "process_hwm_kib": 3204,
+        "process_rss_kib": 2388,
+        "rps": 26106.22419780726,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.8598909720000165,
+      "finished_at": "2026-09-30T03:19:15.741804+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 4,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/042-65536-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:11.138747+00:00",
+      "summary": {
+        "avg_ms": 4.79084078738,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.788482566,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 30.760303,
+        "mbps": 13899.76628442006,
+        "p50_ms": 4.4482289999999995,
+        "p95_ms": 9.389947299999985,
+        "p99_ms": 12.973032899999996,
+        "process_cpu_pct": 77.72240256945753,
+        "process_cpu_sec": 3.0,
+        "process_hwm_kib": 3232,
+        "process_rss_kib": 2392,
+        "rps": 26395.792578658526,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.0480672229999755,
+      "finished_at": "2026-09-30T03:19:18.774491+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/043-1024-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:15.742139+00:00",
+      "summary": {
+        "avg_ms": 2.53582923657,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.007531166,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 14.730562,
+        "mbps": 522.3441895994954,
+        "p50_ms": 2.2560100000000003,
+        "p95_ms": 5.565682949999999,
+        "p99_ms": 7.414581779999994,
+        "process_cpu_pct": 43.45560487493875,
+        "process_cpu_sec": 0.89,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 49812.42717105593,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.0488779380000324,
+      "finished_at": "2026-09-30T03:19:21.825887+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/044-1024-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:18.774793+00:00",
+      "summary": {
+        "avg_ms": 2.53176277373,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.012842806,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.591731,
+        "mbps": 520.965788721407,
+        "p50_ms": 2.2386385,
+        "p95_ms": 5.599442,
+        "p99_ms": 7.5377708099999925,
+        "process_cpu_pct": 42.462265997613876,
+        "process_cpu_sec": 0.87,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 49680.97841615556,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.556127561999972,
+      "finished_at": "2026-09-30T03:19:24.995289+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/045-1024-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:21.832729+00:00",
+      "summary": {
+        "avg_ms": 3.18035087603,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.51235329,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.934686,
+        "mbps": 417.38645761878496,
+        "p50_ms": 2.954988,
+        "p95_ms": 5.9157164999999985,
+        "p99_ms": 7.958791260000001,
+        "process_cpu_pct": 80.19944037519136,
+        "process_cpu_sec": 2.05,
+        "process_hwm_kib": 2984,
+        "process_rss_kib": 2264,
+        "rps": 39803.319221875834,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.6025941820000185,
+      "finished_at": "2026-09-30T03:19:28.189072+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 4,
+      "raw_directory": "runs/046-1024-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:24.995615+00:00",
+      "summary": {
+        "avg_ms": 3.2165301759,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.538864409,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 25.080579,
+        "mbps": 413.0280594279661,
+        "p50_ms": 2.9137795,
+        "p95_ms": 6.3558863499999925,
+        "p99_ms": 8.977733389999988,
+        "process_cpu_pct": 81.07295461555692,
+        "process_cpu_sec": 2.11,
+        "process_hwm_kib": 4740,
+        "process_rss_kib": 2264,
+        "rps": 39387.6883088009,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.4947277030000237,
+      "finished_at": "2026-09-30T03:19:31.276710+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 4,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/047-1024-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:28.189395+00:00",
+      "summary": {
+        "avg_ms": 3.0761134236599994,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.429607175,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 20.128148,
+        "mbps": 431.60155715295826,
+        "p50_ms": 2.821183,
+        "p95_ms": 5.894158349999999,
+        "p99_ms": 7.911767009999983,
+        "process_cpu_pct": 76.96230725666422,
+        "process_cpu_sec": 1.92,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 41158.91697595106,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.45108443700002,
+      "finished_at": "2026-09-30T03:19:34.336068+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 4,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/048-1024-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:31.277055+00:00",
+      "summary": {
+        "avg_ms": 3.0400821963299998,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.405736409,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.740266000000002,
+        "mbps": 435.8840960618308,
+        "p50_ms": 2.7982515,
+        "p95_ms": 5.909718299999994,
+        "p99_ms": 7.881075899999996,
+        "process_cpu_pct": 77.92469207375512,
+        "process_cpu_sec": 1.91,
+        "process_hwm_kib": 3244,
+        "process_rss_kib": 2392,
+        "rps": 41567.313703153086,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.5493434389999834,
+      "finished_at": "2026-09-30T03:19:37.484052+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/049-1024-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:34.336396+00:00",
+      "summary": {
+        "avg_ms": 3.15177197667,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.492173268,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.750159999999997,
+        "mbps": 420.76618566795406,
+        "p50_ms": 2.9309879999999997,
+        "p95_ms": 5.862688599999998,
+        "p99_ms": 7.938578919999994,
+        "process_cpu_pct": 80.8051190155872,
+        "process_cpu_sec": 2.06,
+        "process_hwm_kib": 4584,
+        "process_rss_kib": 2260,
+        "rps": 40125.62099273749,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.5982312080000156,
+      "finished_at": "2026-09-30T03:19:40.674474+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/050-1024-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:37.490645+00:00",
+      "summary": {
+        "avg_ms": 3.20174605417,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.5316523440000003,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.816157,
+        "mbps": 414.2046764379904,
+        "p50_ms": 2.9755795,
+        "p95_ms": 5.89878725,
+        "p99_ms": 7.638028389999988,
+        "process_cpu_pct": 79.669584201222,
+        "process_cpu_sec": 2.07,
+        "process_hwm_kib": 3092,
+        "process_rss_kib": 2264,
+        "rps": 39499.894303022826,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.556504330999985,
+      "finished_at": "2026-09-30T03:19:43.825101+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 5,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/051-1024-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:40.674802+00:00",
+      "summary": {
+        "avg_ms": 3.16617659113,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.503701397,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.592848,
+        "mbps": 418.82879534136396,
+        "p50_ms": 2.886558,
+        "p95_ms": 6.344766999999997,
+        "p99_ms": 8.427733959999996,
+        "process_cpu_pct": 77.44950696897574,
+        "process_cpu_sec": 1.98,
+        "process_hwm_kib": 3332,
+        "process_rss_kib": 2388,
+        "rps": 39940.86520054772,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.50422086399999,
+      "finished_at": "2026-09-30T03:19:46.917314+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 5,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/052-1024-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:43.825461+00:00",
+      "summary": {
+        "avg_ms": 3.1160684337499998,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.462907765,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.335659,
+        "mbps": 425.7659401224065,
+        "p50_ms": 2.8663485,
+        "p95_ms": 6.068219549999995,
+        "p99_ms": 8.262672769999993,
+        "process_cpu_pct": 77.06987940820893,
+        "process_cpu_sec": 1.93,
+        "process_hwm_kib": 3204,
+        "process_rss_kib": 2388,
+        "rps": 40602.41370833471,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.1466828929999906,
+      "finished_at": "2026-09-30T03:19:50.066076+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/053-1024-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:46.917654+00:00",
+      "summary": {
+        "avg_ms": 2.6071947218899996,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.065132206,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.258198,
+        "mbps": 507.7748712423112,
+        "p50_ms": 2.3315,
+        "p95_ms": 5.629858049999999,
+        "p99_ms": 7.668844279999992,
+        "process_cpu_pct": 40.993478956279354,
+        "process_cpu_sec": 0.88,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 48423.04996719421,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.152259861999994,
+      "finished_at": "2026-09-30T03:19:53.202881+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/054-1024-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:50.066417+00:00",
+      "summary": {
+        "avg_ms": 2.66465351571,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.113897183,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 18.791138,
+        "mbps": 496.06113695265753,
+        "p50_ms": 2.3499005,
+        "p95_ms": 5.9221093499999995,
+        "p99_ms": 8.018907959999996,
+        "process_cpu_pct": 41.8165118390338,
+        "process_cpu_sec": 0.9,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 47305.99047304752,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.1239036679999685,
+      "finished_at": "2026-09-30T03:19:58.087323+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/055-65536-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:53.203217+00:00",
+      "summary": {
+        "avg_ms": 5.16573157549,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 4.081097015,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 29.326336,
+        "mbps": 12903.153746762868,
+        "p50_ms": 4.8561375,
+        "p95_ms": 9.6220738,
+        "p99_ms": 13.169648159999998,
+        "process_cpu_pct": 82.68864344384163,
+        "process_cpu_sec": 3.41,
+        "process_hwm_kib": 3224,
+        "process_rss_kib": 2264,
+        "rps": 24503.215589448562,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.231306891000031,
+      "finished_at": "2026-09-30T03:20:03.062415+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/056-65536-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:19:58.087623+00:00",
+      "summary": {
+        "avg_ms": 5.274237427949999,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 4.163928681,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.948466,
+        "mbps": 12646.475546106984,
+        "p50_ms": 4.924774,
+        "p95_ms": 9.850954049999995,
+        "p99_ms": 13.754461119999977,
+        "process_cpu_pct": 82.00775999917835,
+        "process_cpu_sec": 3.47,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2260,
+        "rps": 24015.781167506506,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.966857889000039,
+      "finished_at": "2026-09-30T03:20:07.804671+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 5,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/057-65536-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:03.062758+00:00",
+      "summary": {
+        "avg_ms": 4.94098698101,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.9041268220000003,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 23.934097,
+        "mbps": 13488.040896433768,
+        "p50_ms": 4.626656,
+        "p95_ms": 9.281913249999995,
+        "p99_ms": 12.499878489999984,
+        "process_cpu_pct": 76.63496109678685,
+        "process_cpu_sec": 3.04,
+        "process_hwm_kib": 3208,
+        "process_rss_kib": 2392,
+        "rps": 25613.922026429496,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.91924050099999,
+      "finished_at": "2026-09-30T03:20:12.478130+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 5,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/058-65536-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:07.805032+00:00",
+      "summary": {
+        "avg_ms": 4.85680113882,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.8358700199999998,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 31.948601,
+        "mbps": 13728.051775852406,
+        "p50_ms": 4.5304275,
+        "p95_ms": 9.254651799999994,
+        "p99_ms": 12.499603969999978,
+        "process_cpu_pct": 76.80059438128386,
+        "process_cpu_sec": 3.01,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 26069.70504177824,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.712100645000021,
+      "finished_at": "2026-09-30T03:20:17.370631+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/059-65536-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:12.478455+00:00",
+      "summary": {
+        "avg_ms": 4.60175126836,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.639682948,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 23.401149,
+        "mbps": 14468.024548384372,
+        "p50_ms": 4.156152,
+        "p95_ms": 9.600923,
+        "p99_ms": 13.157694709999998,
+        "process_cpu_pct": 57.9186882472037,
+        "process_cpu_sec": 2.15,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 27474.920598496043,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.6772310489999995,
+      "finished_at": "2026-09-30T03:20:22.213553+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 5,
+      "raw_directory": "runs/060-65536-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:17.376965+00:00",
+      "summary": {
+        "avg_ms": 4.56254815837,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.613232517,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.692404,
+        "mbps": 14573.936770535269,
+        "p50_ms": 4.080110499999999,
+        "p95_ms": 9.75063984999999,
+        "p99_ms": 12.995024849999982,
+        "process_cpu_pct": 58.195962437061446,
+        "process_cpu_sec": 2.14,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 27676.048947724,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.8628982040000324,
+      "finished_at": "2026-09-30T03:20:26.842896+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 6,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/061-65536-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:22.213889+00:00",
+      "summary": {
+        "avg_ms": 4.819992329460001,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.810041247,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 38.378983999999996,
+        "mbps": 13821.116052605295,
+        "p50_ms": 4.447866,
+        "p95_ms": 9.302403999999994,
+        "p99_ms": 12.883003089999999,
+        "process_cpu_pct": 77.66189636821127,
+        "process_cpu_sec": 3.0,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 26246.435016612828,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.812488062,
+      "finished_at": "2026-09-30T03:20:31.417795+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 6,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/062-65536-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:26.843230+00:00",
+      "summary": {
+        "avg_ms": 4.76266292454,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.763179756,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 25.340999999999998,
+        "mbps": 13993.22531857285,
+        "p50_ms": 4.4279465,
+        "p95_ms": 9.283006499999995,
+        "p99_ms": 12.586672599999995,
+        "process_cpu_pct": 78.16417918005799,
+        "process_cpu_sec": 2.98,
+        "process_hwm_kib": 3240,
+        "process_rss_kib": 2392,
+        "rps": 26573.272201669442,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.6767883859999984,
+      "finished_at": "2026-09-30T03:20:36.259869+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/063-65536-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:31.418127+00:00",
+      "summary": {
+        "avg_ms": 4.56473418565,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.617167423,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 26.946243000000003,
+        "mbps": 14558.082632604755,
+        "p50_ms": 4.1121965,
+        "p95_ms": 9.72077455,
+        "p99_ms": 13.195219349999963,
+        "process_cpu_pct": 57.659015897468095,
+        "process_cpu_sec": 2.1199999999999997,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 27645.9417842103,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 3.669816534000006,
+      "finished_at": "2026-09-30T03:20:41.086939+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/064-65536-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:36.260201+00:00",
+      "summary": {
+        "avg_ms": 4.58122061067,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.629283736,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.397844,
+        "mbps": 14509.48067731897,
+        "p50_ms": 4.1126515,
+        "p95_ms": 9.718567849999998,
+        "p99_ms": 12.995930869999993,
+        "process_cpu_pct": 58.586035026022266,
+        "process_cpu_sec": 2.15,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 27553.646194170142,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.073234570000011,
+      "finished_at": "2026-09-30T03:20:45.932119+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/065-65536-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:41.087258+00:00",
+      "summary": {
+        "avg_ms": 5.07616218152,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 4.015859549,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.256467999999998,
+        "mbps": 13112.764925534502,
+        "p50_ms": 4.7713175,
+        "p95_ms": 9.452243549999995,
+        "p99_ms": 13.213455389999993,
+        "process_cpu_pct": 81.99871484445323,
+        "process_cpu_sec": 3.34,
+        "process_hwm_kib": 3072,
+        "process_rss_kib": 2264,
+        "rps": 24901.269274942963,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 65536,
+      "cpu_sample_wall_sec": 4.029184783999995,
+      "finished_at": "2026-09-30T03:20:50.719080+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/066-65536-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:45.932435+00:00",
+      "summary": {
+        "avg_ms": 5.03003793595,
+        "bytes_total": 6582377780,
+        "completed": 100000,
+        "duration_sec": 3.97333537,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 22.362541999999998,
+        "mbps": 13253.102830834036,
+        "p50_ms": 4.7416339999999995,
+        "p95_ms": 9.147360649999998,
+        "p99_ms": 12.300063659999985,
+        "process_cpu_pct": 82.15061302584341,
+        "process_cpu_sec": 3.31,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2264,
+        "rps": 25167.772334304616,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.605533745999992,
+      "finished_at": "2026-09-30T03:20:53.930931+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 6,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/067-1024-tproxy-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:50.719420+00:00",
+      "summary": {
+        "avg_ms": 3.23200691334,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.562493545,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 20.105974,
+        "mbps": 409.2194659557669,
+        "p50_ms": 2.907931,
+        "p95_ms": 6.620535099999986,
+        "p99_ms": 9.32792745,
+        "process_cpu_pct": 75.22451025664077,
+        "process_cpu_sec": 1.9600000000000002,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 39024.4885475409,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.446268489999966,
+      "finished_at": "2026-09-30T03:20:56.998194+00:00",
+      "mode": "TPROXY",
+      "ok": true,
+      "pair": 6,
+      "policy_routes": "local default dev lo scope host",
+      "policy_rules": "0:\tfrom all lookup local\n32765:\tfrom all fwmark 0x1c9 lookup 457\n32766:\tfrom all lookup main\n32767:\tfrom all lookup default",
+      "raw_directory": "runs/068-1024-tproxy-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:53.931263+00:00",
+      "summary": {
+        "avg_ms": 3.02959879886,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.399142588,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 15.342836,
+        "mbps": 437.08208309292866,
+        "p50_ms": 2.764146,
+        "p95_ms": 6.162967499999996,
+        "p99_ms": 8.390507429999989,
+        "process_cpu_pct": 77.66931584848344,
+        "process_cpu_sec": 1.9,
+        "process_hwm_kib": 3336,
+        "process_rss_kib": 2392,
+        "rps": 41681.55761153117,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.0988539530000025,
+      "finished_at": "2026-09-30T03:21:00.071813+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/069-1024-nfqueue-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:20:56.998548+00:00",
+      "summary": {
+        "avg_ms": 2.58513287256,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.054107178,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 24.796145,
+        "mbps": 510.50025589268444,
+        "p50_ms": 2.2783654999999996,
+        "p95_ms": 5.711957999999999,
+        "p99_ms": 7.5945380999999985,
+        "process_cpu_pct": 42.40409384978293,
+        "process_cpu_sec": 0.89,
+        "process_hwm_kib": 2516,
+        "process_rss_kib": 2516,
+        "rps": 48682.951440423814,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.1004269670000326,
+      "finished_at": "2026-09-30T03:21:03.135091+00:00",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/070-1024-nfqueue-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:21:00.072151+00:00",
+      "summary": {
+        "avg_ms": 2.5529398032399997,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.025766607,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 16.103060999999997,
+        "mbps": 517.6421787073125,
+        "p50_ms": 2.2485135,
+        "p95_ms": 5.7333597999999935,
+        "p99_ms": 7.657277239999989,
+        "process_cpu_pct": 42.84843101616806,
+        "process_cpu_sec": 0.9,
+        "process_hwm_kib": 2512,
+        "process_rss_kib": 2512,
+        "rps": 49364.02824217351,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.5528612989999715,
+      "finished_at": "2026-09-30T03:21:06.300959+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/071-1024-redirect-candidate",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:21:03.135417+00:00",
+      "summary": {
+        "avg_ms": 3.15758114595,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.495408378,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 19.668043,
+        "mbps": 420.22069383306365,
+        "p50_ms": 2.9161425,
+        "p95_ms": 5.914843049999996,
+        "p99_ms": 7.808839579999991,
+        "process_cpu_pct": 80.30205169403615,
+        "process_cpu_sec": 2.05,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2264,
+        "rps": 40073.60113142972,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "candidate"
+    },
+    {
+      "body_bytes": 1024,
+      "cpu_sample_wall_sec": 2.5483089669999686,
+      "finished_at": "2026-09-30T03:21:09.458012+00:00",
+      "mode": "REDIRECT",
+      "ok": true,
+      "pair": 6,
+      "raw_directory": "runs/072-1024-redirect-base",
+      "server": {
+        "requests": 100000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 90000
+        }
+      },
+      "started_at": "2026-09-30T03:21:06.301277+00:00",
+      "summary": {
+        "avg_ms": 3.17381238875,
+        "bytes_total": 131077780,
+        "completed": 100000,
+        "duration_sec": 2.508103871,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 14.41916,
+        "mbps": 418.09362527793013,
+        "p50_ms": 2.946313,
+        "p95_ms": 5.8413407,
+        "p99_ms": 7.585440679999992,
+        "process_cpu_pct": 79.26825303205179,
+        "process_cpu_sec": 2.02,
+        "process_hwm_kib": 3200,
+        "process_rss_kib": 2264,
+        "rps": 39870.7570114029,
+        "status_counts": {
+          "200": 100000
+        }
+      },
+      "ua_ok": true,
+      "variant": "base"
+    }
+  ],
+  "schema_version": 1,
+  "started_at": "2026-09-30T03:16:15.134191+00:00",
+  "status": "passed"
+}

@@ -179,6 +179,8 @@ REDIRECT/TPROXY 需要自行配置对应的 netfilter 规则。TPROXY 还需要 
 
 Req/s 为各 6 次运行的中位数；配对吞吐比为每对「本分支 / 基线」的中位数，两者计算方式不同。完整延迟、CPU、RSS、min/max、每次运行数据及复现方法见 [测量报告](docs/benchmarks/2026-09-30/README.md) 和 [CI 运行](https://github.com/Zxilly/UA2F/actions/runs/36661195647)。
 
+在另一台 4 vCPU AMD EPYC 9V74 runner 上，对 `c192712` 的第二轮 72 次 A/B 复测也未测得明确收益（配对中位吞吐比 0.9872–1.0034×）。独立的未插桩诊断中，1 KiB 请求的 UA2F user / system CPU 为 NFQUEUE `1.6 / 7.0 µs`、REDIRECT `1.8 / 18.8 µs`、TPROXY `1.6 / 17.6 µs`；client、origin、UA2F 合计使用约 3.4–3.7 个逻辑 CPU。后续应优先验证内核 / I/O 成本，不能仅凭 parser 微基准推断整体改善。单独的 syscall trace 只用于找线索，不作为吞吐证据；详情见 [routed profiling](docs/benchmarks/2026-09-30/routed-profile-summary.md)。不同 runner 的绝对吞吐不作横向比较。
+
 ### 热路径微基准（不含内核 / 网络）
 
 另一台本地云环境：AMD EPYC 9V74、Debian 13 / Linux 6.18.44、GCC 14.2.0，固定 CPU 2；同样使用 `RelWithDebInfo`。基线 `4ff67c3` 与优化代码 `f12729b` 使用相同 harness，先验证改写字节和 IP/TCP checksum，再进行 9 对交替测量，每次至少 200 ms。下表为 IPv4 handler 的 ns/op 中位数；一个 op 是完整 workload，16 请求流水线不是单请求。
@@ -191,7 +193,9 @@ Req/s 为各 6 次运行的中位数；配对吞吐比为每对「本分支 / �
 | 16 个重复 UA（压力测试） | 3760 | 1154 | 3.26× |
 | 128 个重复 UA（压力测试） | 145022 | 7461 | 19.44× |
 
-改进来自缓存 UA 替换容量、每个带 UA 的改写包只计算一次 TCP checksum，以及不再回传未改写 payload。utarray 溢出存储、inline 8 无额外 entry 分配、OOM 后持续拒绝该流的数据包、分段 UA 和活跃上传 TTL 行为保持。未改动 parser 的对照仍出现约 3–12% 的二进制布局 / 环境差异，几个百分点的小变化不作优化结论；全部 39 个 case、702 个原始样本和增量实验均保留在报告中。
+改进来自缓存 UA 替换容量、每个带 UA 的改写包只计算一次 TCP checksum，以及不再回传未改写 payload。utarray 溢出存储、inline 8 无额外 entry 分配、UA 条目分配失败后持续拒绝该流的数据包、分段 UA 和活跃上传 TTL 行为保持。未改动 parser 的对照仍出现约 3–12% 的二进制布局 / 环境差异，几个百分点的小变化不作优化结论；全部 39 个 case、702 个原始样本和增量实验均保留在报告中。
+
+性能 workflow 仅手动触发，额外 syscall diagnostics 默认关闭；不会成为每次 PR 更新都自动执行的耗时 gate。
 
 ### 历史 UA2F / UA3F 对比（旧环境，非本轮重测）
 

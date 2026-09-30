@@ -1,0 +1,2064 @@
+{
+  "environment": {
+    "binary_sha256": "1354c09d5568c55c045be7f62bb9dbcbea8f371a2b06caf9228fe4183af6d97b",
+    "binary_version": "UA2F version: unknown\nGit commit: c192712beeff892344ef8be57619c3c380617cf8\nGit branch: unknown\nGit tag: v5.2.0\nGit dirty: clean\nEmbed UA: not set\nSupported modes: NFQUEUE, REDIRECT, TPROXY\nDefault mode: NFQUEUE\nDefault listen port: 10010\nUCI support disabled\nConntrack cache: auto",
+    "clock_ticks_per_second": 100,
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "source_sha256": {
+      "bench_client.go": "4c75391b709fcfa6011b047255a42a52b8cfa1d0f852ef0f80774398bf30fcc4",
+      "bench_server.go": "cfdbc66042d99537f47446a2e69dccdb9eeeeb1efb99c99f2d946bc92d7cff1f",
+      "benchmark.py": "6175c000a06bb8d45f2adfa4c3f4f8ad219944409d92cd743fefa295d936ea89",
+      "benchmark_compare.py": "7b331c3d24d7ff2164b2335d9f84d1eaaf680c30deaba3616feef903123e0f46",
+      "profile_routed.py": "b0a8e6ac3b006868699b4a61da56bda24334e47c82d5b7db46c698168475249c"
+    },
+    "strace_version": "strace -- version 6.8\nCopyright (c) 1991-2024 The strace developers <https://strace.io>.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\nOptional features enabled: stack-trace=libunwind stack-demangle m32-mpers mx32-mpers"
+  },
+  "finished_at": "2026-09-30T03:21:37.878575+00:00",
+  "parameters": {
+    "body_sizes": [
+      1024,
+      65536
+    ],
+    "candidate_sha": "c192712beeff892344ef8be57619c3c380617cf8",
+    "case_timeout": 90,
+    "concurrency": 128,
+    "dry_run": false,
+    "nfqueue_workers": 1,
+    "profile_requests": 50000,
+    "proxy_port": 10010,
+    "proxy_workers": 1,
+    "server_control_port": 18081,
+    "server_port": 18080,
+    "timeout": 5,
+    "trace_requests": 2000,
+    "trace_warmup": 200,
+    "warmup": 5000
+  },
+  "plan": [
+    {
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "DIRECT"
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "NFQUEUE"
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "REDIRECT"
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "TPROXY"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "DIRECT"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "NFQUEUE"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "REDIRECT"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "TPROXY"
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "strace",
+      "mode": "NFQUEUE"
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "strace",
+      "mode": "REDIRECT"
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "strace",
+      "mode": "TPROXY"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "strace",
+      "mode": "NFQUEUE"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "strace",
+      "mode": "REDIRECT"
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "strace",
+      "mode": "TPROXY"
+    }
+  ],
+  "publication_note": {
+    "omitted": "Temporary paths, hostname/namespace identifiers, memory addresses and unnecessary raw environment dumps. All performance/result metrics are unchanged.",
+    "original_artifact_sha256": "7af14e9897783e923216d8516841d056af9db4486da8764bc75188a70d9fe724",
+    "original_json_sha256": "f293404d1baee5ef67a987238f051fe150dabe5a651fd4b28a83d225a77e0abc"
+  },
+  "results": [
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 3965,
+              "voluntary_ctxt_switches": 4915
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.0793,
+              "voluntary_ctxt_switches": 0.0983
+            },
+            "cpu_pct_one_core": 204.43672723518986,
+            "system_sec": 0.568306,
+            "system_us_per_request": 11.366119999999999,
+            "total_sec": 1.756119,
+            "total_us_per_request": 35.12238,
+            "user_sec": 1.187813,
+            "user_us_per_request": 23.756259999999997
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 2816,
+              "voluntary_ctxt_switches": 9658
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.05632,
+              "voluntary_ctxt_switches": 0.19316
+            },
+            "cpu_pct_one_core": 150.17397917418748,
+            "system_sec": 0.5700000000000001,
+            "system_us_per_request": 11.4,
+            "threads_missing_at_end": [],
+            "total_sec": 1.29,
+            "total_us_per_request": 25.8,
+            "user_sec": 0.72,
+            "user_us_per_request": 14.399999999999999
+          }
+        },
+        "wall_sec": 0.8590036749999967
+      },
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "DIRECT",
+      "ok": true,
+      "raw_directory": "runs/01-1024-direct-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "UA-BENCH/0": 1,
+          "UA-BENCH/1": 1,
+          "UA-BENCH/10": 1,
+          "UA-BENCH/100": 1,
+          "UA-BENCH/1000": 1,
+          "UA-BENCH/10000": 1,
+          "UA-BENCH/10001": 1,
+          "UA-BENCH/10002": 1,
+          "UA-BENCH/10003": 1,
+          "UA-BENCH/10004": 1
+        }
+      },
+      "summary": {
+        "avg_ms": 2.08996259292,
+        "bytes_total": 65527780,
+        "completed": 50000,
+        "duration_sec": 0.844484489,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 20.885971,
+        "mbps": 620.760057559802,
+        "p50_ms": 1.6072410000000001,
+        "p95_ms": 5.542323499999998,
+        "p99_ms": 8.329806870000002,
+        "rps": 59207.71861565832,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "top-10 unchanged sample",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4927,
+              "voluntary_ctxt_switches": 9446
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.09854,
+              "voluntary_ctxt_switches": 0.18892
+            },
+            "cpu_pct_one_core": 180.79453117385438,
+            "system_sec": 0.616644,
+            "system_us_per_request": 12.33288,
+            "total_sec": 1.8338,
+            "total_us_per_request": 36.676,
+            "user_sec": 1.2171560000000001,
+            "user_us_per_request": 24.343120000000003
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 3656,
+              "voluntary_ctxt_switches": 12153
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.07312,
+              "voluntary_ctxt_switches": 0.24306
+            },
+            "cpu_pct_one_core": 128.16713410732393,
+            "system_sec": 0.5599999999999999,
+            "system_us_per_request": 11.2,
+            "threads_missing_at_end": [],
+            "total_sec": 1.2999999999999998,
+            "total_us_per_request": 25.999999999999996,
+            "user_sec": 0.74,
+            "user_us_per_request": 14.8
+          },
+          "ua2f": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 1631,
+              "voluntary_ctxt_switches": 2857
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.03262,
+              "voluntary_ctxt_switches": 0.05714
+            },
+            "cpu_pct_one_core": 42.39374435857639,
+            "system_sec": 0.35,
+            "system_us_per_request": 7.0,
+            "threads_missing_at_end": [],
+            "total_sec": 0.43,
+            "total_us_per_request": 8.600000000000001,
+            "user_sec": 0.08,
+            "user_us_per_request": 1.5999999999999999
+          }
+        },
+        "wall_sec": 1.0143005919999837
+      },
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "raw_directory": "runs/02-1024-nfqueue-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 40000
+        }
+      },
+      "summary": {
+        "avg_ms": 2.5144581364800005,
+        "bytes_total": 65527780,
+        "completed": 50000,
+        "duration_sec": 1.003395928,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 14.334298,
+        "mbps": 522.448044058636,
+        "p50_ms": 2.2291365,
+        "p95_ms": 5.45232345,
+        "p99_ms": 7.292128400000001,
+        "rps": 49830.778264828674,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 5429,
+              "voluntary_ctxt_switches": 13904
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.10858,
+              "voluntary_ctxt_switches": 0.27808
+            },
+            "cpu_pct_one_core": 154.7479335447968,
+            "system_sec": 0.710116,
+            "system_us_per_request": 14.202319999999999,
+            "total_sec": 1.967789,
+            "total_us_per_request": 39.355779999999996,
+            "user_sec": 1.257673,
+            "user_us_per_request": 25.15346
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4292,
+              "voluntary_ctxt_switches": 18077
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.08584,
+              "voluntary_ctxt_switches": 0.36154
+            },
+            "cpu_pct_one_core": 110.09671614320212,
+            "system_sec": 0.6499999999999999,
+            "system_us_per_request": 12.999999999999998,
+            "threads_missing_at_end": [],
+            "total_sec": 1.4,
+            "total_us_per_request": 28.0,
+            "user_sec": 0.75,
+            "user_us_per_request": 15.0
+          },
+          "ua2f": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 3109,
+              "voluntary_ctxt_switches": 392
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.06218,
+              "voluntary_ctxt_switches": 0.00784
+            },
+            "cpu_pct_one_core": 80.99972687678442,
+            "system_sec": 0.9400000000000001,
+            "system_us_per_request": 18.8,
+            "threads_missing_at_end": [],
+            "total_sec": 1.03,
+            "total_us_per_request": 20.599999999999998,
+            "user_sec": 0.09,
+            "user_us_per_request": 1.7999999999999998
+          }
+        },
+        "wall_sec": 1.2716092260000096
+      },
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "REDIRECT",
+      "ok": true,
+      "raw_directory": "runs/03-1024-redirect-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 40000
+        }
+      },
+      "summary": {
+        "avg_ms": 3.1752654929200004,
+        "bytes_total": 65527780,
+        "completed": 50000,
+        "duration_sec": 1.255837687,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 21.768998,
+        "mbps": 417.4283392086162,
+        "p50_ms": 2.9203639999999997,
+        "p95_ms": 5.733573549999999,
+        "p99_ms": 7.457485520000004,
+        "rps": 39814.06237253652,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 5561,
+              "voluntary_ctxt_switches": 13764
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.11122,
+              "voluntary_ctxt_switches": 0.27528
+            },
+            "cpu_pct_one_core": 161.98185341799348,
+            "system_sec": 0.702034,
+            "system_us_per_request": 14.040680000000002,
+            "total_sec": 2.008615,
+            "total_us_per_request": 40.17229999999999,
+            "user_sec": 1.306581,
+            "user_us_per_request": 26.13162
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4102,
+              "voluntary_ctxt_switches": 17346
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.08204,
+              "voluntary_ctxt_switches": 0.34692
+            },
+            "cpu_pct_one_core": 109.67523425269209,
+            "system_sec": 0.6000000000000001,
+            "system_us_per_request": 12.000000000000002,
+            "threads_missing_at_end": [],
+            "total_sec": 1.36,
+            "total_us_per_request": 27.2,
+            "user_sec": 0.76,
+            "user_us_per_request": 15.2
+          },
+          "ua2f": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4191,
+              "voluntary_ctxt_switches": 836
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.08382,
+              "voluntary_ctxt_switches": 0.01672
+            },
+            "cpu_pct_one_core": 77.417812413665,
+            "system_sec": 0.88,
+            "system_us_per_request": 17.6,
+            "threads_missing_at_end": [],
+            "total_sec": 0.96,
+            "total_us_per_request": 19.2,
+            "user_sec": 0.08,
+            "user_us_per_request": 1.5999999999999999
+          }
+        },
+        "wall_sec": 1.2400247049999962
+      },
+      "body_bytes": 1024,
+      "kind": "accounting",
+      "mode": "TPROXY",
+      "ok": true,
+      "raw_directory": "runs/04-1024-tproxy-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 40000
+        }
+      },
+      "summary": {
+        "avg_ms": 3.0746937882800003,
+        "bytes_total": 65527780,
+        "completed": 50000,
+        "duration_sec": 1.225757407,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 20.865610999999998,
+        "mbps": 427.67209645750074,
+        "p50_ms": 2.8040269999999996,
+        "p95_ms": 5.821313599999997,
+        "p99_ms": 7.715401750000007,
+        "rps": 40791.10573957152,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 6543,
+              "voluntary_ctxt_switches": 7660
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.13086,
+              "voluntary_ctxt_switches": 0.1532
+            },
+            "cpu_pct_one_core": 210.9083764975429,
+            "system_sec": 1.48815,
+            "system_us_per_request": 29.763,
+            "total_sec": 3.041944,
+            "total_us_per_request": 60.838879999999996,
+            "user_sec": 1.553794,
+            "user_us_per_request": 31.075879999999998
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4414,
+              "voluntary_ctxt_switches": 11020
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.08828,
+              "voluntary_ctxt_switches": 0.2204
+            },
+            "cpu_pct_one_core": 162.24019936075427,
+            "system_sec": 1.5,
+            "system_us_per_request": 30.0,
+            "threads_missing_at_end": [],
+            "total_sec": 2.34,
+            "total_us_per_request": 46.8,
+            "user_sec": 0.8400000000000001,
+            "user_us_per_request": 16.8
+          }
+        },
+        "wall_sec": 1.4423059200000239
+      },
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "DIRECT",
+      "ok": true,
+      "raw_directory": "runs/05-65536-direct-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "UA-BENCH/0": 1,
+          "UA-BENCH/1": 1,
+          "UA-BENCH/10": 1,
+          "UA-BENCH/100": 1,
+          "UA-BENCH/1000": 1,
+          "UA-BENCH/10000": 1,
+          "UA-BENCH/10001": 1,
+          "UA-BENCH/10002": 1,
+          "UA-BENCH/10003": 1,
+          "UA-BENCH/10004": 1
+        }
+      },
+      "summary": {
+        "avg_ms": 3.56834144158,
+        "bytes_total": 3291177780,
+        "completed": 50000,
+        "duration_sec": 1.42984794,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 25.498942,
+        "mbps": 18414.141464581193,
+        "p50_ms": 2.9168570000000003,
+        "p95_ms": 9.221289599999999,
+        "p99_ms": 12.841295020000002,
+        "rps": 34968.75339065775,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "top-10 unchanged sample",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 6787,
+              "voluntary_ctxt_switches": 14029
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.13574,
+              "voluntary_ctxt_switches": 0.28058
+            },
+            "cpu_pct_one_core": 162.7752127205146,
+            "system_sec": 1.598052,
+            "system_us_per_request": 31.961040000000004,
+            "total_sec": 3.293645,
+            "total_us_per_request": 65.8729,
+            "user_sec": 1.6955930000000001,
+            "user_us_per_request": 33.91186
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 5213,
+              "voluntary_ctxt_switches": 15098
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.10426,
+              "voluntary_ctxt_switches": 0.30196
+            },
+            "cpu_pct_one_core": 123.55248722958498,
+            "system_sec": 1.56,
+            "system_us_per_request": 31.2,
+            "threads_missing_at_end": [],
+            "total_sec": 2.5,
+            "total_us_per_request": 50.0,
+            "user_sec": 0.9400000000000001,
+            "user_us_per_request": 18.8
+          },
+          "ua2f": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 3340,
+              "voluntary_ctxt_switches": 3660
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.0668,
+              "voluntary_ctxt_switches": 0.0732
+            },
+            "cpu_pct_one_core": 54.857304329935744,
+            "system_sec": 0.9600000000000001,
+            "system_us_per_request": 19.200000000000003,
+            "threads_missing_at_end": [],
+            "total_sec": 1.11,
+            "total_us_per_request": 22.2,
+            "user_sec": 0.15,
+            "user_us_per_request": 3.0
+          }
+        },
+        "wall_sec": 2.0234315440000046
+      },
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "raw_directory": "runs/06-65536-nfqueue-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 40000
+        }
+      },
+      "summary": {
+        "avg_ms": 5.051412008720001,
+        "bytes_total": 3291177780,
+        "completed": 50000,
+        "duration_sec": 2.007124494,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 27.661308,
+        "mbps": 13117.981629294989,
+        "p50_ms": 4.5183085,
+        "p95_ms": 10.646658050000001,
+        "p99_ms": 14.993009740000034,
+        "rps": 24911.259939016018,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 7954,
+              "voluntary_ctxt_switches": 17230
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.15908,
+              "voluntary_ctxt_switches": 0.3446
+            },
+            "cpu_pct_one_core": 168.91016502257432,
+            "system_sec": 1.770243,
+            "system_us_per_request": 35.40486,
+            "total_sec": 3.421027,
+            "total_us_per_request": 68.42054,
+            "user_sec": 1.650784,
+            "user_us_per_request": 33.01568
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 5131,
+              "voluntary_ctxt_switches": 19016
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.10262,
+              "voluntary_ctxt_switches": 0.38032
+            },
+            "cpu_pct_one_core": 110.59800745523685,
+            "system_sec": 1.36,
+            "system_us_per_request": 27.2,
+            "threads_missing_at_end": [],
+            "total_sec": 2.24,
+            "total_us_per_request": 44.800000000000004,
+            "user_sec": 0.88,
+            "user_us_per_request": 17.6
+          },
+          "ua2f": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 3815,
+              "voluntary_ctxt_switches": 446
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.0763,
+              "voluntary_ctxt_switches": 0.00892
+            },
+            "cpu_pct_one_core": 81.96102338200588,
+            "system_sec": 1.57,
+            "system_us_per_request": 31.400000000000006,
+            "threads_missing_at_end": [],
+            "total_sec": 1.6600000000000001,
+            "total_us_per_request": 33.2,
+            "user_sec": 0.09,
+            "user_us_per_request": 1.7999999999999998
+          }
+        },
+        "wall_sec": 2.0253529440000193
+      },
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "REDIRECT",
+      "ok": true,
+      "raw_directory": "runs/07-65536-redirect-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 40000
+        }
+      },
+      "summary": {
+        "avg_ms": 5.08355813658,
+        "bytes_total": 3291177780,
+        "completed": 50000,
+        "duration_sec": 2.013422194,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 19.616721000000002,
+        "mbps": 13076.95043715208,
+        "p50_ms": 4.8193174999999995,
+        "p95_ms": 8.862100899999993,
+        "p99_ms": 11.756998130000001,
+        "rps": 24833.34103945017,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 5000
+    },
+    {
+      "accounting": {
+        "cgroup_unavailable": "No visible cgroup v2 mount",
+        "cgroups": {},
+        "processes": {
+          "client": {
+            "context_scope": "wait4 entire process including exited threads, minus immediate pre-exec getrusage",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 7769,
+              "voluntary_ctxt_switches": 14835
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.15538,
+              "voluntary_ctxt_switches": 0.2967
+            },
+            "cpu_pct_one_core": 175.1453360257943,
+            "system_sec": 1.823354,
+            "system_us_per_request": 36.46708,
+            "total_sec": 3.4578990000000003,
+            "total_us_per_request": 69.15798000000001,
+            "user_sec": 1.6345450000000001,
+            "user_us_per_request": 32.6909
+          },
+          "origin": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4437,
+              "voluntary_ctxt_switches": 17370
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.08874,
+              "voluntary_ctxt_switches": 0.3474
+            },
+            "cpu_pct_one_core": 111.9382586411591,
+            "system_sec": 1.2599999999999998,
+            "system_us_per_request": 25.199999999999996,
+            "threads_missing_at_end": [],
+            "total_sec": 2.21,
+            "total_us_per_request": 44.199999999999996,
+            "user_sec": 0.9500000000000001,
+            "user_us_per_request": 19.0
+          },
+          "ua2f": {
+            "context_scope": "sum of surviving/new thread counters; lower bound if threads exit",
+            "context_switches": {
+              "nonvoluntary_ctxt_switches": 4132,
+              "voluntary_ctxt_switches": 814
+            },
+            "context_switches_per_request": {
+              "nonvoluntary_ctxt_switches": 0.08264,
+              "voluntary_ctxt_switches": 0.01628
+            },
+            "cpu_pct_one_core": 78.00222547845476,
+            "system_sec": 1.4500000000000002,
+            "system_us_per_request": 29.000000000000004,
+            "threads_missing_at_end": [],
+            "total_sec": 1.5400000000000003,
+            "total_us_per_request": 30.800000000000004,
+            "user_sec": 0.09000000000000001,
+            "user_us_per_request": 1.8
+          }
+        },
+        "wall_sec": 1.9743026440000335
+      },
+      "body_bytes": 65536,
+      "kind": "accounting",
+      "mode": "TPROXY",
+      "ok": true,
+      "raw_directory": "runs/08-65536-tproxy-accounting",
+      "requests": 50000,
+      "server": {
+        "requests": 50000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 9000,
+          "FFFFFFFFFFFFFF": 40000
+        }
+      },
+      "summary": {
+        "avg_ms": 4.93146757378,
+        "bytes_total": 3291177780,
+        "completed": 50000,
+        "duration_sec": 1.957903946,
+        "error_samples": [],
+        "errors": 0,
+        "max_ms": 23.502327,
+        "mbps": 13447.759934184227,
+        "p50_ms": 4.591946499999999,
+        "p95_ms": 9.367642449999998,
+        "p99_ms": 12.895881450000015,
+        "rps": 25537.514290295014,
+        "status_counts": {
+          "200": 50000
+        }
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 5000
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "strace",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "raw_directory": "runs/09-1024-nfqueue-strace",
+      "requests": 2000,
+      "server": {
+        "requests": 2000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 1000
+        }
+      },
+      "trace": {
+        "counts": {
+          "close": {
+            "calls": 8,
+            "errors": 0
+          },
+          "connect": {
+            "calls": 1,
+            "errors": 0
+          },
+          "futex": {
+            "calls": 5,
+            "errors": 0
+          },
+          "read": {
+            "calls": 7,
+            "errors": 0
+          },
+          "recvmsg": {
+            "calls": 3421,
+            "errors": 1
+          },
+          "sendto": {
+            "calls": 3437,
+            "errors": 0
+          },
+          "setsockopt": {
+            "calls": 3,
+            "errors": 0
+          },
+          "socket": {
+            "calls": 3,
+            "errors": 0
+          },
+          "write": {
+            "calls": 1,
+            "errors": 0
+          }
+        },
+        "observations": {
+          "close": {
+            "errors": {},
+            "parsed_calls": 8,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 8
+          },
+          "connect": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1
+          },
+          "futex": {
+            "errors": {},
+            "parsed_calls": 5,
+            "positive_return_sum": 1,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 4
+          },
+          "read": {
+            "errors": {},
+            "parsed_calls": 7,
+            "positive_return_sum": 4334,
+            "positive_returns": 7,
+            "requested_read_bytes": 12352,
+            "short_reads": 2,
+            "zero_returns": 0
+          },
+          "recvmsg": {
+            "errors": {
+              "EINTR": 1
+            },
+            "parsed_calls": 3421,
+            "positive_return_sum": 765248,
+            "positive_returns": 3420,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "sendto": {
+            "errors": {},
+            "parsed_calls": 3437,
+            "positive_return_sum": 549654,
+            "positive_returns": 3437,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "setsockopt": {
+            "errors": {},
+            "parsed_calls": 3,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 3
+          },
+          "socket": {
+            "errors": {},
+            "parsed_calls": 3,
+            "positive_return_sum": 12,
+            "positive_returns": 3,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "write": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 30,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          }
+        },
+        "receive_batching_note": "recvmsg/recvfrom returns are bytes, recvmmsg returns messages; raw trace shows netlink messages",
+        "scope": "selected UA2F syscalls across startup, warmup, requests and shutdown; no timing claims"
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 200
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "strace",
+      "mode": "REDIRECT",
+      "ok": true,
+      "raw_directory": "runs/10-1024-redirect-strace",
+      "requests": 2000,
+      "server": {
+        "requests": 2000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 1000
+        }
+      },
+      "trace": {
+        "counts": {
+          "accept": {
+            "calls": 260,
+            "errors": 3
+          },
+          "close": {
+            "calls": 1035,
+            "errors": 0
+          },
+          "connect": {
+            "calls": 257,
+            "errors": 256
+          },
+          "epoll_ctl": {
+            "calls": 1538,
+            "errors": 0
+          },
+          "epoll_wait": {
+            "calls": 51,
+            "errors": 0
+          },
+          "futex": {
+            "calls": 5,
+            "errors": 0
+          },
+          "getsockopt": {
+            "calls": 513,
+            "errors": 1
+          },
+          "read": {
+            "calls": 7,
+            "errors": 0
+          },
+          "recvfrom": {
+            "calls": 4912,
+            "errors": 2200
+          },
+          "sendto": {
+            "calls": 2215,
+            "errors": 0
+          },
+          "setsockopt": {
+            "calls": 774,
+            "errors": 0
+          },
+          "socket": {
+            "calls": 259,
+            "errors": 0
+          },
+          "splice": {
+            "calls": 6849,
+            "errors": 2200
+          },
+          "write": {
+            "calls": 1,
+            "errors": 0
+          }
+        },
+        "observations": {
+          "accept": {
+            "errors": {
+              "EAGAIN": 3
+            },
+            "parsed_calls": 260,
+            "positive_return_sum": 71443,
+            "positive_returns": 257,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "close": {
+            "errors": {},
+            "parsed_calls": 1035,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1035
+          },
+          "connect": {
+            "errors": {
+              "EINPROGRESS": 256
+            },
+            "parsed_calls": 257,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1
+          },
+          "epoll_ctl": {
+            "errors": {},
+            "parsed_calls": 1538,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1538
+          },
+          "epoll_wait": {
+            "errors": {},
+            "parsed_calls": 51,
+            "positive_return_sum": 5498,
+            "positive_returns": 51,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "futex": {
+            "errors": {},
+            "parsed_calls": 5,
+            "positive_return_sum": 1,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 4
+          },
+          "getsockopt": {
+            "errors": {
+              "ENOENT": 1
+            },
+            "parsed_calls": 513,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 512
+          },
+          "read": {
+            "errors": {},
+            "parsed_calls": 7,
+            "positive_return_sum": 4334,
+            "positive_returns": 7,
+            "requested_read_bytes": 12352,
+            "short_reads": 2,
+            "zero_returns": 0
+          },
+          "recvfrom": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 4912,
+            "positive_return_sum": 311760,
+            "positive_returns": 2200,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 512
+          },
+          "sendto": {
+            "errors": {},
+            "parsed_calls": 2215,
+            "positive_return_sum": 312771,
+            "positive_returns": 2215,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "setsockopt": {
+            "errors": {},
+            "parsed_calls": 774,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 774
+          },
+          "socket": {
+            "errors": {},
+            "parsed_calls": 259,
+            "positive_return_sum": 71706,
+            "positive_returns": 259,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "splice": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 6849,
+            "positive_return_sum": 5130400,
+            "positive_returns": 4400,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 249
+          },
+          "write": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 30,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          }
+        },
+        "receive_batching_note": "recvmsg/recvfrom returns are bytes, recvmmsg returns messages; raw trace shows netlink messages",
+        "scope": "selected UA2F syscalls across startup, warmup, requests and shutdown; no timing claims"
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 200
+    },
+    {
+      "body_bytes": 1024,
+      "kind": "strace",
+      "mode": "TPROXY",
+      "ok": true,
+      "raw_directory": "runs/11-1024-tproxy-strace",
+      "requests": 2000,
+      "server": {
+        "requests": 2000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 1000
+        }
+      },
+      "trace": {
+        "counts": {
+          "accept": {
+            "calls": 260,
+            "errors": 3
+          },
+          "close": {
+            "calls": 1035,
+            "errors": 0
+          },
+          "connect": {
+            "calls": 257,
+            "errors": 256
+          },
+          "epoll_ctl": {
+            "calls": 1538,
+            "errors": 0
+          },
+          "epoll_wait": {
+            "calls": 52,
+            "errors": 0
+          },
+          "futex": {
+            "calls": 5,
+            "errors": 1
+          },
+          "getsockopt": {
+            "calls": 256,
+            "errors": 0
+          },
+          "read": {
+            "calls": 7,
+            "errors": 0
+          },
+          "recvfrom": {
+            "calls": 4912,
+            "errors": 2200
+          },
+          "sendto": {
+            "calls": 2215,
+            "errors": 0
+          },
+          "setsockopt": {
+            "calls": 776,
+            "errors": 0
+          },
+          "socket": {
+            "calls": 259,
+            "errors": 0
+          },
+          "splice": {
+            "calls": 6850,
+            "errors": 2200
+          },
+          "write": {
+            "calls": 1,
+            "errors": 0
+          }
+        },
+        "observations": {
+          "accept": {
+            "errors": {
+              "EAGAIN": 3
+            },
+            "parsed_calls": 260,
+            "positive_return_sum": 66823,
+            "positive_returns": 257,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "close": {
+            "errors": {},
+            "parsed_calls": 1035,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1035
+          },
+          "connect": {
+            "errors": {
+              "EINPROGRESS": 256
+            },
+            "parsed_calls": 257,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1
+          },
+          "epoll_ctl": {
+            "errors": {},
+            "parsed_calls": 1538,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1538
+          },
+          "epoll_wait": {
+            "errors": {},
+            "parsed_calls": 52,
+            "positive_return_sum": 5490,
+            "positive_returns": 52,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "futex": {
+            "errors": {},
+            "parsed_calls": 4,
+            "positive_return_sum": 1,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 3
+          },
+          "getsockopt": {
+            "errors": {},
+            "parsed_calls": 256,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 256
+          },
+          "read": {
+            "errors": {},
+            "parsed_calls": 7,
+            "positive_return_sum": 4334,
+            "positive_returns": 7,
+            "requested_read_bytes": 12352,
+            "short_reads": 2,
+            "zero_returns": 0
+          },
+          "recvfrom": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 4912,
+            "positive_return_sum": 311760,
+            "positive_returns": 2200,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 512
+          },
+          "sendto": {
+            "errors": {},
+            "parsed_calls": 2215,
+            "positive_return_sum": 312757,
+            "positive_returns": 2215,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "setsockopt": {
+            "errors": {},
+            "parsed_calls": 776,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 776
+          },
+          "socket": {
+            "errors": {},
+            "parsed_calls": 259,
+            "positive_return_sum": 67086,
+            "positive_returns": 259,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "splice": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 6850,
+            "positive_return_sum": 5130400,
+            "positive_returns": 4400,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 250
+          },
+          "write": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 30,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          }
+        },
+        "receive_batching_note": "recvmsg/recvfrom returns are bytes, recvmmsg returns messages; raw trace shows netlink messages",
+        "scope": "selected UA2F syscalls across startup, warmup, requests and shutdown; no timing claims"
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 200
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "strace",
+      "mode": "NFQUEUE",
+      "ok": true,
+      "raw_directory": "runs/12-65536-nfqueue-strace",
+      "requests": 2000,
+      "server": {
+        "requests": 2000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 1000
+        }
+      },
+      "trace": {
+        "counts": {
+          "close": {
+            "calls": 8,
+            "errors": 0
+          },
+          "connect": {
+            "calls": 1,
+            "errors": 0
+          },
+          "futex": {
+            "calls": 5,
+            "errors": 0
+          },
+          "read": {
+            "calls": 7,
+            "errors": 0
+          },
+          "recvmsg": {
+            "calls": 24576,
+            "errors": 1
+          },
+          "sendto": {
+            "calls": 24592,
+            "errors": 0
+          },
+          "setsockopt": {
+            "calls": 3,
+            "errors": 0
+          },
+          "socket": {
+            "calls": 3,
+            "errors": 0
+          },
+          "write": {
+            "calls": 1,
+            "errors": 0
+          }
+        },
+        "observations": {
+          "close": {
+            "errors": {},
+            "parsed_calls": 8,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 8
+          },
+          "connect": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1
+          },
+          "futex": {
+            "errors": {},
+            "parsed_calls": 5,
+            "positive_return_sum": 1,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 4
+          },
+          "read": {
+            "errors": {},
+            "parsed_calls": 7,
+            "positive_return_sum": 4334,
+            "positive_returns": 7,
+            "requested_read_bytes": 12352,
+            "short_reads": 2,
+            "zero_returns": 0
+          },
+          "recvmsg": {
+            "errors": {
+              "EINTR": 1
+            },
+            "parsed_calls": 24576,
+            "positive_return_sum": 3558032,
+            "positive_returns": 24575,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "sendto": {
+            "errors": {},
+            "parsed_calls": 24592,
+            "positive_return_sum": 1226614,
+            "positive_returns": 24592,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "setsockopt": {
+            "errors": {},
+            "parsed_calls": 3,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 3
+          },
+          "socket": {
+            "errors": {},
+            "parsed_calls": 3,
+            "positive_return_sum": 12,
+            "positive_returns": 3,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "write": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 30,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          }
+        },
+        "receive_batching_note": "recvmsg/recvfrom returns are bytes, recvmmsg returns messages; raw trace shows netlink messages",
+        "scope": "selected UA2F syscalls across startup, warmup, requests and shutdown; no timing claims"
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 200
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "strace",
+      "mode": "REDIRECT",
+      "ok": true,
+      "raw_directory": "runs/13-65536-redirect-strace",
+      "requests": 2000,
+      "server": {
+        "requests": 2000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 1000
+        }
+      },
+      "trace": {
+        "counts": {
+          "accept": {
+            "calls": 260,
+            "errors": 3
+          },
+          "close": {
+            "calls": 1035,
+            "errors": 0
+          },
+          "connect": {
+            "calls": 257,
+            "errors": 256
+          },
+          "epoll_ctl": {
+            "calls": 1538,
+            "errors": 0
+          },
+          "epoll_wait": {
+            "calls": 54,
+            "errors": 1
+          },
+          "futex": {
+            "calls": 5,
+            "errors": 0
+          },
+          "getsockopt": {
+            "calls": 513,
+            "errors": 1
+          },
+          "read": {
+            "calls": 7,
+            "errors": 0
+          },
+          "recvfrom": {
+            "calls": 4912,
+            "errors": 2200
+          },
+          "sendto": {
+            "calls": 2215,
+            "errors": 0
+          },
+          "setsockopt": {
+            "calls": 774,
+            "errors": 0
+          },
+          "socket": {
+            "calls": 259,
+            "errors": 0
+          },
+          "splice": {
+            "calls": 6856,
+            "errors": 2200
+          },
+          "write": {
+            "calls": 1,
+            "errors": 0
+          }
+        },
+        "observations": {
+          "accept": {
+            "errors": {
+              "EAGAIN": 3
+            },
+            "parsed_calls": 260,
+            "positive_return_sum": 66823,
+            "positive_returns": 257,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "close": {
+            "errors": {},
+            "parsed_calls": 1035,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1035
+          },
+          "connect": {
+            "errors": {
+              "EINPROGRESS": 256
+            },
+            "parsed_calls": 257,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1
+          },
+          "epoll_ctl": {
+            "errors": {},
+            "parsed_calls": 1538,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1538
+          },
+          "epoll_wait": {
+            "errors": {
+              "EINTR": 1
+            },
+            "parsed_calls": 54,
+            "positive_return_sum": 5485,
+            "positive_returns": 53,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "futex": {
+            "errors": {},
+            "parsed_calls": 5,
+            "positive_return_sum": 1,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 4
+          },
+          "getsockopt": {
+            "errors": {
+              "ENOENT": 1
+            },
+            "parsed_calls": 513,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 512
+          },
+          "read": {
+            "errors": {},
+            "parsed_calls": 7,
+            "positive_return_sum": 4334,
+            "positive_returns": 7,
+            "requested_read_bytes": 12352,
+            "short_reads": 2,
+            "zero_returns": 0
+          },
+          "recvfrom": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 4912,
+            "positive_return_sum": 311760,
+            "positive_returns": 2200,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 512
+          },
+          "sendto": {
+            "errors": {},
+            "parsed_calls": 2215,
+            "positive_return_sum": 312771,
+            "positive_returns": 2215,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "setsockopt": {
+            "errors": {},
+            "parsed_calls": 774,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 774
+          },
+          "socket": {
+            "errors": {},
+            "parsed_calls": 259,
+            "positive_return_sum": 67086,
+            "positive_returns": 259,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "splice": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 6856,
+            "positive_return_sum": 288987600,
+            "positive_returns": 4400,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 256
+          },
+          "write": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 30,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          }
+        },
+        "receive_batching_note": "recvmsg/recvfrom returns are bytes, recvmmsg returns messages; raw trace shows netlink messages",
+        "scope": "selected UA2F syscalls across startup, warmup, requests and shutdown; no timing claims"
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 200
+    },
+    {
+      "body_bytes": 65536,
+      "kind": "strace",
+      "mode": "TPROXY",
+      "ok": true,
+      "raw_directory": "runs/14-65536-tproxy-strace",
+      "requests": 2000,
+      "server": {
+        "requests": 2000,
+        "user_agents": {
+          "FFFFFFFFFF": 10,
+          "FFFFFFFFFFF": 90,
+          "FFFFFFFFFFFF": 900,
+          "FFFFFFFFFFFFF": 1000
+        }
+      },
+      "trace": {
+        "counts": {
+          "accept": {
+            "calls": 260,
+            "errors": 3
+          },
+          "close": {
+            "calls": 1035,
+            "errors": 0
+          },
+          "connect": {
+            "calls": 257,
+            "errors": 256
+          },
+          "epoll_ctl": {
+            "calls": 1538,
+            "errors": 0
+          },
+          "epoll_wait": {
+            "calls": 53,
+            "errors": 1
+          },
+          "futex": {
+            "calls": 5,
+            "errors": 0
+          },
+          "getsockopt": {
+            "calls": 256,
+            "errors": 0
+          },
+          "read": {
+            "calls": 7,
+            "errors": 0
+          },
+          "recvfrom": {
+            "calls": 4912,
+            "errors": 2200
+          },
+          "sendto": {
+            "calls": 2215,
+            "errors": 0
+          },
+          "setsockopt": {
+            "calls": 776,
+            "errors": 0
+          },
+          "socket": {
+            "calls": 259,
+            "errors": 0
+          },
+          "splice": {
+            "calls": 6856,
+            "errors": 2200
+          },
+          "write": {
+            "calls": 1,
+            "errors": 0
+          }
+        },
+        "observations": {
+          "accept": {
+            "errors": {
+              "EAGAIN": 3
+            },
+            "parsed_calls": 260,
+            "positive_return_sum": 101447,
+            "positive_returns": 257,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "close": {
+            "errors": {},
+            "parsed_calls": 1035,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1035
+          },
+          "connect": {
+            "errors": {
+              "EINPROGRESS": 256
+            },
+            "parsed_calls": 257,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1
+          },
+          "epoll_ctl": {
+            "errors": {},
+            "parsed_calls": 1538,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 1538
+          },
+          "epoll_wait": {
+            "errors": {
+              "EINTR": 1
+            },
+            "parsed_calls": 53,
+            "positive_return_sum": 5475,
+            "positive_returns": 52,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "futex": {
+            "errors": {},
+            "parsed_calls": 5,
+            "positive_return_sum": 1,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 4
+          },
+          "getsockopt": {
+            "errors": {},
+            "parsed_calls": 256,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 256
+          },
+          "read": {
+            "errors": {},
+            "parsed_calls": 7,
+            "positive_return_sum": 4334,
+            "positive_returns": 7,
+            "requested_read_bytes": 12352,
+            "short_reads": 2,
+            "zero_returns": 0
+          },
+          "recvfrom": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 4912,
+            "positive_return_sum": 311760,
+            "positive_returns": 2200,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 512
+          },
+          "sendto": {
+            "errors": {},
+            "parsed_calls": 2215,
+            "positive_return_sum": 312757,
+            "positive_returns": 2215,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "setsockopt": {
+            "errors": {},
+            "parsed_calls": 776,
+            "positive_return_sum": 0,
+            "positive_returns": 0,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 776
+          },
+          "socket": {
+            "errors": {},
+            "parsed_calls": 259,
+            "positive_return_sum": 101710,
+            "positive_returns": 259,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          },
+          "splice": {
+            "errors": {
+              "EAGAIN": 2200
+            },
+            "parsed_calls": 6856,
+            "positive_return_sum": 288987600,
+            "positive_returns": 4400,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 256
+          },
+          "write": {
+            "errors": {},
+            "parsed_calls": 1,
+            "positive_return_sum": 30,
+            "positive_returns": 1,
+            "requested_read_bytes": 0,
+            "short_reads": 0,
+            "zero_returns": 0
+          }
+        },
+        "receive_batching_note": "recvmsg/recvfrom returns are bytes, recvmmsg returns messages; raw trace shows netlink messages",
+        "scope": "selected UA2F syscalls across startup, warmup, requests and shutdown; no timing claims"
+      },
+      "ua_validation": "all rewritten",
+      "warmup": 200
+    }
+  ],
+  "schema_version": 1,
+  "started_at": "2026-09-30T03:21:09.599069+00:00",
+  "status": "passed"
+}

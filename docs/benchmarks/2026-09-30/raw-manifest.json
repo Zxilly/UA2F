@@ -23,6 +23,14 @@
     "uncompressed_sha256": "704388d1f87cd30e49f1b5333c4fc0507cc5eef3625e32e92dffdedd114e801e",
     "uncompressed_bytes": 90196
   },
+  "proxy-naive-splice-bench.json.gz": {
+    "uncompressed_sha256": "75eefe1544b585470b46d23906107ad6625876e454e760183236853eacdb3d86",
+    "uncompressed_bytes": 13810
+  },
+  "proxy-shortread-bench.json.gz": {
+    "uncompressed_sha256": "2e7e4a7f299a1f372b544922d22515134c3b6f6077a9ef3bbf2641830c59f296",
+    "uncompressed_bytes": 20392
+  },
   "ua2f-lock-contention.json.gz": {
     "uncompressed_sha256": "fc9e6ea4bf6450eed5e63a8f4daede612e8ae6f44b71ab3b027593e72290298f",
     "uncompressed_bytes": 118061

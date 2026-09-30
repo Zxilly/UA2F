@@ -11,7 +11,7 @@
 
 Environment: Debian 13 (trixie), Linux 6.18.44 x86_64, GCC 14.2.0, reported AMD EPYC 9V74 80-Core Processor. This is a shared virtualized environment with nine allowed logical CPUs; benchmark processes were pinned to logical CPU 2. Host governor/turbo/isolation were not controlled.
 
-Both builds used `RelWithDebInfo` (`-O2 -g -DNDEBUG`), `-fno-omit-frame-pointer -fno-strict-aliasing`, UCI/backtrace/coverage/sanitizers disabled, default replacement UA, and the same extracted libnetfilter-queue dependencies. Full flags, dependency paths, executable/harness hashes, source status and diffs, and CPU metadata are recorded in [micro-summary.json](micro-summary.json).
+Both builds used `RelWithDebInfo` (`-O2 -g -DNDEBUG`), `-fno-omit-frame-pointer -fno-strict-aliasing`, UCI/backtrace/coverage/sanitizers disabled, default replacement UA, and the same extracted dependencies: libnetfilter-queue 1.0.5-4+b1, libmnl 1.0.5-3, libnfnetlink 1.0.2-3 (Debian amd64). Full flags, dependency paths, executable/harness hashes, source status and diffs, and CPU metadata are recorded in [micro-summary.json](micro-summary.json).
 
 The benchmark runs the production parser or production IPv4/IPv6 handler. Before every timed sample it verifies three full cycles. The 13 parser cases verify parse results and UA spans (offset, length, replacement offset); the 26 IPv4/IPv6 handler cases verify exact replacement bytes, unchanged packet lengths, and independently computed IP/TCP checksums. Packet construction and expected results are outside timing. The handler timing includes the input malloc/copy required by its ownership API, session lookup and locks, parser, statistics, packet-buffer allocation, rewriting/checksums, and a preallocated verdict-payload copy when one is returned. Conntrack is disabled and syslog is masked. No netlink socket, kernel queue, firewall, real TCP, origin server, or load generator is involved.
 
@@ -79,7 +79,9 @@ Choose an allowed logical CPU on the target machine. Do not run builds or other 
 
 ## Routed benchmark methodology
 
-The dedicated [performance workflow](../../../.github/workflows/performance.yml) uses a normal GitHub-hosted Ubuntu runner, `contents: read`, a 35-minute job timeout, an 18-minute benchmark timeout, and a separate eight-minute diagnostics timeout. Both exact commits are built on that runner with the same compiler and `RelWithDebInfo`, UCI/backtrace/coverage/ASan off. Worker counts are explicitly fixed at one for both NFQUEUE and proxy modes.
+The **manual-only**, opt-in [performance workflow](../../../.github/workflows/performance.yml) uses a normal GitHub-hosted Ubuntu runner, `contents: read`, a 35-minute job timeout, an 18-minute benchmark timeout, and a separate eight-minute diagnostics timeout. Both exact commits are built on that runner with the same compiler and `RelWithDebInfo`, UCI/backtrace/coverage/ASan off. Worker counts are explicitly fixed at one for both NFQUEUE and proxy modes.
+
+It is not an automatic PR/merge gate. Its baseline SHA is an explicit input; additional syscall diagnostics default to off. This avoids repeating costly measurements on unrelated or documentation-only updates.
 
 The comparison runs in an additional disposable network namespace. A separate client namespace reaches the origin through PREROUTING, exercising real NFQUEUE/REDIRECT/TPROXY and keep-alive TCP. For each mode and 1 KiB/64 KiB response workload, it runs six adjacent A/B pairs, equally balanced AB/BA, rotating modes and reversing body-size order. Each case uses 10,000 warmup requests and 100,000 measured requests at concurrency 128. Response size is not upload size.
 
@@ -98,6 +100,43 @@ A separate experimental worktree removed the handler's result-entry copy/allocat
 The ordinary handler gain was only about 2% median across 26 cases. Instrumented lock hold grew roughly 4–6% in duplicate/long-UA cases. Contention results were mixed, with worse same-session latency under deliberately aggressive cleaning. That harness used two workers on CPUs 2/3, an optional cleaner on CPU 6 every **100 µs** (production: **60 seconds**), 100 warmups, 5,000 packets per worker, and seven AB/BA repetitions; it is risk evidence, **not a production p99 prediction**. The small benefit did not justify a longer critical section, so none of this experimental code is included in the PR.
 
 
-## Next routed diagnostic pass
+## Routed diagnostics and second paired confirmation
 
-The workflow also prepares untraced DIRECT/NFQUEUE/REDIRECT/TPROXY process accounting for 1 KiB and 64 KiB responses, followed by separate short syscall traces. It records client/origin/UA2F user/system CPU, CPU per request, thread-aware context switches, thread exits, cgroup CPU/throttling, and syscall/EAGAIN counts. Traced timings are excluded from speed comparisons. No security setting is changed to enable tracing; this local environment rejects ptrace, so actual tracing must be verified on the normal CI runner. Results are pending, and no bottleneck attribution is asserted from this pass yet.
+The [second completed run](https://github.com/Zxilly/UA2F/actions/runs/36663584403) at exact head `c192712beeff892344ef8be57619c3c380617cf8` passed **all 72 A/B cases and 14 diagnostic cases**. Its runner reported AMD EPYC 9V74 with four vCPUs, unlike the first run's EPYC 7763. Absolute request rates across these machines must not be compared. Production `src/` was unchanged from the first optimized code; this commit added reports and diagnostics.
+
+The second paired throughput medians (candidate/base) range from **0.9872× to 1.0034×**; these do not establish a throughput improvement. [Full paired results](e2e-second-summary.md) and [per-run metrics and selected reproducibility metadata](e2e-second-summary.json) retain all negative and positive cases.
+
+### Untraced CPU accounting
+
+Eight separate accounting cases cover DIRECT/NFQUEUE/REDIRECT/TPROXY at 1 KiB and 64 KiB responses. These are single diagnostic samples, not additional paired speedup evidence. Each uses 50,000 requests, 5,000 warmup, concurrency 128 and one UA2F worker. Client accounting uses `wait4` minus immediate pre-exec `getrusage`; it includes client startup, final JSON encoding and exit. Origin and UA2F CPU exclude warmup. The raw snapshots retain thread IDs and exited-thread limitations for context switches.
+
+For 1 KiB responses, UA2F user/system CPU per request was:
+
+| Mode | User µs/request | System µs/request | UA2F CPU (one core = 100%) |
+| --- | ---: | ---: | ---: |
+| NFQUEUE | 1.60 | 7.00 | 42.4% |
+| REDIRECT | 1.80 | 18.80 | 81.0% |
+| TPROXY | 1.60 | 17.60 | 77.4% |
+
+System CPU represents approximately 81–92% of UA2F's process CPU in these small-response cases; at 64 KiB it is approximately 86–95%. Across the cases, client + origin + UA2F account for about 3.4–3.7 logical CPU-seconds per wall-clock second out of four available logical CPUs (the guest reports two cores with two SMT threads each). This supports prioritizing kernel/I/O work and load-generator/origin contention over further parser-only tuning. It does **not** uniquely prove a bottleneck or predict performance on a router with off-host clients/origin. UA2F user-mode CPU is only about 1.23–2.24% of the combined client/origin/UA2F CPU in these samples; this is a CPU-work share, not a promised wall-time speedup bound. DIRECT uses the same synthetic Go workload, but its unique-UA bookkeeping differs from the rewritten-UA map and is only a diagnostic reference. No cgroup-v2 mount was visible, so quota/throttling is **unknown**, not zero.
+
+### Separately instrumented syscall observations
+
+Six traced cases use 2,000 requests + 200 warmup. For each proxy case, traces recorded 2,200 recv/EAGAIN returns and 2,200 splice/EAGAIN returns. epoll already batches many ready connections. In this CI trace, each 64 KiB response used one 65,679-byte socket-to-pipe splice and one pipe-to-socket splice, because the implementation requests a 1 MiB pipe; this is distinct from the forced-small-pipe rejection test below. The 64 KiB NFQUEUE trace recorded 24,576 receives for 2,200 total requests, indicating substantial per-packet/ACK traffic beyond parsing one request. Counts include startup, warmup and shutdown. Ptrace can alter scheduling, buffering, batching and EAGAIN frequency as well as elapsed time; these observations identify mechanisms to test, **not throughput gains**.
+
+No perf/ptrace/sysctl or host-network security setting was changed. The cloud development runtime cannot trace, but standard Ubuntu CI successfully ran these authorized diagnostics inside a disposable network namespace.
+
+- [Readable process/syscall report](routed-profile-summary.md)
+- [Diagnostic summaries and parameters](routed-profile-summary.json)
+- The committed JSON summaries retain every performance/result metric but omit temporary paths, hostname/namespace identifiers, memory addresses and unnecessary environment dumps. Complete process snapshots and traces remain in the existing CI artifact below.
+- [Full artifact, including raw strace and per-request latency arrays](https://github.com/Zxilly/UA2F/actions/runs/36663584403/artifacts/11075009732), expires 2026-10-14; ZIP SHA-256 `7af14e9897783e923216d8516841d056af9db4486da8764bc75188a70d9fe724`
+
+### Additional rejected/withheld transport experiments
+
+A five-line recv-only early-return experiment removes the extra EAGAIN probe after a short request read while preserving level-triggered epoll. Eight alternating local real-socket transport pairs showed only noisy changes: paired median elapsed time −1.30% for 64-byte splice responses, and +0.83% for 64 KiB splice responses, with wide ranges. These are not routed measurements, and the variant is **not included**.
+
+Applying the same short-return rule to response splice is unsafe as a performance assumption: pipe capacity can force a short positive result while substantial socket input remains. With a forced 4 KiB pipe and 64 KiB responses, five alternating pairs increased epoll waits from 2 to 19 per request and increased median elapsed time by 30.87%. That variant is **rejected and excluded**. Preserving large-body/backpressure behavior is more important than a small-response-only gain.
+
+These experiments also exposed a deterministic half-close truncation on exact master, independently reproduced as 65,536 bytes sent but only 16,384 forwarded. It is addressed separately in [draft PR #223](https://github.com/Zxilly/UA2F/pull/223); no half-close fix or receive-loop experiment is silently included in this performance branch.
+
+Raw local transport comparisons: [recv-only](proxy-shortread-bench.json.gz) and [naïve splice](proxy-naive-splice-bench.json.gz). These unadopted experiments remain separate from the paired routed production-code comparison.
