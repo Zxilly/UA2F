@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import benchmark_compare as compare
+import test_empty_ack_netns as empty_ack
 from benchmark import BenchmarkError
 
 
@@ -90,6 +91,16 @@ class PlanTest(unittest.TestCase):
 
 
 class ValidationTest(unittest.TestCase):
+    def test_nft_wrapper_separates_declarations_and_closing_blocks(self):
+        rules = 'ip protocol tcp counter return;\nip6 nexthdr tcp counter return;\n'
+        generated = empty_ack.nft_ruleset("test0", rules)
+        self.assertIn("  }\n  chain inspect {\n", generated)
+        self.assertTrue(generated.endswith("  }\n}\n"))
+        self.assertNotIn("} chain", generated)
+        self.assertNotIn("} }", generated)
+        self.assertEqual(generated.count(rules), 1)
+        self.assertEqual(generated.count("counter queue num 10010;"), 1)
+
     def test_timed_rules_include_production_conntrack_matching(self):
         expressions = [f"32>>28={n}" for n in range(5, 16)]
         with patch("benchmark_compare.bench.run_cmd") as run:

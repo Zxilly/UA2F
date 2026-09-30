@@ -32,6 +32,20 @@ def nft_family_matches(rule: dict, family: int) -> bool:
     return includes_header(rule.get("expr", []))
 
 
+def nft_ruleset(interface: str, rules: str) -> str:
+    # nft requires a newline/semicolon between chain declarations and closing
+    # blocks. Keep declarations on separate lines, including the final braces.
+    return ("table inet ua_empty_test {\n"
+            "  chain prerouting {\n"
+            "    type filter hook prerouting priority mangle; policy accept;\n"
+            f'    iifname "{interface}" tcp dport 18080 jump inspect;\n'
+            "  }\n"
+            "  chain inspect {\n" + rules.rstrip() + "\n"
+            "    counter queue num 10010;\n"
+            "  }\n"
+            "}\n")
+
+
 def probe(host: str, port: int) -> None:
     """Split a header, pipeline requests, preserve a POST body, then half-close."""
     body = b"User-Agent: preserve this body\r\n" * 2048
@@ -132,15 +146,16 @@ def run(binary: Path, helper: Path, output: Path) -> None:
                     bench.run_cmd([executable, "-t", "mangle", "-A", "UA_EMPTY_TEST", "-j", "NFQUEUE", "--queue-num", "10010"])
             else:
                 rules = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_nft', "sh", str(helper)]).stdout
-                ruleset = (f'table inet ua_empty_test {{ chain prerouting {{ type filter hook prerouting priority mangle; policy accept; '
-                           f'iifname "{ns.host_if}" tcp dport 18080 jump inspect; }} chain inspect {{\n'
-                           + rules + '\n counter queue num 10010;\n} }\n')
+                ruleset = nft_ruleset(ns.host_if, rules)
                 (output / "candidate.nft").write_text(ruleset)
                 subprocess.run(["nft", "-f", "-"], input=ruleset, text=True, check=True)
             for family, host in ((4, ns.server_ip), (6, "fd42:250::1")):
                 result = bench.run_cmd(["ip", "netns", "exec", ns.name, sys.executable,
                                        str(Path(__file__).resolve()), "--probe", host])
                 results.append(dict(json.loads(result.stdout), backend=backend, family=family))
+                # Preserve successful probes even if a later backend fails.
+                (output / "probes.json").write_text(json.dumps(results, indent=2))
+                print(json.dumps(results[-1]), flush=True)
             if backend == "iptables":
                 for executable in ("iptables", "ip6tables"):
                     snapshot = bench.run_cmd([executable, "-t", "mangle", "-L", "UA_EMPTY_TEST", "-nvx"])
