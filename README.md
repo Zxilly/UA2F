@@ -116,12 +116,21 @@ service ua2f restart
 | `handle_tls` | `0` | 是否处理 443 端口流量。通常 HTTPS 已加密，不需要处理。 |
 | `handle_intranet` | `1` | 是否处理内网/保留地址流量。设为 `0` 时会绕过内网/保留地址。 |
 | `handle_mmtls` | `0` | 是否处理微信 mmtls 流量。该规则仅在 iptables NFQUEUE 分支中生效，nftables 分支无效。 |
+| `bypass_empty_ack` | `0` | NFQUEUE 可选优化：严格确认无 TCP 数据、ACK 置位且无 SYN/FIN/RST 的普通包不入队；IP options、分片、IPv6 扩展头继续原路径。 |
 
 ```bash
 uci set ua2f.firewall.handle_fw='1'
 uci set ua2f.firewall.handle_tls='0'
 uci set ua2f.firewall.handle_intranet='1'
 uci set ua2f.firewall.handle_mmtls='0'
+uci commit ua2f
+service ua2f restart
+```
+
+空 ACK 优化默认保持关闭，便于按设备的防火墙后端和覆盖范围选择启用；不会改变 REDIRECT/TPROXY。iptables 后端需要 `iptables-mod-u32`（依赖 `kmod-ipt-u32`），对应的 OpenWrt 包依赖已声明；缺少该匹配模块时会提示并保留普通 NFQUEUE fallback。nftables 使用原有 `kmod-nft-queue` 及基础表达式。本轮实际验证了 IPv4/IPv6 × iptables/nft 的正确性，吞吐数据仅覆盖 IPv4/iptables 路径，详见下方报告。
+
+```bash
+uci set ua2f.firewall.bypass_empty_ack='1'
 uci commit ua2f
 service ua2f restart
 ```
@@ -180,6 +189,21 @@ REDIRECT/TPROXY 需要自行配置对应的 netfilter 规则。TPROXY 还需要 
 Req/s 为各 6 次运行的中位数；配对吞吐比为每对「本分支 / 基线」的中位数，两者计算方式不同。完整延迟、CPU、RSS、min/max、每次运行数据及复现方法见 [测量报告](docs/benchmarks/2026-09-30/README.md) 和 [CI 运行](https://github.com/Zxilly/UA2F/actions/runs/36661195647)。
 
 在另一台 4 vCPU AMD EPYC 9V74 runner 上，对 `c192712` 的第二轮 72 次 A/B 复测也未测得明确收益（配对中位吞吐比 0.9872–1.0034×）。独立的未插桩诊断中，1 KiB 请求的 UA2F user / system CPU 为 NFQUEUE `1.6 / 7.0 µs`、REDIRECT `1.8 / 18.8 µs`、TPROXY `1.6 / 17.6 µs`；client、origin、UA2F 合计使用约 3.4–3.7 个逻辑 CPU。后续应优先验证内核 / I/O 成本，不能仅凭 parser 微基准推断整体改善。单独的 syscall trace 只用于找线索，不作为吞吐证据；详情见 [routed profiling](docs/benchmarks/2026-09-30/routed-profile-summary.md)。不同 runner 的绝对吞吐不作横向比较。
+
+### 可选空 ACK 路径：内核 / I/O 实测（2026-09-30）
+
+基线 `f7965c1` 和候选 `be6cd43` 均包含上述用户态优化以及最新 master 的半关闭修复；两者生产 C 源码相同。本轮只比较是否启用空 ACK 规则，使用同一台 4 vCPU AMD EPYC 7763 runner、IPv4 / iptables 1.8.10（nf_tables）、单 NFQUEUE worker、并发 128；每种响应体 6 对相邻 AB/BA，每次 10000 warmup + 100000 请求，并穿插 DIRECT 参考。
+
+| 响应体 | 基线 Req/s | 开启后 Req/s | 配对吞吐比中位数 | 实际入队包/请求（基线 → 开启） | CI guest 忙碌 CPU µs/请求（基线 → 开启） |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 KiB | 27793 | 27746 | 1.0010×（持平） | 1.007 → 1.003 | 131.80 → 131.70 |
+| 64 KiB | 16596 | 18546 | 1.1197×（+11.97%） | 3.035 → 1.003 | 228.10 → 204.75 |
+
+Req/s 两列与配对比各自取中位数，不能直接用两列相除替代配对比。64 KiB 的 6 对吞吐均提高 9.86–14.26%；CI guest 忙碌 CPU/请求的配对中位减少 10.3%，system+irq+softirq/请求减少 16.4%，client+origin+UA2F 合计 CPU/请求减少 10.7%。这些是同机合成工作负载结果，guest 计数包含观察进程及同机工作，不能当作物理宿主或实际路由器的固定收益。1 KiB 原本几乎没有多余 ACK 入队，未测得明确收益。
+
+初版逐条检查的规则曾测得 64 KiB +12.53%、1 KiB -2.29%；最终布局让不可能为空 ACK 的长度直接进入相同 NFQUEUE action，保留完全相同的旁路包集合和 connmark 顺序，本轮小响应负向现象未重现。两轮绝对吞吐不横向比较；负向结果也完整保留。全部四条实际正确性路径和 36 个计时样本通过；nft 仅验证正确性，没有 nft 吞吐提升声明。
+
+[空 ACK 完整报告与可复核数据](docs/benchmarks/2026-09-30/empty-ack.md) · [本轮 CI](https://github.com/Zxilly/UA2F/actions/runs/36685191916)
 
 ### 热路径微基准（不含内核 / 网络）
 

@@ -137,6 +137,10 @@ A five-line recv-only early-return experiment removes the extra EAGAIN probe aft
 
 Applying the same short-return rule to response splice is unsafe as a performance assumption: pipe capacity can force a short positive result while substantial socket input remains. With a forced 4 KiB pipe and 64 KiB responses, five alternating pairs increased epoll waits from 2 to 19 per request and increased median elapsed time by 30.87%. That variant is **rejected and excluded**. Preserving large-body/backpressure behavior is more important than a small-response-only gain.
 
-These experiments also exposed a deterministic half-close truncation on exact master, independently reproduced as 65,536 bytes sent but only 16,384 forwarded. It is addressed separately in [draft PR #223](https://github.com/Zxilly/UA2F/pull/223); no half-close fix or receive-loop experiment is silently included in this performance branch.
+These experiments also exposed a deterministic half-close truncation on exact master, independently reproduced as 65,536 bytes sent but only 16,384 forwarded. It was addressed separately in [PR #223](https://github.com/Zxilly/UA2F/pull/223), merged into master as `462e5bf` after these measurements. The original `f12729b`/`c192712` results above exclude that fix; the later empty-ACK experiment below includes the same fix in both compared binaries. The rejected receive-loop experiments remain excluded.
 
 Raw local transport comparisons: [recv-only](proxy-shortread-bench.json.gz) and [naïve splice](proxy-naive-splice-bench.json.gz). These unadopted experiments remain separate from the paired routed production-code comparison.
+
+## Optional empty-ACK kernel/I/O experiment
+
+The subsequent [empty-ACK report](empty-ack.md) retains two successful same-runner comparisons, the initial small-response trade-off, the equivalent rule-layout revision, all four real IPv4/IPv6 × iptables/nft correctness paths and independent process/guest CPU accounting. The final IPv4/iptables experiment measured +11.97% paired throughput for 64 KiB responses and no clear change for 1 KiB responses. The feature stays opt-in; native nft throughput was not measured. This additional evidence does not change the earlier parser-only or ordinary-GET conclusions above.
