@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 17)
 cmake_policy(SET CMP0135 NEW)
 
 OPTION(UA2F_BUILD_TESTS "Build tests" OFF)
+OPTION(UA2F_BUILD_BENCHMARKS "Build in-process microbenchmarks" OFF)
 OPTION(UA2F_ENABLE_COVERAGE "Enable code coverage" OFF)
 
 OPTION(UA2F_ENABLE_UCI "Enable UCI support" ON)
@@ -541,3 +542,35 @@ if (UA2F_ENABLE_COVERAGE)
         COMMENT "Cleaning coverage data"
     )
 endif()
+
+# Independent of GoogleTest and privileged NFQUEUE setup. See --help and
+# scripts/benchmark_micro.py for pinned, alternating baseline/candidate runs.
+if (UA2F_BUILD_BENCHMARKS)
+    add_executable(ua2f_benchmark
+        test/benchmark.cc test/packet_builder.cc
+        src/handler.c src/util.c src/cache.c src/http_session.c
+        src/http_parser_ua.c src/statistics.c src/cli.c
+        src/third/llhttp/llhttp.c src/third/llhttp/api.c src/third/llhttp/http.c)
+    set_target_properties(ua2f_benchmark PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+    target_compile_options(ua2f_benchmark PRIVATE
+        $<$<COMPILE_LANGUAGE:C>:-iquote${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<$<COMPILE_LANGUAGE:CXX>:-iquote${CMAKE_CURRENT_SOURCE_DIR}/src>)
+    target_include_directories(ua2f_benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/third/llhttp)
+    target_link_libraries(ua2f_benchmark pthread netfilter_queue nfnetlink)
+    ua2f_link_atomic_if_needed(ua2f_benchmark)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" UA2F_BENCH_BUILD_TYPE_UPPER)
+    file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/test/benchmark.cc" UA2F_BENCH_HARNESS_SHA256)
+    file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/test/packet_builder.cc" UA2F_BENCH_PACKET_BUILDER_SHA256)
+    target_compile_definitions(ua2f_benchmark PRIVATE
+        UA2F_BENCH_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+        UA2F_BENCH_C_FLAGS="${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${UA2F_BENCH_BUILD_TYPE_UPPER}}"
+        UA2F_BENCH_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${UA2F_BENCH_BUILD_TYPE_UPPER}}"
+        UA2F_BENCH_LINK_FLAGS="${CMAKE_EXE_LINKER_FLAGS}"
+        UA2F_BENCH_OPTIONS="coverage=${UA2F_ENABLE_COVERAGE},asan=${UA2F_ENABLE_ASAN},uci=${UA2F_ENABLE_UCI},no_cache=${UA2F_NO_CACHE},custom_ua=${UA2F_CUSTOM_USER_AGENT}"
+        UA2F_BENCH_HARNESS_SHA256="${UA2F_BENCH_HARNESS_SHA256}"
+        UA2F_BENCH_PACKET_BUILDER_SHA256="${UA2F_BENCH_PACKET_BUILDER_SHA256}")
+    if (UA2F_ENABLE_UCI)
+        target_sources(ua2f_benchmark PRIVATE src/config.c)
+        target_link_libraries(ua2f_benchmark uci)
+    endif ()
+endif ()

@@ -1,0 +1,118 @@
+name: Same-runner performance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    # PR branch filters match the target, so filter the source branch here.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BASE_SHA: 4ff67c3770cb2dabc6f1427ef19277df093aafc1
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RESULTS: ${{ runner.temp }}/ua2f-performance
+      BUILD_ROOT: ${{ runner.temp }}/ua2f-performance-build
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install benchmark dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake golang-go iproute2 iptables kmod \
+            libnetfilter-queue-dev libmnl-dev libnetfilter-conntrack-dev
+
+      - name: Build base and candidate identically
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RESULTS" "$BUILD_ROOT"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git worktree add --detach "$BUILD_ROOT/base-source" "$BASE_SHA"
+          flags=(-DCMAKE_BUILD_TYPE=RelWithDebInfo -DUA2F_BUILD_TESTS=OFF
+                 -DUA2F_ENABLE_UCI=OFF -DUA2F_ENABLE_BACKTRACE=OFF
+                 -DUA2F_ENABLE_ASAN=OFF -DUA2F_ENABLE_COVERAGE=OFF -DUA2F_NO_CACHE=OFF)
+          # Explicit toolchains and no compiler-cache reuse for either build.
+          for variant in base candidate; do
+            source="$GITHUB_WORKSPACE"
+            if [[ "$variant" == base ]]; then source="$BUILD_ROOT/base-source"; fi
+            env -u UA2F_ENABLE_ASAN CC=/usr/bin/gcc CXX=/usr/bin/g++ \
+              cmake -S "$source" -B "$BUILD_ROOT/$variant" "${flags[@]}" \
+              2>&1 | tee "$RESULTS/$variant-configure.log"
+            cmake --build "$BUILD_ROOT/$variant" --parallel 2 \
+              2>&1 | tee "$RESULTS/$variant-build.log"
+            cp "$BUILD_ROOT/$variant/CMakeCache.txt" "$RESULTS/$variant-CMakeCache.txt"
+          done
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          metadata = {
+              "base_sha": os.environ["BASE_SHA"], "candidate_sha": os.environ["CANDIDATE_SHA"],
+              "build_type": "RelWithDebInfo", "uci": False, "backtrace": False,
+              "asan": False, "coverage": False, "cache": True,
+              "compiler": subprocess.check_output(["/usr/bin/gcc", "--version"], text=True),
+              "packages": subprocess.check_output(["dpkg-query", "-W", "gcc", "g++", "cmake",
+                  "libmnl-dev", "libnetfilter-queue-dev", "libnetfilter-conntrack-dev"], text=True),
+              "runner_image": os.environ.get("ImageOS"),
+              "runner_image_version": os.environ.get("ImageVersion"),
+              "github_run_id": os.environ["GITHUB_RUN_ID"],
+              "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "github_repository": os.environ["GITHUB_REPOSITORY"],
+          }
+          pathlib.Path(os.environ["RESULTS"], "build-metadata.json").write_text(json.dumps(metadata, indent=2))
+          PY
+
+      - name: Run six counterbalanced pairs per workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="ua2f-performance-${GITHUB_RUN_ID}"
+          cleanup() {
+            sudo ip netns pids "$namespace" 2>/dev/null | xargs -r sudo kill || true
+            sudo ip netns delete "$namespace" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          # No host firewall, routes, sysctls, or external network traffic are changed.
+          sudo ip netns add "$namespace"
+          sudo ip netns exec "$namespace" ip link set lo up
+          sudo timeout --signal=TERM --kill-after=15s 18m \
+            ip netns exec "$namespace" python3 scripts/benchmark_compare.py \
+            --base "$BUILD_ROOT/base/ua2f" --base-sha "$BASE_SHA" \
+            --candidate "$BUILD_ROOT/candidate/ua2f" --candidate-sha "$CANDIDATE_SHA" \
+            --pairs 6 --requests 100000 --warmup 10000 --concurrency 128 \
+            --body-sizes 1024 65536 --nfqueue-workers 1 --proxy-workers 1 \
+            --build-metadata "$RESULTS/build-metadata.json" --output-dir "$RESULTS" \
+            2>&1 | tee "$RESULTS/runner.log"
+
+      - name: Publish job summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RESULTS/summary.md" ]]; then
+            cat "$RESULTS/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Benchmark did not complete. See build/runner logs; no performance claim is available.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Preserve raw measurements and build metadata
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ua2f-performance-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ua2f-performance/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6

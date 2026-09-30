@@ -515,7 +515,7 @@ static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct ht
     if (replacement == NULL) {
         return;
     }
-    const size_t replacement_len = UA2F_MAX_USER_AGENT_LENGTH;
+    const size_t replacement_len = get_replacement_user_agent_string_length();
 
     for (size_t i = 0; i < session->ua_entry_count; i++) {
         const struct ua_mangle_entry *entry = session_ua_entry_const(session, i);
@@ -526,13 +526,16 @@ static void rewrite_user_agent_entries(uint8_t *buf, size_t len, const struct ht
             continue;
         }
 
-        memset(buf + offset, ' ', ua_len);
+        size_t available = 0;
         if (replacement_offset < replacement_len) {
-            size_t available = replacement_len - replacement_offset;
+            available = replacement_len - replacement_offset;
             if (available > ua_len) {
                 available = ua_len;
             }
             memcpy(buf + offset, replacement + replacement_offset, available);
+        }
+        if (available < ua_len) {
+            memset(buf + offset + available, ' ', ua_len - available);
         }
     }
 }
