@@ -457,11 +457,13 @@ setup_firewall() {
 			[ "$disable_connmark" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
       [ "$disable_connmark" -eq "1" ] || $IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 			[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-			[ "$bypass_empty_ack" -eq "0" ] || ua2f_add_empty_ack_iptables 4 iptables -t mangle -A ua2f || echo "UA2F: empty-ACK IPv4 optimization unavailable; keeping NFQUEUE fallback" >&2
-			if [ "$nfqueue_workers" -gt 1 ]; then
-				$IPT_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
-			else
-				$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+			if [ "$bypass_empty_ack" -eq "0" ] || ! ua2f_add_empty_ack_queue_iptables 4 10010 "$nfqueue_end" iptables -t mangle -A ua2f; then
+				[ "$bypass_empty_ack" -eq "0" ] || echo "UA2F: empty-ACK IPv4 optimization unavailable; keeping NFQUEUE fallback" >&2
+				if [ "$nfqueue_workers" -gt 1 ]; then
+					$IPT_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
+				else
+					$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+				fi
 			fi
 		fi
 		$IPT_M -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
@@ -492,11 +494,13 @@ setup_firewall() {
 				[ "$disable_connmark" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
         [ "$disable_connmark" -eq "1" ] || $IPT6_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 				[ "$handle_mmtls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-				[ "$bypass_empty_ack" -eq "0" ] || ua2f_add_empty_ack_iptables 6 ip6tables -t mangle -A ua2f || echo "UA2F: empty-ACK IPv6 optimization unavailable; keeping NFQUEUE fallback" >&2
-				if [ "$nfqueue_workers" -gt 1 ]; then
-					$IPT6_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
-				else
-					$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+				if [ "$bypass_empty_ack" -eq "0" ] || ! ua2f_add_empty_ack_queue_iptables 6 10010 "$nfqueue_end" ip6tables -t mangle -A ua2f; then
+					[ "$bypass_empty_ack" -eq "0" ] || echo "UA2F: empty-ACK IPv6 optimization unavailable; keeping NFQUEUE fallback" >&2
+					if [ "$nfqueue_workers" -gt 1 ]; then
+						$IPT6_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
+					else
+						$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+					fi
 				fi
 			fi
 			$IPT6_M -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f

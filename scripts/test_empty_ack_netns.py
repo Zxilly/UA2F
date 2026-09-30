@@ -38,7 +38,7 @@ def nft_ruleset(interface: str, rules: str) -> str:
     return ("table inet ua_empty_test {\n"
             "  chain prerouting {\n"
             "    type filter hook prerouting priority mangle; policy accept;\n"
-            f'    iifname "{interface}" tcp dport 18080 jump inspect;\n'
+            f'    iifname "{interface}" tcp dport 18080 ct direction original jump inspect;\n'
             "  }\n"
             "  chain inspect {\n" + rules.rstrip() + "\n"
             "    counter queue num 10010;\n"
@@ -137,13 +137,13 @@ def run(binary: Path, helper: Path, output: Path) -> None:
                 for family, executable in ((4, "iptables"), (6, "ip6tables")):
                     bench.run_cmd([executable, "-t", "mangle", "-N", "UA_EMPTY_TEST"])
                     bench.run_cmd([executable, "-t", "mangle", "-A", "PREROUTING", "-i", ns.host_if,
-                                   "-p", "tcp", "--dport", "18080", "-j", "UA_EMPTY_TEST"])
-                    expressions = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_u32 "$2"',
-                                                   "sh", str(helper), str(family)]).stdout.splitlines()
-                    for expression in expressions:
-                        bench.run_cmd([executable, "-t", "mangle", "-A", "UA_EMPTY_TEST", "-p", "tcp",
-                                       "-m", "conntrack", "--ctdir", "ORIGINAL", "-m", "u32", "--u32", expression, "-j", "RETURN"])
-                    bench.run_cmd([executable, "-t", "mangle", "-A", "UA_EMPTY_TEST", "-j", "NFQUEUE", "--queue-num", "10010"])
+                                   "-p", "tcp", "--dport", "18080", "-m", "conntrack", "--ctdir", "ORIGINAL", "-j", "UA_EMPTY_TEST"])
+                    rules = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_queue_iptables "$2" 10010 10010',
+                                           "sh", str(helper), str(family)]).stdout.splitlines()
+                    if len(rules) != 13:
+                        raise AssertionError("candidate did not emit its thirteen-rule tail")
+                    for rule in rules:
+                        bench.run_cmd([executable, "-t", "mangle", "-A", "UA_EMPTY_TEST", *rule.split("\t")])
             else:
                 rules = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_nft', "sh", str(helper)]).stdout
                 ruleset = nft_ruleset(ns.host_if, rules)
@@ -165,7 +165,7 @@ def run(binary: Path, helper: Path, output: Path) -> None:
                     if sum(matches) == 0:
                         raise AssertionError(f"{executable}: candidate rules never matched an ACK")
                     bench.run_cmd([executable, "-t", "mangle", "-D", "PREROUTING", "-i", ns.host_if,
-                                   "-p", "tcp", "--dport", "18080", "-j", "UA_EMPTY_TEST"])
+                                   "-p", "tcp", "--dport", "18080", "-m", "conntrack", "--ctdir", "ORIGINAL", "-j", "UA_EMPTY_TEST"])
                     bench.run_cmd([executable, "-t", "mangle", "-F", "UA_EMPTY_TEST"])
                     bench.run_cmd([executable, "-t", "mangle", "-X", "UA_EMPTY_TEST"])
             else:

@@ -14,6 +14,7 @@ import json
 import math
 import os
 import platform
+import resource
 import signal
 import statistics
 import subprocess
@@ -28,7 +29,14 @@ import benchmark as bench
 
 METRICS = ("rps", "mbps", "avg_ms", "p95_ms", "p99_ms", "process_cpu_sec",
            "process_cpu_pct", "process_rss_kib", "process_hwm_kib",
-           "process_user_us_per_request", "process_system_us_per_request")
+           "process_user_us_per_request", "process_system_us_per_request",
+           "client_user_us_per_request", "client_system_us_per_request",
+           "origin_user_us_per_request", "origin_system_us_per_request",
+           "combined_process_us_per_request", "guest_busy_us_per_request",
+           "guest_kernel_us_per_request", "guest_softirq_us_per_request",
+           "guest_busy_cpu_pct", "guest_steal_cpu_pct")
+
+HOST_CPU_FIELDS = ("user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal")
 
 
 def utc_now() -> str:
@@ -60,6 +68,54 @@ def cpu_breakdown(pid: int) -> tuple[float, float]:
     fields = raw[raw.rfind(")") + 2:].split()
     ticks = float(os.sysconf("SC_CLK_TCK"))
     return int(fields[11]) / ticks, int(fields[12]) / ticks
+
+
+def parse_host_cpu(raw: str) -> dict[str, int]:
+    fields = raw.splitlines()[0].split() if raw.splitlines() else []
+    if not fields or fields[0] != "cpu" or len(fields) < len(HOST_CPU_FIELDS) + 1:
+        raise bench.BenchmarkError("missing aggregate /proc/stat CPU counters")
+    try:
+        result = dict(zip(HOST_CPU_FIELDS, map(int, fields[1:9])))
+    except ValueError as exc:
+        raise bench.BenchmarkError("non-numeric /proc/stat CPU counters") from exc
+    if min(result.values()) < 0:
+        raise bench.BenchmarkError("negative /proc/stat CPU counters")
+    # guest and guest_nice are already included in user/nice, so never add them.
+    return result
+
+
+def host_cpu_snapshot() -> dict[str, int]:
+    return parse_host_cpu(Path("/proc/stat").read_text())
+
+
+def host_cpu_delta(before: dict[str, int], after: dict[str, int], wall: float,
+                   requests: int, ticks: float | None = None) -> dict[str, Any]:
+    ticks = float(os.sysconf("SC_CLK_TCK")) if ticks is None else ticks
+    if wall <= 0 or requests <= 0 or ticks <= 0:
+        raise bench.BenchmarkError("invalid guest CPU sampling interval")
+    delta = {key: after[key] - before[key] for key in HOST_CPU_FIELDS}
+    # Linux documents iowait as unreliable, including possible decreases. Keep
+    # its raw delta, but exclude it from busy/kernel accounting either way.
+    if any(value < 0 for key, value in delta.items() if key != "iowait"):
+        raise bench.BenchmarkError("guest CPU counters reset during load")
+    seconds = {key: value / ticks for key, value in delta.items()}
+    busy = sum(seconds[key] for key in ("user", "nice", "system", "irq", "softirq"))
+    kernel = sum(seconds[key] for key in ("system", "irq", "softirq"))
+    return {"before": before, "after": after, "seconds": seconds,
+            "busy_us_per_request": busy / requests * 1e6,
+            "kernel_us_per_request": kernel / requests * 1e6,
+            "softirq_us_per_request": seconds["softirq"] / requests * 1e6,
+            "busy_cpu_pct_one_core": busy / wall * 100,
+            "steal_cpu_pct_one_core": seconds["steal"] / wall * 100,
+            "scope": "entire CI guest, includes observer/colocated work; kernel=system+irq+softirq; not physical host CPU"}
+
+
+def waited_child_cpu(before: Any, after: Any) -> dict[str, Any]:
+    user, system = after.ru_utime - before.ru_utime, after.ru_stime - before.ru_stime
+    if min(user, system) < 0:
+        raise bench.BenchmarkError("child CPU counters reset")
+    return {"user_sec": user, "system_sec": system,
+            "scope": "RUSAGE_CHILDREN delta around the only waited child; includes ip exec, Go startup, JSON output and exit"}
 
 
 def parse_queue_counters(raw: str, first_queue: int, workers: int) -> dict[int, dict[str, int]]:
@@ -188,6 +244,9 @@ def run_client(client_bin: Path, ns: bench.Netns, args: argparse.Namespace,
                "--requests", str(requests), "--concurrency", str(args.concurrency),
                "--timeout", str(args.timeout)]
     # Raw stdout remains available even on a timeout or malformed JSON.
+    # Origin/UA2F stay running and are not waited in this interval; only this
+    # client contributes to the RUSAGE_CHILDREN delta (including its threads).
+    cpu_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     with (directory / f"{name}.json").open("wb") as stdout, \
             (directory / f"{name}.stderr.log").open("wb") as stderr:
         proc = subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True)
@@ -198,7 +257,10 @@ def run_client(client_bin: Path, ns: bench.Netns, args: argparse.Namespace,
                 raise bench.BenchmarkError(f"{name} exited with status {status}")
         finally:
             bench.stop_process(handle)
-    return json.loads((directory / f"{name}.json").read_text())
+    cpu_after = resource.getrusage(resource.RUSAGE_CHILDREN)
+    result = json.loads((directory / f"{name}.json").read_text())
+    result["process_cpu_accounting"] = waited_child_cpu(cpu_before, cpu_after)
+    return result
 
 
 def start_target(binary: Path, mode: str, args: argparse.Namespace,
@@ -225,17 +287,19 @@ def start_target(binary: Path, mode: str, args: argparse.Namespace,
         raise
 
 
-def install_empty_ack_candidate(helper: Path, chain: str) -> list[str]:
-    """Apply the explicitly requested candidate only inside this disposable netns."""
-    generated = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_u32 4', "sh", str(helper)])
-    expressions = generated.stdout.splitlines()
-    if len(expressions) != 11 or any(not expr.strip() for expr in expressions):
-        raise bench.BenchmarkError("empty-ACK helper did not emit eleven complete IPv4 cases")
-    for index, expression in enumerate(expressions, 1):
-        bench.run_cmd(["iptables", "-t", "mangle", "-I", chain, str(index),
-                       "-p", "tcp", "-m", "conntrack", "--ctdir", "ORIGINAL",
-                       "-m", "u32", "--u32", expression, "-j", "RETURN"])
-    return expressions
+def install_empty_ack_candidate(helper: Path, chain: str, workers: int = 1) -> list[list[str]]:
+    """Install the production-generated tail in this isolated benchmark chain."""
+    generated = bench.run_cmd(["sh", "-c", '. "$1"; ua2f_empty_ack_queue_iptables 4 "$2" "$3"',
+                               "sh", str(helper), str(bench.UA2F_QUEUE), str(bench.UA2F_QUEUE + workers - 1)])
+    rules = [line.split("\t") for line in generated.stdout.splitlines()]
+    if len(rules) != 13 or any(not rule or any(not arg for arg in rule) for rule in rules):
+        raise bench.BenchmarkError("empty-ACK helper did not emit its complete thirteen-rule tail")
+    # This fresh chain contains only setup_firewall's plain queue target. It is
+    # private to the disposable namespace and no client load has started yet.
+    bench.run_cmd(["iptables", "-t", "mangle", "-F", chain])
+    for rule in rules:
+        bench.run_cmd(["iptables", "-t", "mangle", "-A", chain, *rule])
+    return rules
 
 
 def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
@@ -261,8 +325,8 @@ def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
                                  ns, args.server_port, queue_count=args.nfqueue_workers)
             if (item["mode"] == "NFQUEUE" and item["variant"] == "candidate"
                     and args.candidate_firewall_helper):
-                result["candidate_empty_ack_u32"] = install_empty_ack_candidate(
-                    args.candidate_firewall_helper, f"UA_BENCH_M_{suffix}")
+                result["candidate_empty_ack_iptables"] = install_empty_ack_candidate(
+                    args.candidate_firewall_helper, f"UA_BENCH_M_{suffix}", args.nfqueue_workers)
         # Preserve actual TPROXY routing state; request and UA checks below
         # reject a missing/bypassed transparent route rather than timing it.
         if item["mode"] == "TPROXY":
@@ -278,10 +342,14 @@ def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
         # Exclude warmup and startup from process CPU. CPU % uses this same
         # wall-clock sampling window, with 100% meaning one fully used core.
         before = (0.0, 0.0) if direct else cpu_breakdown(target.proc.pid)
+        origin_before = cpu_breakdown(server.proc.pid)
         queues_before = queue_snapshot(args.nfqueue_workers) if item["mode"] == "NFQUEUE" else None
+        guest_before = host_cpu_snapshot()
         sample_start = time.monotonic()
         client = run_client(client_bin, ns, args, args.requests, directory, "client")
         after = (0.0, 0.0) if direct else cpu_breakdown(target.proc.pid)
+        origin_after = cpu_breakdown(server.proc.pid)
+        guest_after = host_cpu_snapshot()
         sample_seconds = time.monotonic() - sample_start
         queues_after = queue_snapshot(args.nfqueue_workers) if queues_before is not None else None
         memory = {"VmRSS": 0, "VmHWM": 0} if direct else bench.read_proc_memory(target.proc.pid)
@@ -294,11 +362,31 @@ def run_case(item: dict[str, Any], args: argparse.Namespace, client_bin: Path,
             raise bench.BenchmarkError("could not sample process RSS/HWM")
         summary = bench.summarize_client(client)
         user, system = after[0] - before[0], after[1] - before[1]
+        origin_user, origin_system = origin_after[0] - origin_before[0], origin_after[1] - origin_before[1]
+        if min(user, system, origin_user, origin_system) < 0:
+            raise bench.BenchmarkError("process CPU counters reset during load")
+        client_cpu = client["process_cpu_accounting"]
+        guest_cpu = host_cpu_delta(guest_before, guest_after, sample_seconds, args.requests)
+        combined = user + system + origin_user + origin_system + client_cpu["user_sec"] + client_cpu["system_sec"]
         summary.update(process_cpu_sec=user + system,
                        process_cpu_pct=(user + system) / sample_seconds * 100,
                        process_user_us_per_request=user / args.requests * 1e6,
                        process_system_us_per_request=system / args.requests * 1e6,
+                       origin_user_us_per_request=origin_user / args.requests * 1e6,
+                       origin_system_us_per_request=origin_system / args.requests * 1e6,
+                       client_user_us_per_request=client_cpu["user_sec"] / args.requests * 1e6,
+                       client_system_us_per_request=client_cpu["system_sec"] / args.requests * 1e6,
+                       combined_process_us_per_request=combined / args.requests * 1e6,
+                       guest_busy_us_per_request=guest_cpu["busy_us_per_request"],
+                       guest_kernel_us_per_request=guest_cpu["kernel_us_per_request"],
+                       guest_softirq_us_per_request=guest_cpu["softirq_us_per_request"],
+                       guest_busy_cpu_pct=guest_cpu["busy_cpu_pct_one_core"],
+                       guest_steal_cpu_pct=guest_cpu["steal_cpu_pct_one_core"],
                        process_rss_kib=memory["VmRSS"], process_hwm_kib=memory["VmHWM"])
+        result["guest_cpu_accounting"] = guest_cpu
+        result["process_cpu_accounting"] = {"client": client_cpu,
+            "origin": {"user_sec": origin_user, "system_sec": origin_system},
+            "ua2f": {"user_sec": user, "system_sec": system}}
         if queues_before is not None:
             result["queue_accounting"] = queue_delta(queues_before, queues_after)
             summary["queued_packets_per_request"] = result["queue_accounting"]["packets"] / args.requests
@@ -372,7 +460,9 @@ def markdown(payload: dict[str, Any]) -> str:
              "- Every measured AND warmup run must have zero errors and all HTTP 200; routed cases account for every rewritten UA",
              "- Req/s and latency are end-to-end Go client measurements, including origin and kernel work",
              "- Mbps estimates HTTP request+response bytes, not Ethernet/IP/TCP wire bandwidth",
-             "- CPU excludes warmup; 100% = one core. RSS is sampled at load end; HWM includes startup/warmup",
+             "- Origin/UA2F CPU excludes warmup; client CPU includes startup/JSON/exit. 100% = one core",
+             "- Guest CPU is read-only /proc/stat and includes observer/colocated work; it is not physical-host CPU",
+             "- RSS is sampled at load end; HWM includes startup/warmup",
              "- CV is population standard deviation / mean. Shared-runner noise is not statistical significance",
              "- UA3F is not run; older README UA3F measurements remain historical data", "",
              "- NFQUEUE original-direction conntrack matching is identical in both variants; candidate per-rule matching is preserved", "",
@@ -399,6 +489,20 @@ def markdown(payload: dict[str, Any]) -> str:
                          f"CV {ratio['cv_pct']:.2f}%")
     if payload.get("error"):
         lines.extend(["", f"Error: {payload['error']}"])
+    lines.extend(["", "## Whole-workload CPU accounting", "",
+                  "CPU work per request; guest and process totals are distinct views and must not be added together.",
+                  "| Body | Mode | Build | Client user/sys µs | Origin user/sys µs | All 3 processes µs | Guest busy µs | Guest system+irq+softirq µs | Guest busy CPU % |",
+                  "| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"])
+    for row in payload["aggregates"]:
+        if not row["complete"]:
+            continue
+        for variant in ("base", "candidate"):
+            m = row[variant]
+            lines.append(f"| {row['body_bytes']} | {row['mode']} | {variant} | "
+                         f"{m['client_user_us_per_request']['median']:.2f}/{m['client_system_us_per_request']['median']:.2f} | "
+                         f"{m['origin_user_us_per_request']['median']:.2f}/{m['origin_system_us_per_request']['median']:.2f} | "
+                         f"{m['combined_process_us_per_request']['median']:.2f} | {m['guest_busy_us_per_request']['median']:.2f} | "
+                         f"{m['guest_kernel_us_per_request']['median']:.2f} | {m['guest_busy_cpu_pct']['median']:.1f} |")
     if payload.get("direct_aggregates"):
         lines.extend(["", "## DIRECT diagnostic references", "",
                       "Same Go workload; unique-UA origin map bookkeeping differs. These are not paired speedups."])

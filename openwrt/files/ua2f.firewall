@@ -43,3 +43,67 @@ ua2f_add_empty_ack_iptables() {
 $ua2f_rules
 EOF_RULES
 }
+
+# Every precise bypass predicate implies this coarse range. Its complement may
+# therefore take the SAME NFQUEUE action without inspecting the eleven doffs.
+# Even a truncated u32 read cannot bypass anything: negation can only QUEUE it.
+ua2f_empty_ack_length_u32() {
+	case "${1:-}" in
+		4) printf '%s\n' '0&0xFFFF=40:80' ;;
+		6) printf '%s\n' '4>>16=20:60' ;;
+		*) return 1 ;;
+	esac
+}
+
+# Pure complete candidate-tail generator: one rule per line, TAB-separated argv.
+# Consumers must split on TAB, not whitespace, so each u32 expression stays one
+# argument. No shell evaluation is needed. Family, first queue and last queue
+# are explicit; equal endpoints select --queue-num, otherwise --queue-balance.
+# Install AFTER all existing bypass/mark rules. The only skipped work is failed,
+# side-effect-free empty-ACK matching; neither queue changes the connection mark.
+ua2f_empty_ack_queue_iptables() {
+	[ "$#" -eq 3 ] || return 1
+	ua2f_length="$(ua2f_empty_ack_length_u32 "$1")" || return 1
+	case "$2" in ""|*[!0-9]*) return 1 ;; esac
+	case "$3" in ""|*[!0-9]*) return 1 ;; esac
+	[ "$2" -le 65535 ] && [ "$3" -le 65535 ] && [ "$2" -le "$3" ] || return 1
+	if [ "$2" -eq "$3" ]; then
+		ua2f_queue="$(printf '%s\t%s\t%s\t%s\t%s' -j NFQUEUE --queue-num "$2" --queue-bypass)"
+	else
+		ua2f_queue="$(printf '%s\t%s\t%s\t%s\t%s' -j NFQUEUE --queue-balance "$2:$3" --queue-bypass)"
+	fi
+	printf '%s\t%s\t%s\t%s\t%s\t%s\n' -m u32 '!' --u32 "$ua2f_length" "$ua2f_queue"
+	ua2f_rules="$(ua2f_empty_ack_u32 "$1")" || return 1
+	while IFS= read -r ua2f_expr; do
+		printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+			-p tcp -m conntrack --ctdir ORIGINAL -m u32 --u32 "$ua2f_expr" "$(printf '%s\t%s' -j RETURN)"
+	done <<EOF_RULES
+$ua2f_rules
+EOF_RULES
+	printf '%s\n' "$ua2f_queue"
+}
+
+# Split the pure generator's TSV in a subshell, preserving the caller's IFS and
+# glob settings. Only the explicit command prefix is executed, never eval.
+ua2f_append_iptables_argv() (
+	ua2f_argv="$1"
+	shift
+	IFS="$(printf '\t')"
+	set -f
+	# Intentional field splitting of generated TAB-separated arguments.
+	# shellcheck disable=SC2086
+	"$@" $ua2f_argv
+)
+
+# Install exactly the generated tail, including its final fallback. If any rule
+# fails, the caller MUST append an unconditional NFQUEUE fallback as before.
+ua2f_add_empty_ack_queue_iptables() {
+	[ "$#" -ge 4 ] || return 1
+	ua2f_tail="$(ua2f_empty_ack_queue_iptables "$1" "$2" "$3")" || return 1
+	shift 3
+	while IFS= read -r ua2f_rule; do
+		ua2f_append_iptables_argv "$ua2f_rule" "$@" || return 1
+	done <<EOF_RULES
+$ua2f_tail
+EOF_RULES
+}

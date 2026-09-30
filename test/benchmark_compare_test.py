@@ -64,6 +64,47 @@ class QueueCountersTest(unittest.TestCase):
         self.assertEqual(compare.queue_delta(old, new)["packets"], 20)
 
 
+class WorkloadCpuTest(unittest.TestCase):
+    def test_proc_stat_uses_aggregate_and_does_not_double_count_guest(self):
+        row = compare.parse_host_cpu("cpu 100 10 20 200 30 5 15 7 90 8\ncpu0 1 1 1 1 1 1 1 1\n")
+        self.assertEqual(len(row), 8)
+        self.assertNotIn("guest", row)
+        before = {key: 0 for key in compare.HOST_CPU_FIELDS}
+        delta = compare.host_cpu_delta(before, row, 1.0, 100, ticks=100)
+        self.assertAlmostEqual(delta["busy_us_per_request"], 15000)
+        self.assertAlmostEqual(delta["kernel_us_per_request"], 4000)
+        self.assertAlmostEqual(delta["softirq_us_per_request"], 1500)
+        self.assertAlmostEqual(delta["busy_cpu_pct_one_core"], 150)
+        self.assertAlmostEqual(delta["steal_cpu_pct_one_core"], 7)
+
+    def test_iowait_can_decrease_but_does_not_change_busy_work(self):
+        before = {key: 0 for key in compare.HOST_CPU_FIELDS}
+        before["iowait"] = 10
+        after = {key: 0 for key in compare.HOST_CPU_FIELDS}
+        result = compare.host_cpu_delta(before, after, 1, 1, ticks=100)
+        self.assertEqual(result["busy_us_per_request"], 0)
+        self.assertEqual(result["seconds"]["iowait"], -.1)
+
+    def test_cpu_reset_and_bad_snapshot_are_rejected(self):
+        for raw in ("cpu0 1 2 3 4 5 6 7 8", "cpu 1 2", "cpu -1 2 3 4 5 6 7 8"):
+            with self.subTest(raw=raw), self.assertRaises(BenchmarkError):
+                compare.parse_host_cpu(raw)
+        before = {key: 10 for key in compare.HOST_CPU_FIELDS}
+        after = before.copy()
+        after["system"] = 9
+        with self.assertRaises(BenchmarkError):
+            compare.host_cpu_delta(before, after, 1, 1, ticks=100)
+
+    def test_waited_child_accounting_is_a_delta(self):
+        before = SimpleNamespace(ru_utime=100., ru_stime=50.)
+        after = SimpleNamespace(ru_utime=101.5, ru_stime=50.4)
+        result = compare.waited_child_cpu(before, after)
+        self.assertAlmostEqual(result["user_sec"], 1.5)
+        self.assertAlmostEqual(result["system_sec"], .4)
+        with self.assertRaises(BenchmarkError):
+            compare.waited_child_cpu(after, before)
+
+
 class PlanTest(unittest.TestCase):
     def test_legacy_plan_still_72_cases(self):
         plan = compare.make_plan(6, [1024, 65536])
@@ -102,17 +143,20 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(generated.count("counter queue num 10010;"), 1)
 
     def test_timed_rules_include_production_conntrack_matching(self):
-        expressions = [f"32>>28={n}" for n in range(5, 16)]
+        rules = [["-m", "u32", "!", "--u32", "0&0xffff=40:80", "-j", "NFQUEUE", "--queue-num", "10010", "--queue-bypass"]]
+        rules += [["-p", "tcp", "-m", "conntrack", "--ctdir", "ORIGINAL", "-m", "u32", "--u32", f"32>>28={n}", "-j", "RETURN"] for n in range(5, 16)]
+        rules += [["-j", "NFQUEUE", "--queue-num", "10010", "--queue-bypass"]]
         with patch("benchmark_compare.bench.run_cmd") as run:
-            run.return_value = SimpleNamespace(stdout="\n".join(expressions))
-            self.assertEqual(compare.install_empty_ack_candidate(Path("/source/helper"), "TEST"), expressions)
-        self.assertEqual(run.call_count, 12)
-        for index, call in enumerate(run.call_args_list[1:], 1):
+            run.return_value = SimpleNamespace(stdout="\n".join("\t".join(rule) for rule in rules))
+            self.assertEqual(compare.install_empty_ack_candidate(Path("/source/helper"), "TEST"), rules)
+        self.assertEqual(run.call_count, 15)
+        self.assertEqual(run.call_args_list[1].args[0], ["iptables", "-t", "mangle", "-F", "TEST"])
+        for index, call in enumerate(run.call_args_list[2:]):
             args = call.args[0]
-            self.assertEqual(args[4:6], ["TEST", str(index)])
-            self.assertIn("conntrack", args)
-            self.assertEqual(args[args.index("--ctdir") + 1], "ORIGINAL")
-            self.assertEqual(args[-2:], ["-j", "RETURN"])
+            self.assertEqual(args[:5], ["iptables", "-t", "mangle", "-A", "TEST"])
+            self.assertEqual(args[5:], rules[index])
+            if 1 <= index <= 11:
+                self.assertEqual(args[args.index("--ctdir") + 1], "ORIGINAL")
 
     def test_direct_and_rewritten_ua_validation_are_distinct(self):
         client = {"requests": 1, "completed": 1, "errors": 0,
