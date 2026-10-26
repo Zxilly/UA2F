@@ -350,10 +350,12 @@ setup_firewall() {
 		return 1
 	fi
 
-	local handle_tls handle_intranet handle_mmtls disable_connmark mode listen_port nfqueue_workers
+	local handle_tls handle_intranet handle_mmtls disable_connmark mode listen_port nfqueue_workers bypass_empty_ack
 	config_get_bool handle_tls "firewall" "handle_tls" "0"
 	config_get_bool handle_intranet "firewall" "handle_intranet" "0"
 	config_get_bool handle_mmtls "firewall" "handle_mmtls" "0"
+	# Source-only experimental candidate; disabled until packet-path validation.
+	config_get_bool bypass_empty_ack "firewall" "bypass_empty_ack" "0"
 	config_get_bool disable_connmark "main" "disable_connmark" "0"
 	config_get mode "main" "mode" "NFQUEUE"
 	config_get listen_port "main" "listen_port" "10010"
@@ -378,6 +380,10 @@ setup_firewall() {
 			return 1
 			;;
 	esac
+
+	if [ "$bypass_empty_ack" -eq "1" ]; then
+		. /usr/share/ua2f/firewall.sh || return 1
+	fi
 
 	local nfqueue_end nfqueue_expr
 	nfqueue_end=$((10010 + nfqueue_workers - 1))
@@ -425,6 +431,7 @@ setup_firewall() {
 					$([ "$handle_tls" -eq "1" ] || echo 'tcp dport 443 counter return comment "!ua2f: bypass HTTPS";')
 					$([ "$disable_connmark" -eq "1" ] || echo 'tcp dport 80 counter ct mark set 44;')
 					$([ "$disable_connmark" -eq "1" ] || echo 'ct mark 43 counter return comment "!ua2f: bypass non-http stream";')
+					$([ "$bypass_empty_ack" -eq "0" ] || ua2f_empty_ack_nft)
 					meta l4proto tcp ct direction original counter $nfqueue_expr;
 				}
 			}
@@ -450,10 +457,13 @@ setup_firewall() {
 			[ "$disable_connmark" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
       [ "$disable_connmark" -eq "1" ] || $IPT_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 			[ "$handle_mmtls" -eq "1" ] || $IPT_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-			if [ "$nfqueue_workers" -gt 1 ]; then
-				$IPT_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
-			else
-				$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+			if [ "$bypass_empty_ack" -eq "0" ] || ! ua2f_add_empty_ack_queue_iptables 4 10010 "$nfqueue_end" iptables -t mangle -A ua2f; then
+				[ "$bypass_empty_ack" -eq "0" ] || echo "UA2F: empty-ACK IPv4 optimization unavailable; keeping NFQUEUE fallback" >&2
+				if [ "$nfqueue_workers" -gt 1 ]; then
+					$IPT_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
+				else
+					$IPT_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+				fi
 			fi
 		fi
 		$IPT_M -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
@@ -484,10 +494,13 @@ setup_firewall() {
 				[ "$disable_connmark" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -j CONNMARK --set-mark 44
         [ "$disable_connmark" -eq "1" ] || $IPT6_M -A ua2f -m connmark --mark 43 -j RETURN # 不处理标记为非 http 的流
 				[ "$handle_mmtls" -eq "1" ] || $IPT6_M -A ua2f -p tcp --dport 80 -m string --string "/mmtls/" --algo bm -j RETURN # 不处理微信的mmtls
-				if [ "$nfqueue_workers" -gt 1 ]; then
-					$IPT6_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
-				else
-					$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+				if [ "$bypass_empty_ack" -eq "0" ] || ! ua2f_add_empty_ack_queue_iptables 6 10010 "$nfqueue_end" ip6tables -t mangle -A ua2f; then
+					[ "$bypass_empty_ack" -eq "0" ] || echo "UA2F: empty-ACK IPv6 optimization unavailable; keeping NFQUEUE fallback" >&2
+					if [ "$nfqueue_workers" -gt 1 ]; then
+						$IPT6_M -A ua2f -j NFQUEUE --queue-balance "10010:$nfqueue_end" --queue-bypass
+					else
+						$IPT6_M -A ua2f -j NFQUEUE --queue-num 10010 --queue-bypass
+					fi
 				fi
 			fi
 			$IPT6_M -A POSTROUTING -p tcp -m conntrack --ctdir ORIGINAL -j ua2f
