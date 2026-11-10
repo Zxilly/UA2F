@@ -13,6 +13,69 @@ extern "C" {
 #include "mock_packet_io.h"
 #include "packet_builder.h"
 
+namespace {
+
+// Compute Internet checksums from bytes, independently of libnetfilter_queue.
+uint16_t read_network_u16(const uint8_t *data) {
+    return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]);
+}
+
+void write_network_u16(uint8_t *data, uint16_t value) {
+    data[0] = static_cast<uint8_t>(value >> 8);
+    data[1] = static_cast<uint8_t>(value);
+}
+
+uint32_t checksum_sum(const uint8_t *data, size_t len, uint32_t sum = 0) {
+    while (len >= 2) {
+        sum += read_network_u16(data);
+        data += 2;
+        len -= 2;
+    }
+    if (len != 0) {
+        sum += static_cast<uint32_t>(data[0]) << 8;
+    }
+    while (sum >> 16) {
+        sum = (sum & 0xffffU) + (sum >> 16);
+    }
+    return sum;
+}
+
+uint32_t tcp_checksum_sum(const std::vector<uint8_t> &packet, int ip_version, size_t tcp_offset) {
+    const size_t tcp_len = packet.size() - tcp_offset;
+    const size_t address_offset = ip_version == IPV4 ? 12 : 8;
+    const size_t address_len = ip_version == IPV4 ? 8 : 32;
+    uint32_t sum = checksum_sum(packet.data() + address_offset, address_len);
+    sum += IPPROTO_TCP + static_cast<uint32_t>(tcp_len);
+    return checksum_sum(packet.data() + tcp_offset, tcp_len, sum);
+}
+
+void set_packet_checksums(std::vector<uint8_t> &packet, int ip_version, size_t tcp_offset) {
+    if (ip_version == IPV4) {
+        write_network_u16(packet.data() + 2, static_cast<uint16_t>(packet.size()));
+        write_network_u16(packet.data() + 10, 0);
+        write_network_u16(packet.data() + 10,
+                          static_cast<uint16_t>(~checksum_sum(packet.data(), tcp_offset)));
+    } else {
+        write_network_u16(packet.data() + 4, static_cast<uint16_t>(packet.size() - 40));
+    }
+    write_network_u16(packet.data() + tcp_offset + 16, 0);
+    write_network_u16(packet.data() + tcp_offset + 16,
+                      static_cast<uint16_t>(~tcp_checksum_sum(packet, ip_version, tcp_offset)));
+}
+
+void expect_valid_packet_checksums(const std::vector<uint8_t> &packet, int ip_version, size_t tcp_offset) {
+    ASSERT_GE(packet.size(), tcp_offset + 20);
+    if (ip_version == IPV4) {
+        EXPECT_EQ(read_network_u16(packet.data() + 2), packet.size());
+        EXPECT_EQ(checksum_sum(packet.data(), tcp_offset), 0xffffU);
+    } else {
+        EXPECT_EQ(read_network_u16(packet.data() + 4), packet.size() - 40);
+    }
+    EXPECT_EQ(tcp_checksum_sum(packet, ip_version, tcp_offset), 0xffffU);
+}
+
+} // namespace
+
 class HandlerTest : public ::testing::Test {
 protected:
     mock_io_context mock_ctx;
@@ -74,7 +137,7 @@ TEST_F(HandlerTest, HttpGetWithUserAgent) {
     EXPECT_EQ(payload_str.find("Mozilla/5.0"), std::string::npos);
 }
 
-// 2. HTTP GET without User-Agent → NF_ACCEPT, mangled data present (packet still sent back)
+// 2. HTTP GET without User-Agent → NF_ACCEPT without redundant replacement data
 TEST_F(HandlerTest, HttpGetWithoutUserAgent) {
     const char *req = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
     auto pkt = make_http_packet(req);
@@ -83,6 +146,7 @@ TEST_F(HandlerTest, HttpGetWithoutUserAgent) {
 
     ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
     EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    EXPECT_TRUE(mock_ctx.verdicts[0].mangled_data.empty());
 }
 
 // 3. Non-HTTP traffic → NF_ACCEPT, no mangling
@@ -518,5 +582,186 @@ TEST_F(HandlerTest, AllocationFailureKeepsSessionClosedForRetransmittedFragments
         EXPECT_EQ(session_find(&key), session);
         EXPECT_EQ(session_cleanup_expired(300), 0);
         session_wrunlock();
+    }
+}
+
+
+TEST_F(HandlerTest, BodyOnlyVerdictOmitsPayloadAndPreservesSession) {
+    use_conntrack = true;
+    const char *header = "POST /upload HTTP/1.1\r\nUser-Agent: Original\r\nContent-Length: 12\r\n\r\n";
+    auto first = make_http_packet_ct(header);
+    handle_packet(&mock_packet_io, &mock_ctx, &first);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    ASSERT_FALSE(mock_ctx.verdicts[0].mangled_data.empty());
+    const auto key = session_key_from_connid(100);
+    session_wrlock();
+    auto *session = session_find(&key);
+    session_wrunlock();
+    ASSERT_NE(session, nullptr);
+    session_state_lock(session);
+    session->last_active = time(nullptr) - 301;
+    session_state_unlock(session);
+
+    auto body = make_http_packet_ct("User-Agent: ", 2);
+    handle_packet(&mock_packet_io, &mock_ctx, &body);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 2u);
+    EXPECT_EQ(mock_ctx.verdicts[1].verdict, NF_ACCEPT);
+    EXPECT_TRUE(mock_ctx.verdicts[1].mangled_data.empty());
+    EXPECT_FALSE(mock_ctx.verdicts[1].mark.should_set);
+    session_wrlock();
+    EXPECT_EQ(session_find(&key), session);
+    EXPECT_EQ(session_cleanup_expired(300), 0);
+    session_wrunlock();
+
+    auto next = make_http_packet_ct("GET / HTTP/1.1\r\nUser-Agent: Next\r\n\r\n", 3);
+    handle_packet(&mock_packet_io, &mock_ctx, &next);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 3u);
+    const auto payload = extract_tcp_payload(mock_ctx.verdicts[2].mangled_data, IPV4);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()), "GET / HTTP/1.1\r\nUser-Agent: FFFF\r\n\r\n");
+}
+
+TEST_F(HandlerTest, NoUserAgentStillMarksNewHttpConnection) {
+    use_conntrack = true;
+    auto packet = make_http_packet_ct("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n");
+    handle_packet(&mock_packet_io, &mock_ctx, &packet);
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    EXPECT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    EXPECT_TRUE(mock_ctx.verdicts[0].mangled_data.empty());
+    EXPECT_TRUE(mock_ctx.verdicts[0].mark.should_set);
+    EXPECT_EQ(mock_ctx.verdicts[0].mark.mark, static_cast<uint32_t>(CONNMARK_HTTP));
+}
+
+TEST_F(HandlerTest, PipelinedOddLengthUserAgentsHaveValidIpv4Checksums) {
+    std::string request;
+    std::string expected;
+    for (size_t i = 0; i < 33; ++i) {
+        request += "GET / HTTP/1.1\r\nUser-Agent: OddUA\r\n\r\n";
+        expected += "GET / HTTP/1.1\r\nUser-Agent: FFFFF\r\n\r\n";
+    }
+    ASSERT_EQ(request.size() % 2, 1u);
+    auto raw = build_ipv4_tcp_packet(htonl(0x0a000001), htonl(0x0a000002),
+                                     12345, 80, request.data(), request.size());
+    set_packet_checksums(raw, IPV4, 20);
+    auto packet = make_nf_packet(raw, 1, IPV4);
+    handle_packet(&mock_packet_io, &mock_ctx, &packet);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    ASSERT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    const auto &rewritten = mock_ctx.verdicts[0].mangled_data;
+    ASSERT_EQ(rewritten.size(), raw.size());
+    expect_valid_packet_checksums(rewritten, IPV4, 20);
+    const auto payload = extract_tcp_payload(rewritten, IPV4);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()), expected);
+}
+
+TEST_F(HandlerTest, DuplicateOddLengthUserAgentsHaveValidIpv6Checksum) {
+    std::string request = "GET / HTTP/1.1\r\n";
+    std::string expected = request;
+    for (size_t i = 0; i < 33; ++i) {
+        request += "User-Agent: OddUA\r\n";
+        expected += "User-Agent: FFFFF\r\n";
+    }
+    request += "\r\n";
+    expected += "\r\n";
+    ASSERT_EQ(request.size() % 2, 1u);
+    struct in6_addr src = IN6ADDR_LOOPBACK_INIT;
+    struct in6_addr dst = IN6ADDR_LOOPBACK_INIT;
+    dst.s6_addr[15] = 2;
+    auto raw = build_ipv6_tcp_packet(src, dst, 12345, 80, request.data(), request.size());
+    set_packet_checksums(raw, IPV6, 40);
+    auto packet = make_nf_packet(raw, 1, IPV6);
+    handle_packet(&mock_packet_io, &mock_ctx, &packet);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    ASSERT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    const auto &rewritten = mock_ctx.verdicts[0].mangled_data;
+    ASSERT_EQ(rewritten.size(), raw.size());
+    expect_valid_packet_checksums(rewritten, IPV6, 40);
+    const auto payload = extract_tcp_payload(rewritten, IPV6);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()), expected);
+}
+
+TEST_F(HandlerTest, Ipv4AndTcpOptionsSurviveUserAgentRewriteWithValidChecksums) {
+    const std::string request = "GET / HTTP/1.1\r\nUser-Agent: OddUA\r\n\r\n";
+    auto raw = build_ipv4_tcp_packet(htonl(0x0a000001), htonl(0x0a000002),
+                                     12345, 80, request.data(), request.size());
+    // Four IPv4 NOP options; TCP NOP, NOP, Timestamp options (12 bytes).
+    raw.insert(raw.begin() + 20, {1, 1, 1, 1});
+    raw[0] = 0x46;
+    const std::vector<uint8_t> tcp_options = {1, 1, 8, 10, 0, 0, 0, 1, 0, 0, 0, 2};
+    raw.insert(raw.begin() + 44, tcp_options.begin(), tcp_options.end());
+    raw[24 + 12] = static_cast<uint8_t>((8U << 4) | (raw[24 + 12] & 0x0fU));
+    set_packet_checksums(raw, IPV4, 24);
+    auto packet = make_nf_packet(raw, 1, IPV4);
+    handle_packet(&mock_packet_io, &mock_ctx, &packet);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    ASSERT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    const auto &rewritten = mock_ctx.verdicts[0].mangled_data;
+    ASSERT_EQ(rewritten.size(), raw.size());
+    expect_valid_packet_checksums(rewritten, IPV4, 24);
+    EXPECT_EQ(std::vector<uint8_t>(rewritten.begin() + 20, rewritten.begin() + 24),
+              (std::vector<uint8_t>{1, 1, 1, 1}));
+    EXPECT_EQ(std::vector<uint8_t>(rewritten.begin() + 44, rewritten.begin() + 56), tcp_options);
+    const auto payload = extract_tcp_payload(rewritten, IPV4);
+    EXPECT_EQ(std::string(payload.begin(), payload.end()),
+              "GET / HTTP/1.1\r\nUser-Agent: FFFFF\r\n\r\n");
+}
+
+TEST_F(HandlerTest, Ipv6AtomicFragmentHeaderSurvivesRewriteWithValidTcpChecksum) {
+    const std::string request = "GET / HTTP/1.1\r\nUser-Agent: OddUA\r\n\r\n";
+    struct in6_addr src = IN6ADDR_LOOPBACK_INIT;
+    struct in6_addr dst = IN6ADDR_LOOPBACK_INIT;
+    dst.s6_addr[15] = 2;
+    auto raw = build_ipv6_tcp_packet(src, dst, 12345, 80, request.data(), request.size());
+    // A complete atomic fragment: offset zero, M flag clear, identification zero.
+    const std::vector<uint8_t> fragment_header = {IPPROTO_TCP, 0, 0, 0, 0, 0, 0, 0};
+    raw.insert(raw.begin() + 40, fragment_header.begin(), fragment_header.end());
+    raw[6] = IPPROTO_FRAGMENT;
+    set_packet_checksums(raw, IPV6, 48);
+    auto packet = make_nf_packet(raw, 1, IPV6);
+    handle_packet(&mock_packet_io, &mock_ctx, &packet);
+
+    ASSERT_EQ(mock_ctx.verdicts.size(), 1u);
+    ASSERT_EQ(mock_ctx.verdicts[0].verdict, NF_ACCEPT);
+    const auto &rewritten = mock_ctx.verdicts[0].mangled_data;
+    ASSERT_EQ(rewritten.size(), raw.size());
+    expect_valid_packet_checksums(rewritten, IPV6, 48);
+    EXPECT_EQ(std::vector<uint8_t>(rewritten.begin() + 40, rewritten.begin() + 48), fragment_header);
+    EXPECT_EQ(std::string(rewritten.begin() + 68, rewritten.end()),
+              "GET / HTTP/1.1\r\nUser-Agent: FFFFF\r\n\r\n");
+}
+
+TEST_F(HandlerTest, SplitLongUserAgentPadsOnlyBeyondReplacementCapacity) {
+    const size_t capacity = get_replacement_user_agent_string_length();
+    const size_t first_value_len = 60000;
+    ASSERT_GT(capacity, first_value_len);
+    const std::string prefix = "GET / HTTP/1.1\r\nUser-Agent: ";
+    const std::string first = prefix + std::string(first_value_len, 'A');
+    const size_t replacement_remaining = capacity - first_value_len;
+    const std::string second(replacement_remaining + 17, 'B');
+    const std::string third = "Original-tail\r\n\r\n";
+    const std::string expected[] = {
+        prefix + std::string(get_replacement_user_agent_string(), first_value_len),
+        std::string(get_replacement_user_agent_string() + first_value_len, replacement_remaining) +
+            std::string(17, ' '),
+        std::string(std::strlen("Original-tail"), ' ') + "\r\n\r\n",
+    };
+    const std::string fragments[] = {first, second, third};
+
+    for (size_t i = 0; i < 3; ++i) {
+        auto raw = build_ipv4_tcp_packet(htonl(0x0a000001), htonl(0x0a000002),
+                                         12345, 80, fragments[i].data(), fragments[i].size());
+        ASSERT_LE(raw.size(), 65535u);
+        set_packet_checksums(raw, IPV4, 20);
+        auto packet = make_nf_packet(raw, static_cast<uint32_t>(i + 1), IPV4);
+        handle_packet(&mock_packet_io, &mock_ctx, &packet);
+        ASSERT_EQ(mock_ctx.verdicts.size(), i + 1);
+        ASSERT_EQ(mock_ctx.verdicts[i].verdict, NF_ACCEPT);
+        const auto &rewritten = mock_ctx.verdicts[i].mangled_data;
+        ASSERT_EQ(rewritten.size(), raw.size());
+        expect_valid_packet_checksums(rewritten, IPV4, 20);
+        const auto payload = extract_tcp_payload(rewritten, IPV4);
+        EXPECT_EQ(std::string(payload.begin(), payload.end()), expected[i]);
     }
 }
